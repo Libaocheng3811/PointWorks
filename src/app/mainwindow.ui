@@ -720,7 +720,7 @@ QScrollBar::sub-line:horizontal {
   </widget>
   <widget class="QToolBar" name="PythonBar">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>Python</string>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
@@ -732,11 +732,13 @@ QScrollBar::sub-line:horizontal {
     </size>
    </property>
    <attribute name="toolBarArea">
-    <enum>RightToolBarArea</enum>
+    <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionPythonEditor"/>
+   <addaction name="actionPythonConsole"/>
   </widget>
   <action name="actionOpen">
    <property name="icon">
@@ -1612,10 +1614,13 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/dialog-scripts.svg</normaloff>:/res/icon/dialog-scripts.svg</iconset>
+     <normaloff>:/res/images/python_console.png</normaloff>:/res/images/python_console.png</iconset>
    </property>
    <property name="text">
     <string>Python Console</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle Python Console</string>
    </property>
    <property name="font">
     <font>
@@ -1633,10 +1638,13 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/dialog-scripts.svg</normaloff>:/res/icon/dialog-scripts.svg</iconset>
+     <normaloff>:/res/images/python_editor.png</normaloff>:/res/images/python_editor.png</iconset>
    </property>
    <property name="text">
     <string>Python Editor</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle Python Editor</string>
    </property>
    <property name="font">
     <font>

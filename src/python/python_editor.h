@@ -95,7 +95,7 @@ struct EditorTab {
 };
 
 // ================================================================
-// PythonEditor 浮层（覆盖在 CloudView 之上）
+// PythonEditor 独立编辑器窗口
 // ================================================================
 class PythonEditor : public QWidget
 {
@@ -104,8 +104,7 @@ class PythonEditor : public QWidget
 public:
     explicit PythonEditor(QWidget* parent = nullptr);
 
-    void showEditor();
-    void hideEditor();
+    void showEditor();  // 对外保留，供 mainwindow 调用后做 setGeometry/show
 
 private slots:
     void onRun();
@@ -132,7 +131,7 @@ private:
     void updateTabTitle(int index);
 
     void keyPressEvent(QKeyEvent* event) override;
-    bool eventFilter(QObject* watched, QEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 };
 
 } // namespace ct

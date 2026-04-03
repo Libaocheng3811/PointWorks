@@ -189,16 +189,20 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(ui->actionPythonEditor, &QAction::toggled, this, [this](bool checked) {
-        auto* editor = ui->centralwidget->findChild<ct::PythonEditor*>();
+        static ct::PythonEditor* editor = nullptr;
+        if (!editor) {
+            editor = new ct::PythonEditor(this);
+        }
         if (checked) {
-            if (!editor) {
-                editor = new ct::PythonEditor(ui->centralwidget);
-            }
-            editor->showEditor();
+            // 基于 CloudView 全局坐标定位：宽=CloudView宽，高=CloudView一半，遮住右半侧
+            QPoint tl = ui->cloudview->mapToGlobal(QPoint(0, 0));
+            QSize cvSize = ui->cloudview->size();
+            editor->setGeometry(tl.x() + cvSize.width() / 2, tl.y(),
+                                cvSize.width() / 2, cvSize.height());
+            editor->show();
+            editor->activateWindow();
         } else {
-            if (editor) {
-                editor->hideEditor();
-            }
+            editor->hide();
         }
     });
 

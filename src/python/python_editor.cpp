@@ -5,6 +5,7 @@
 
 #include <QVBoxLayout>
 #include <QKeyEvent>
+#include <QCloseEvent>
 #include <QAction>
 #include <QMainWindow>
 #include <QFileDialog>
@@ -18,7 +19,6 @@
 #include <QApplication>
 #include <QPaintEvent>
 #include <QPainter>
-#include <QResizeEvent>
 
 namespace ct
 {
@@ -227,15 +227,11 @@ void PythonSyntaxHighlighter::highlightBlock(const QString& text)
 PythonEditor::PythonEditor(QWidget* parent)
     : QWidget(parent)
 {
-    // 不透明背景，防止底层 CloudView 透出
-    setAttribute(Qt::WA_StyledBackground);
-    setAutoFillBackground(true);
-    QPalette pal = palette();
-    pal.setColor(QPalette::Window, pal.color(QPalette::Base));
-    setPalette(pal);
-
-    // 右侧边框，与 CloudView 的白色边界条一致
-    setStyleSheet("PythonEditor { border-right: 1px solid palette(mid); }");
+    // 独立自由窗口
+    setWindowFlags(Qt::Window);
+    setWindowTitle("Python Editor");
+    setAttribute(Qt::WA_DeleteOnClose, false);
+    resize(500, 600);
 
     auto* main_layout = new QVBoxLayout(this);
     main_layout->setContentsMargins(0, 0, 0, 0);
@@ -264,19 +260,12 @@ PythonEditor::PythonEditor(QWidget* parent)
 
     m_toolbar->addSeparator();
 
-    auto* spacer = new QWidget(m_toolbar);
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_toolbar->addWidget(spacer);
-
-    auto* action_close = m_toolbar->addAction(QIcon(":/res/icon/close.svg"), "Close Editor");
-
     connect(action_new,    &QAction::triggered, this, &PythonEditor::onNew);
     connect(action_open,   &QAction::triggered, this, &PythonEditor::onOpen);
     connect(action_save,   &QAction::triggered, this, &PythonEditor::onSave);
     connect(action_saveas, &QAction::triggered, this, &PythonEditor::onSaveAs);
     connect(m_action_run,  &QAction::triggered, this, &PythonEditor::onRun);
     connect(m_action_stop, &QAction::triggered, this, &PythonEditor::onStop);
-    connect(action_close,  &QAction::triggered, this, &PythonEditor::hideEditor);
 
     main_layout->addWidget(m_toolbar);
 
@@ -311,9 +300,6 @@ PythonEditor::PythonEditor(QWidget* parent)
         connect(worker, &PythonWorker::scriptFinished,
                 this, &PythonEditor::onScriptFinished);
     }
-
-    // 初始隐藏
-    hide();
 
     // 创建初始选项卡
     onNew();
@@ -386,36 +372,9 @@ void PythonEditor::updateTabTitle(int index)
 
 void PythonEditor::showEditor()
 {
-    QWidget* p = parentWidget();
-    if (p) {
-        // 右侧留 2px 间距，不覆盖 CloudView 与窗口边界的间隙
-        QRect r = p->rect();
-        r.setRight(r.right() - 2);
-        setGeometry(r);
-        p->installEventFilter(this);
-        raise();
-    }
     show();
+    activateWindow();
     setFocus();
-
-    // 同步菜单按钮状态
-    if (auto* mw = qobject_cast<QMainWindow*>(window())) {
-        if (auto* action = mw->findChild<QAction*>("actionPythonEditor")) {
-            action->setChecked(true);
-        }
-    }
-}
-
-void PythonEditor::hideEditor()
-{
-    hide();
-
-    // 同步菜单按钮状态
-    if (auto* mw = qobject_cast<QMainWindow*>(window())) {
-        if (auto* action = mw->findChild<QAction*>("actionPythonEditor")) {
-            action->setChecked(false);
-        }
-    }
 }
 
 // === Slots ===
@@ -563,24 +522,18 @@ void PythonEditor::onScriptFinished(bool ok, QString error)
 
 void PythonEditor::keyPressEvent(QKeyEvent* event)
 {
-    if (event->key() == Qt::Key_Escape) {
-        hideEditor();
-        return;
-    }
     QWidget::keyPressEvent(event);
 }
 
-bool PythonEditor::eventFilter(QObject* watched, QEvent* event)
+void PythonEditor::closeEvent(QCloseEvent* event)
 {
-    // 父 widget resize 时同步更新浮层大小
-    if (watched == parentWidget() && event->type() == QEvent::Resize) {
-        if (isVisible()) {
-            QRect r = parentWidget()->rect();
-            r.setRight(r.right() - 2);
-            setGeometry(r);
+    // 同步主窗口工具栏按钮状态
+    if (auto* mw = qobject_cast<QMainWindow*>(parentWidget())) {
+        if (auto* action = mw->findChild<QAction*>("actionPythonEditor")) {
+            action->setChecked(false);
         }
     }
-    return QWidget::eventFilter(watched, event);
+    event->accept();
 }
 
 } // namespace ct
