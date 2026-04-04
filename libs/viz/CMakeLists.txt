@@ -14,6 +14,7 @@ target_include_directories(ct_viz PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ct_viz
     PUBLIC
         ct_core
+        ct_io
         Qt${QT_VERSION_MAJOR}::Widgets
         ${VTK_LIBRARIES}
         ${PCL_LIBRARIES}

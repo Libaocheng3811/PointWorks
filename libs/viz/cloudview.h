@@ -3,6 +3,7 @@
 
 #include "core/cloud.h"
 #include "core/exports.h"
+#include "io/projectfile.h"
 #include "octreerenderer.h"
 
 #include "QVTKOpenGLNativeWidget.h"
@@ -272,6 +273,18 @@ namespace ct {
              m_render->ResetCameraClippingRange();
              m_viewer->getRenderWindow()->Render();
         }
+
+        /// 获取当前相机参数
+        CameraParams getCameraParams() const;
+
+        /// 恢复相机参数
+        void setCameraParams(const CameraParams& params);
+
+        /// 获取当前视图选项
+        ViewOptions getViewOptions() const;
+
+        /// 恢复视图选项
+        void setViewOptions(const ViewOptions& opts);
 
         ///////////////////////////////////////////////////////////////
         // display

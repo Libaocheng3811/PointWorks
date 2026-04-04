@@ -1052,4 +1052,49 @@ namespace ct
                                 this->interactor()->GetEventPosition()[1]));
 //        return QVTKOpenGLNativeWidget::mouseMoveEvent(event);
     }
-}
+
+    ///////////////////////////////////////////////////////////////////
+    // camera & view state serialization
+    CameraParams CloudView::getCameraParams() const
+    {
+        CameraParams p;
+        vtkCamera* cam = m_render->GetActiveCamera();
+        if (!cam) return p;
+
+        cam->GetPosition(p.position);
+        cam->GetFocalPoint(p.focal_point);
+        cam->GetViewUp(p.view_up);
+        p.clip_near = cam->GetClippingRange()[0];
+        p.clip_far = cam->GetClippingRange()[1];
+        return p;
+    }
+
+    void CloudView::setCameraParams(const CameraParams& params)
+    {
+        vtkCamera* cam = m_render->GetActiveCamera();
+        if (!cam) return;
+
+        cam->SetPosition(params.position);
+        cam->SetFocalPoint(params.focal_point);
+        cam->SetViewUp(params.view_up);
+        cam->SetClippingRange(params.clip_near, params.clip_far);
+        m_render->ResetCameraClippingRange();
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    ViewOptions CloudView::getViewOptions() const
+    {
+        ViewOptions opts;
+        opts.show_axes = m_axes->GetEnabled() != 0;
+        opts.show_id = m_show_id;
+        return opts;
+    }
+
+    void CloudView::setViewOptions(const ViewOptions& opts)
+    {
+        m_axes->SetEnabled(opts.show_axes);
+        setShowId(opts.show_id);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+} // namespace ct

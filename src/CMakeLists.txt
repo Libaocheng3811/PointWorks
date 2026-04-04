@@ -16,10 +16,13 @@ set(Srcs
     plugins/csfplugin.cpp
     plugins/vegplugin.cpp
     plugins/changedetectplugin.cpp
+    app/projectmanager.cpp
     )
 
 set(Hdrs
     app/mainwindow.h
+    app/projectmanager.h
+    app/recentprojects.h
     edit/color.h
     edit/boundingbox.h
     tool/cutting.h

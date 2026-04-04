@@ -6,11 +6,14 @@
 #define CLOUDTOOL2_MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QCloseEvent>
 
 #include "ui_mainwindow.h"
 
 #include "ui/base/customdialog.h"
 #include "ui/base/customdock.h"
+#include "projectmanager.h"
+#include "recentprojects.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -61,10 +64,27 @@ public:
     }
 
 protected:
-    void moveEvent(QMoveEvent* event);
+    void moveEvent(QMoveEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
+
+private slots:
+    void onNewProject();
+    void onOpenProject();
+    void onSaveProject();
+    void onSaveProjectAs();
+    void onOpenRecentProject();
+    void updateRecentMenu();
+    void onProjectModified(bool modified);
+    void updateWindowTitle();
 
 private:
     Ui::MainWindow *ui;
+    ProjectManager* m_project_manager = nullptr;
+    RecentProjects* m_recent_projects = nullptr;
+    QMenu* m_open_recent_menu = nullptr;
+
+    void saveProjectTo(const QString& path);
+    void connectProjectSignals();
 };
 
 
