@@ -631,8 +631,9 @@ namespace ct
             {
                 // 普通加载模式：创建 FileNode 作为根节点
                 QString folderName = QFileInfo(QString::fromStdString(cloud->filepath())).fileName();
-                QTreeWidgetItem* fileNode = addItem(nullptr, folderName, NodeFile);
-                fileNode->setData(0, NodeFilePathRole, QString::fromStdString(cloud->filepath()));
+                QString fullPath = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
+                QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fullPath + ")", NodeFile);
+                fileNode->setData(0, NodeFilePathRole, fullPath);
                 insertCloud(cloud, fileNode, true);
             }
         }
