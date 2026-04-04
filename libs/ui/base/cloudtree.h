@@ -17,6 +17,16 @@
 
 namespace ct
 {
+    /// 点云挂载策略
+    enum class MountStrategy
+    {
+        Auto,       // 自动判断（默认）
+        Sibling,    // 策略一：作为兄弟节点挂载
+        Child,      // 策略三：作为子节点挂载
+        Group,      // 策略二：创建分组挂载
+        Root        // 直接作为根节点
+    };
+
     class CloudTree : public CustomTree
     {
     Q_OBJECT
@@ -35,6 +45,13 @@ namespace ct
          * @param filepath 文件路径
          */
         void loadCloudFile(const QString& filepath);
+
+        /**
+         * @brief 加载点云文件到指定父节点下（用于项目恢复）
+         * @param filepath 文件路径
+         * @param targetParent 目标父节点
+         */
+        void loadCloudFile(const QString& filepath, QTreeWidgetItem* targetParent);
 
         /**
          * @brief 保存点云文件 (程序化调用，无对话框)
@@ -64,8 +81,19 @@ namespace ct
         * @param cloud 点云对象
         * @param parentItem 父节点项。如果为 nullptr，则作为根节点(或文件夹下的子节点)
         * @param selected 是否选中新节点
+        * @param strategy 挂载策略
         */
-        void insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parent = nullptr, bool selected = false);
+        void insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parent = nullptr,
+                         bool selected = false, MountStrategy strategy = MountStrategy::Auto);
+
+        /**
+         * @brief 策略一：将结果作为兄弟节点挂载（滤波、采样、配准等）
+         * @param sourceCloud 源点云
+         * @param resultCloud 结果点云
+         * @param suffix 结果点云 ID 后缀
+         */
+        void addSiblingCloud(const Cloud::Ptr& sourceCloud, const Cloud::Ptr& resultCloud,
+                             const QString& suffix = "-result");
 
         /**
          * @brief 获取选中的所有点云对象
@@ -148,6 +176,11 @@ namespace ct
         void zoomToSelected();
 
     protected:
+        /**
+        * @brief 右键上下文菜单
+        */
+        void contextMenuEvent(QContextMenuEvent* event) override;
+
         /**
         * @brief 移除指定节点及其数据 (递归删除子节点)
         */
@@ -236,10 +269,12 @@ namespace ct
 
     private:
         QMap<QTreeWidgetItem*, Cloud::Ptr> m_cloud_map;
+        QMap<QString, QTreeWidgetItem*> m_item_by_id;  // uuid -> item 反向索引
         QString m_path;
         QThread m_thread;
         FileIO* m_fileio;
         QMenu* m_tree_menu;
+        QTreeWidgetItem* m_pending_parent = nullptr;  // 用于 loadCloudFile 恢复模式
 
     public:
         ProcessingDialog* m_processing_dialog = nullptr;

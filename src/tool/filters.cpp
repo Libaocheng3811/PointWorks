@@ -5,6 +5,7 @@
 // You may need to build the project (run Qt uic code generator) to get "ui_Filters.h" resolved
 
 #include "filters.h"
+#include "base/cloudtree.h"
 #include "ui_filters.h"
 
 #include <QtConcurrent/QtConcurrent>
@@ -405,9 +406,9 @@ void Filters::add()
         m_cloudview->removePointCloud(QString::fromStdString(new_cloud->id()));
         // 为过滤后的点云设置新的ID
         new_cloud->setId(FILTER_ADD_FLAG + cloud->id());
-        // 将点云添加到文件树中
+        // 策略一：滤波结果作为兄弟节点挂载
         QTreeWidgetItem * item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        m_cloudtree->insertCloud(new_cloud, item, true);
+        m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
 
         m_filter_map.erase(cloud->id());
         printI(QString("Add filtered cloud[id:1%] done.").arg(QString::fromStdString(new_cloud->id())));

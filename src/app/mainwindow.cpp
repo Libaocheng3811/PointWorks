@@ -39,8 +39,8 @@
 #include <QComboBox>
 #include <QHeaderView>
 
-#define  PARENT_ICON_PATH   ":/res/icon/document-open.svg"
-#define  CHILD_ICON_PATH    ":/res/icon/view-calendar.svg"
+#define  CLOUD_ICON_PATH    ":/res/icon/view-calendar.svg"
+#define  GROUP_ICON_PATH    ":/res/icon/view-group.svg"
 
 // setupUi()是Ui::MainWindow类的方法，负责初始化界面中的控件。
 MainWindow::MainWindow(QWidget *parent) :
@@ -75,8 +75,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cloudtree->setCloudView(ui->cloudview);
     ui->cloudtree->setConsole(ui->console);
     ui->cloudtree->setPropertiesTable(ui->cloudtable);
-    ui->cloudtree->setParentIcon(QIcon(PARENT_ICON_PATH));
-    ui->cloudtree->setChildIcon(QIcon(CHILD_ICON_PATH));
+    ui->cloudtree->setFileIcon(style()->standardIcon(QStyle::SP_DirClosedIcon));
+    ui->cloudtree->setCloudIcon(QIcon(CLOUD_ICON_PATH));
+    ui->cloudtree->setGroupIcon(style()->standardIcon(QStyle::SP_DirOpenIcon));
 
     // 设置属性表格列宽 - 第一列固定，第二列拉伸
     ui->cloudtable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);

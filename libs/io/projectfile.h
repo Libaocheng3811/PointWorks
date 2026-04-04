@@ -28,12 +28,15 @@ struct CT_IO_EXPORT CloudEntry
     static CloudEntry fromJson(const QJsonObject& obj);
 };
 
-/// 树节点（文件夹或点云引用）
+/// 树节点（文件、点云或分组）
 struct CT_IO_EXPORT TreeNode
 {
-    QString type;  // "folder" or "cloud"
-    QString text;  // 文件夹名 / uuid
+    QString type;          // "file", "cloud", "group"
+    QString text;          // 显示名
+    QString uuid;          // Cloud::id()（仅 cloud 类型）
+    QString filepath;      // 原始文件路径（仅 file 类型）
     bool expanded = false;
+    bool is_visible = true;
     QList<TreeNode> children;
 
     QJsonObject toJson() const;

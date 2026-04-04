@@ -3,6 +3,7 @@
 //
 
 #include "registration.h"
+#include "base/cloudtree.h"
 #include "ui_registration.h"
 #include "core/cloud.h"
 #include "core/common.h"
@@ -817,7 +818,8 @@ void Registration::add()
     m_cloudview->removePointCloud(QString::fromStdString(new_cloud->id()));
     new_cloud->setId(REG_ALIGN_ADD_FLAG + m_source_cloud->id());
     QTreeWidgetItem *item = m_cloudtree->getItemById(QString::fromStdString(m_source_cloud->id()));
-    m_cloudtree->insertCloud(new_cloud, item, true);
+    // 策略一：配准结果作为兄弟节点挂载
+    m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
 
     m_reg_map.erase(m_source_cloud->id() + m_target_cloud->id());
     printI(QString("Add registrated cloud[id:%1] done.").arg(QString::fromStdString(new_cloud->id())));

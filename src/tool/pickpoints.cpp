@@ -5,6 +5,7 @@
 // You may need to build the project (run Qt uic code generator) to get "ui_PickPoints.h" resolved
 
 #include "pickpoints.h"
+#include "base/cloudtree.h"
 #include "ui_PickPoints.h"
 
 #include <QTimer>
@@ -123,8 +124,8 @@ void PickPoints::add()
     new_cloud->setFilepath(m_selected_cloud->filepath());
 
     QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(m_selected_cloud->id()));
-    // 将新点云追加到点云树中，便于管理使用
-    m_cloudtree->insertCloud(new_cloud, item, true);
+    // 策略三：选点结果作为子节点挂载
+    m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Child);
 
     m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
     m_pick_cloud->clear();

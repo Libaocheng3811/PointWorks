@@ -5,6 +5,7 @@
 // You may need to build the project (run Qt uic code generator) to get "ui_Cutting.h" resolved
 
 #include "cutting.h"
+#include "base/cloudtree.h"
 #include "ui_Cutting.h"
 #include "core/cloud.h"
 
@@ -72,7 +73,8 @@ void Cutting::add()
         m_cloudview->removeShape(QString::fromStdString(new_cloud->boxId()));
         new_cloud->setId(CUTTING_ADD_FLAG + cloud->id());
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        m_cloudtree->insertCloud(new_cloud, item, true);
+        // 策略一：裁剪结果作为兄弟节点挂载
+        m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
 
         m_cutting_map.erase(cloud->id());
         printI(QString("Add cutted cloud[id:%1] done.").arg(QString::fromStdString(new_cloud->id())));

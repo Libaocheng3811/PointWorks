@@ -59,6 +59,10 @@ QJsonObject TreeNode::toJson() const
     obj["type"] = type;
     obj["text"] = text;
     obj["expanded"] = expanded;
+    obj["is_visible"] = is_visible;
+
+    if (!uuid.isEmpty()) obj["uuid"] = uuid;
+    if (!filepath.isEmpty()) obj["filepath"] = filepath;
 
     QJsonArray childArray;
     for (const auto& c : children)
@@ -74,6 +78,9 @@ TreeNode TreeNode::fromJson(const QJsonObject& obj)
     n.type = obj["type"].toString();
     n.text = obj["text"].toString();
     n.expanded = obj["expanded"].toBool(false);
+    n.is_visible = obj["is_visible"].toBool(true);
+    n.uuid = obj["uuid"].toString();
+    n.filepath = obj["filepath"].toString();
 
     QJsonArray children = obj["children"].toArray();
     for (const auto& c : children) {

@@ -15,6 +15,7 @@
 #include <QHBoxLayout>
 #include <QMenu>
 #include <QMessageBox>
+#include <QContextMenuEvent>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QHeaderView>
@@ -108,6 +109,16 @@ namespace ct
 
     void CloudTree::loadCloudFile(const QString& filepath)
     {
+        m_pending_parent = nullptr;
+        showProgress("Loading Point Cloud...");
+        bindWorker(m_fileio);
+        m_loading_queue_count = 1;
+        emit loadPointCloud(filepath);
+    }
+
+    void CloudTree::loadCloudFile(const QString& filepath, QTreeWidgetItem* targetParent)
+    {
+        m_pending_parent = targetParent;
         showProgress("Loading Point Cloud...");
         bindWorker(m_fileio);
         m_loading_queue_count = 1;
@@ -122,16 +133,12 @@ namespace ct
     }
 
     QTreeWidgetItem* CloudTree::getItemById(const QString &id) {
-        std::string sid = id.toStdString();
-        for (auto it = m_cloud_map.begin(); it != m_cloud_map.end(); ++it){
-            if (it.value()->id() == sid)
-                return it.key();
-        }
-        return nullptr;
+        return m_item_by_id.value(id, nullptr);
     }
 
 
-    void CloudTree::insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parentItem, bool selected)
+    void CloudTree::insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parentItem,
+                                 bool selected, MountStrategy strategy)
     {
         // check cloud id
         if (cloud == nullptr) return;
@@ -167,22 +174,44 @@ namespace ct
             }
         }
 
+        // 根据策略确定实际父节点和节点类型
+        QTreeWidgetItem* actualParent = parentItem;
+        SceneNodeType nodeType = NodeCloud;
+
+        if (strategy == MountStrategy::Auto)
+        {
+            if (actualParent == nullptr)
+            {
+                // 无指定父节点 -> 直接作为根节点（NodeCloud）
+                // 注意：loadCloudResult 负责创建 FileNode 再调用 insertCloud
+            }
+            // actualParent 非 nullptr 时直接作为其子节点
+        }
+        else if (strategy == MountStrategy::Sibling && actualParent != nullptr)
+        {
+            // 策略一：挂到 sourceCloud 的父节点下
+            actualParent = actualParent->parent();
+        }
+        else if (strategy == MountStrategy::Child)
+        {
+            // 策略三：直接挂到指定节点下（不做改动）
+        }
+        else if (strategy == MountStrategy::Root)
+        {
+            actualParent = nullptr;
+        }
+
         // 创建节点
-        // 如果 parentItem 不为空，说明我们要在这个点云下创建子节点（比如选点结果）
-        // 如果为空，说明是新加载的根点云，我们按逻辑可能需要创建一个"文件夹"作为根，或者直接作为根
-        // 这里简化：直接作为 parentItem 的子节点，如果 parentItem 空，则作为 TopLevel
-        QTreeWidgetItem* newItem = addItem(parentItem, QString::fromStdString(cloud->id()), false);
+        QTreeWidgetItem* newItem = addItem(actualParent, QString::fromStdString(cloud->id()), nodeType, false);
 
         m_cloud_map.insert(newItem, cloud);
+        m_item_by_id.insert(QString::fromStdString(cloud->id()), newItem);
         m_cloudview->addPointCloud(cloud); // 渲染
 
-        // [关键] 根据点云类型决定显示属性
-        // 假设我们通过 Cloud 对象的一个属性或者简单的 ID 规则来区分类型
-        // 如果是 PickPoints 生成的，我们在 add() 时会设置好属性
-        // TODO:这里根据大小来判断设置属性合理吗？仅仅针对选单点的功能
+        // 根据点云类型决定显示属性
         if (cloud->pointSize() > 1) {
             m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
-            if (QString::fromStdString(cloud->id()).contains("picked-")) m_cloudview->setPointCloudColor(cloud, ct::Color::Red); // 目前设定选点显示总为红色
+            if (QString::fromStdString(cloud->id()).contains("picked-")) m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
         }
 
         if (selected && cloud->pointSize() > 100){
@@ -203,6 +232,25 @@ namespace ct
 
         // 通知 Bridge 注册该云
         emit cloudInserted(cloud);
+    }
+
+    void CloudTree::addSiblingCloud(const Cloud::Ptr& sourceCloud, const Cloud::Ptr& resultCloud,
+                                     const QString& suffix)
+    {
+        if (!sourceCloud || !resultCloud) return;
+
+        QTreeWidgetItem* sourceItem = getItemById(QString::fromStdString(sourceCloud->id()));
+        if (!sourceItem)
+        {
+            // fallback: 作为根节点
+            insertCloud(resultCloud);
+            return;
+        }
+
+        QString newName = QString::fromStdString(sourceCloud->id()) + suffix;
+        resultCloud->setId(newName.toStdString());
+
+        insertCloud(resultCloud, sourceItem, true, MountStrategy::Sibling);
     }
 
     void CloudTree::updateCloud(const Cloud::Ptr &cloud, const Cloud::Ptr &new_cloud, bool update_name)
@@ -260,6 +308,7 @@ namespace ct
                 m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
                 m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
                 m_cloud_map.remove(c);
+                m_item_by_id.remove(QString::fromStdString(cloud->id()));
             }
         }
 
@@ -288,6 +337,7 @@ namespace ct
         m_cloudview->removeAllPointClouds();
         m_cloudview->removeAllShapes();
         m_cloud_map.clear();
+        m_item_by_id.clear();
 
         m_cloudview->setAutoRender(true);
         m_cloudview->refresh();
@@ -338,7 +388,9 @@ namespace ct
         m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
         m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
 
+        m_item_by_id.remove(QString::fromStdString(cloud->id()));
         cloud->setId(name.toStdString());
+        m_item_by_id.insert(name, item);
         printI(QString("Rename done."));
     }
 
@@ -514,7 +566,7 @@ namespace ct
         merge_cloud->makeAdaptive();
 
         QString merge_id = QString::fromStdString(clouds[0]->id()) + QTime::currentTime().toString();
-        QTreeWidgetItem* groupItem = addItem(nullptr, "Merged_" + merge_id);
+        QTreeWidgetItem* groupItem = addItem(nullptr, "Merged_" + merge_id, NodeGroup);
         // 合并点云默认作为根节点添加
         insertCloud(merge_cloud, groupItem, true);
         printI(QString("Merge clouds to new cloud[id:%1] done.").arg(QString::fromStdString(merge_cloud->id())));
@@ -533,8 +585,8 @@ namespace ct
         clone->setId(CLONE_ADD_FLAG + cloud->id());
         clone->setFilepath(cloud->filepath());
 
-        // 克隆点云加到同级点云节点
-        insertCloud(clone, item->parent(), true);
+        // 策略一：克隆点云作为兄弟节点挂载
+        insertCloud(clone, item->parent(), true, MountStrategy::Sibling);
     }
 
     void CloudTree::setCloudChecked(const Cloud::Ptr &cloud, bool checked)
@@ -569,9 +621,20 @@ namespace ct
             printI(QString("Load the file [path:%1] done, take time %2 ms.").arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
             m_path = QFileInfo(QString::fromStdString(cloud->filepath())).path();
 
-            QString folderName = QFileInfo(QString::fromStdString(cloud->filepath())).fileName();
-            QTreeWidgetItem* groupItem = addItem(nullptr, folderName);
-            insertCloud(cloud, groupItem, true);
+            if (m_pending_parent)
+            {
+                // 恢复模式：插入到指定父节点（不创建 FileNode）
+                insertCloud(cloud, m_pending_parent, true);
+                m_pending_parent = nullptr;
+            }
+            else
+            {
+                // 普通加载模式：创建 FileNode 作为根节点
+                QString folderName = QFileInfo(QString::fromStdString(cloud->filepath())).fileName();
+                QTreeWidgetItem* fileNode = addItem(nullptr, folderName, NodeFile);
+                fileNode->setData(0, NodeFilePathRole, QString::fromStdString(cloud->filepath()));
+                insertCloud(cloud, fileNode, true);
+            }
         }
         m_loading_queue_count--;
         if (m_loading_queue_count <= 0) {
@@ -616,8 +679,8 @@ namespace ct
         // 向上递归，子->父
         QTreeWidgetItem* parent = item->parent();
         while (parent){
-            // 如果父节点是点云节点，则跳过
-            if (getCloud(parent) != nullptr){
+            // 如果父节点是点云节点（非文件夹），则跳过
+            if (!isFolderNode(parent)){
                 parent = parent->parent();
                 continue;
             }
@@ -902,7 +965,7 @@ namespace ct
         if (!originItem){
             // 如果原始点云被删除了，尝试将结果点云添加到根目录
             printW(QString("Origin cloud [%1] item not found, add results to root.").arg(QString::fromStdString(originCloud->id())));
-            QTreeWidgetItem* rootGroup = addItem(nullptr, groupName);
+            QTreeWidgetItem* rootGroup = addItem(nullptr, groupName, NodeGroup);
             for (const auto& cloud : results){
                 insertCloud(cloud, rootGroup, true);
             }
@@ -910,8 +973,8 @@ namespace ct
         }
 
         QTreeWidgetItem* parentFolder = originItem->parent();
-        // 创建结果组文件夹
-        QTreeWidgetItem* groupItem = addItem(parentFolder, groupName);
+        // 创建结果组文件夹（策略二：新建 GroupNode）
+        QTreeWidgetItem* groupItem = addItem(parentFolder, groupName, NodeGroup);
 
         groupItem->setExpanded(true);
         if (parentFolder) parentFolder->setExpanded(true);
@@ -1091,6 +1154,90 @@ namespace ct
             skipped = dlg.isSkipped();
             if (!skipped && dlg.result() == QDialog::Rejected) skipped = true;
         }
+    }
+
+    // ================================================================
+    // 右键上下文菜单
+    // ================================================================
+
+    void CloudTree::contextMenuEvent(QContextMenuEvent* event)
+    {
+        QTreeWidgetItem* item = itemAt(event->pos());
+        if (!item) return;
+
+        QMenu menu(this);
+
+        if (isCloudNode(item))
+        {
+            Cloud::Ptr cloud = getCloud(item);
+
+            menu.addAction("Show / Hide", this, [this, item]() {
+                bool next = (item->checkState(0) != Qt::Checked);
+                item->setCheckState(0, next ? Qt::Checked : Qt::Unchecked);
+            });
+
+            menu.addSeparator();
+            menu.addAction("Rename", this, [this, item]() {
+                bool ok = false;
+                Cloud::Ptr cloud = getCloud(item);
+                QString oldName = cloud ? QString::fromStdString(cloud->id()) : item->text(0);
+                QString newName = QInputDialog::getText(this, "Rename", "New name:",
+                    QLineEdit::Normal, oldName, &ok);
+                if (ok && !newName.isEmpty()) renameCloudItem(item, newName);
+            });
+
+            menu.addAction("Save As...", this, [this, item]() { saveCloudItem(item); });
+            menu.addAction("Clone", this, [this, item]() { cloneCloudItem(item); });
+
+            menu.addSeparator();
+            menu.addAction("Delete", this, [this, item]() { removeCloudItem(item); });
+
+            menu.addSeparator();
+            menu.addAction("Zoom to Fit", this, [this, item]() {
+                setCurrentItem(item);
+                zoomToSelected();
+            });
+        }
+        else if (isFolderNode(item))
+        {
+            // FileNode / GroupNode 通用菜单
+            menu.addAction("Expand All", this, [item]() {
+                std::function<void(QTreeWidgetItem*)> expand;
+                expand = [&](QTreeWidgetItem* p) {
+                    p->setExpanded(true);
+                    for (int i = 0; i < p->childCount(); ++i)
+                        expand(p->child(i));
+                };
+                expand(item);
+            });
+
+            menu.addAction("Collapse All", this, [item]() {
+                std::function<void(QTreeWidgetItem*)> collapse;
+                collapse = [&](QTreeWidgetItem* p) {
+                    p->setExpanded(false);
+                    for (int i = 0; i < p->childCount(); ++i)
+                        collapse(p->child(i));
+                };
+                collapse(item);
+            });
+
+            menu.addSeparator();
+
+            if (getNodeType(item) == NodeGroup)
+            {
+                menu.addAction("Rename", this, [this, item]() {
+                    bool ok = false;
+                    QString newName = QInputDialog::getText(this, "Rename Group", "New name:",
+                        QLineEdit::Normal, item->text(0), &ok);
+                    if (ok && !newName.isEmpty()) renameCloudItem(item, newName);
+                });
+            }
+
+            menu.addAction("Delete", this, [this, item]() { removeCloudItem(item); });
+        }
+
+        if (!menu.actions().isEmpty())
+            menu.exec(event->globalPos());
     }
 }
 

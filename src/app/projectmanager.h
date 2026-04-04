@@ -38,7 +38,8 @@ private:
     void collectCloudEntries(ct::CloudTree* tree, ct::CloudView* view,
                              const QString& projectDir, ct::ProjectData& data);
     void collectTreeNodes(ct::CloudTree* tree, QList<ct::TreeNode>& roots);
-    void collectTreeChildren(QTreeWidgetItem* parent, QList<ct::TreeNode>& children);
+    ct::TreeNode treeNodeFromItem(QTreeWidgetItem* item, ct::CloudTree* tree);
+    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node);
 
     QString m_current_path;
     bool m_modified = false;

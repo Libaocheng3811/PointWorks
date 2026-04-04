@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(cmake --build:*)",
+      "Bash(D:devvcpkgvcpkg search vtk)",
+      "Bash(D:devvcpkgvcpkg search qt5)",
+      "Bash(cmd /c:*)",
+      "Bash(tree:*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(python3 -c \"import sys,json; lines=sys.stdin.readlines\\(\\); [print\\(json.loads\\(l\\).get\\(''''type'''',''''?''''\\)\\) for l in lines[-5:]]\")",
+      "Bash('D:/LibCommunity/VTK 9.1.0/bin/vtkdumpexports.exe' G:/TestDemoCommunity/CloudTool2/cmake-build-release-visual-studio/bin/ct_core.dll)",
+      "Bash('D:/LibCommunity/VTK 9.1.0/bin/vtkdumpexports.exe' G:/TestDemoCommunity/CloudTool2/cmake-build-release-visual-studio/bin/ct_viz.dll)",
+      "Bash('D:/LibCommunity/VTK 9.1.0/bin/vtkdumpexports.exe' G:/TestDemoCommunity/CloudTool2/cmake-build-release-visual-studio/bin/ct_io.dll)",
+      "Bash(dumpbin /exports G:/TestDemoCommunity/CloudTool2/cmake-build-release-visual-studio/bin/ct_viz.dll)",
+      "Bash(dumpbin /exports G:/TestDemoCommunity/CloudTool2/cmake-build-release-visual-studio/bin/ct_io.dll)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/dumpbin.exe\" /exports \"G:/TestDemoCommunity/CloudTool2/cmake-build-release-visual-studio/bin/ct_viz.dll\")",
+      "Bash(xxd \"G:/TestDemoCommunity/CloudTool2/libs/ui/base/customtree.h\")",
+      "Bash(xxd \"G:/TestDemoCommunity/CloudTool2/src/tool/registration.cpp\")"
+    ]
+  }
+}

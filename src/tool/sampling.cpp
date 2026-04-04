@@ -3,6 +3,7 @@
 //
 
 #include "sampling.h"
+#include "base/cloudtree.h"
 #include "ui_sampling.h"
 
 #include <QtConcurrent/QtConcurrent>
@@ -152,29 +153,8 @@ void Sampling::handleSamplingResult(const ct::FilterResult& result)
           .arg(cloud->size()));
 
     // 设置新点云的名称：原名称 + "-sampling"
-    QString new_id = QString::fromStdString(m_current_cloud->id()) + "-sampling";
-    cloud->setId(new_id.toStdString());
-
-    // 获取原点云的树节点
-    QTreeWidgetItem* source_item = m_cloudtree->getItemById(QString::fromStdString(m_current_cloud->id()));
-    if (!source_item)
-    {
-        printW("Failed to find source cloud in tree!");
-        m_cloudtree->closeProgress();
-        reject();
-        return;
-    }
-
-    // 获取父节点（文件项）
-    QTreeWidgetItem* parent_item = source_item->parent();
-    if (!parent_item)
-    {
-        m_cloudtree->insertCloud(cloud, nullptr, true);
-    }
-    else
-    {
-        m_cloudtree->insertCloud(cloud, parent_item, true);
-    }
+    // 策略一：采样结果作为兄弟节点挂载
+    m_cloudtree->addSiblingCloud(m_current_cloud, cloud, "-sampling");
 
     // 在视图中显示新点云（保留原始颜色）
     m_cloudview->addPointCloud(cloud);

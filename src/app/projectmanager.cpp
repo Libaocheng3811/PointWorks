@@ -1,7 +1,9 @@
 #include "projectmanager.h"
 
 #include "base/cloudtree.h"
+#include "base/scenenodetype.h"
 #include "viz/cloudview.h"
+#include "core/cloud.h"
 
 #include <QFileInfo>
 #include <QDir>
@@ -62,14 +64,39 @@ bool ProjectManager::openProject(const QString& path, ct::CloudTree* tree, ct::C
 
     tree->removeAllClouds();
 
+    // 第一遍：重建树骨架（只创建文件夹/分组节点，不加载点云）
+    // 收集所有需要加载的 FileNode 及其路径
+    struct PendingFile { QString filepath; QTreeWidgetItem* parentNode; };
+    QList<PendingFile> pendingFiles;
+
+    for (const auto& root : data.tree_roots) {
+        QTreeWidgetItem* item = rebuildTreeNode(nullptr, root);
+        if (item) tree->addTopLevelItem(item);
+
+        // 递归收集所有 FileNode
+        std::function<void(QTreeWidgetItem*, const ct::TreeNode&)> collectFiles;
+        collectFiles = [&](QTreeWidgetItem* treeItem, const ct::TreeNode& node) {
+            if (node.type == "file" && !node.filepath.isEmpty()) {
+                QString resolved = ct::ProjectFile::resolveFilePath(projectDir, node.filepath);
+                if (!resolved.isEmpty()) {
+                    pendingFiles.append({resolved, treeItem});
+                }
+            }
+            for (const auto& child : node.children) {
+                collectFiles(treeItem, child);
+            }
+        };
+        collectFiles(item, root);
+    }
+
+    // 检查文件是否存在
     QStringList missing;
     QStringList validPaths;
-    for (const auto& entry : data.clouds) {
-        QString resolved = ct::ProjectFile::resolveFilePath(projectDir, entry.file_path);
-        if (!QFileInfo::exists(resolved)) {
-            missing << entry.display_name + " (" + entry.file_path + ")";
+    for (const auto& pf : pendingFiles) {
+        if (!QFileInfo::exists(pf.filepath)) {
+            missing << QFileInfo(pf.filepath).fileName();
         } else {
-            validPaths << resolved;
+            validPaths << pf.filepath;
         }
     }
 
@@ -107,9 +134,11 @@ bool ProjectManager::openProject(const QString& path, ct::CloudTree* tree, ct::C
             }
         });
 
-    for (const auto& resolvedPath : validPaths) {
-        emit loadProgress("Loading " + QFileInfo(resolvedPath).fileName() + "...", 0);
-        tree->loadCloudFile(resolvedPath);
+    // 第二遍：加载所有点云文件到对应的 FileNode 下
+    for (const auto& pf : pendingFiles) {
+        if (!QFileInfo::exists(pf.filepath)) continue;
+        emit loadProgress("Loading " + QFileInfo(pf.filepath).fileName() + "...", 0);
+        tree->loadCloudFile(pf.filepath, pf.parentNode);
     }
 
     m_current_path = path;
@@ -158,29 +187,67 @@ void ProjectManager::collectCloudEntries(ct::CloudTree* tree, ct::CloudView* /*v
 void ProjectManager::collectTreeNodes(ct::CloudTree* tree, QList<ct::TreeNode>& roots)
 {
     for (int i = 0; i < tree->topLevelItemCount(); ++i) {
-        ct::TreeNode node;
-        node.type = "folder";
-        node.text = tree->topLevelItem(i)->text(0);
-        node.expanded = tree->topLevelItem(i)->isExpanded();
-        collectTreeChildren(tree->topLevelItem(i), node.children);
+        ct::TreeNode node = treeNodeFromItem(tree->topLevelItem(i), tree);
         roots.append(node);
     }
 }
 
-void ProjectManager::collectTreeChildren(QTreeWidgetItem* parent, QList<ct::TreeNode>& children)
+ct::TreeNode ProjectManager::treeNodeFromItem(QTreeWidgetItem* item, ct::CloudTree* tree)
 {
-    for (int i = 0; i < parent->childCount(); ++i) {
-        QTreeWidgetItem* child = parent->child(i);
-        ct::TreeNode node;
-        if (child->childCount() > 0) {
-            node.type = "folder";
-            node.text = child->text(0);
-            node.expanded = child->isExpanded();
-            collectTreeChildren(child, node.children);
-        } else {
-            node.type = "cloud";
-            node.text = child->text(0);
-        }
-        children.append(node);
+    ct::TreeNode node;
+    ct::SceneNodeType type = ct::CustomTree::getNodeType(item);
+
+    node.type = (type == ct::NodeFile)  ? "file" :
+                (type == ct::NodeGroup) ? "group" : "cloud";
+    node.text = item->text(0);
+    node.expanded = item->isExpanded();
+    node.is_visible = (item->checkState(0) != Qt::Unchecked);
+
+    if (type == ct::NodeCloud) {
+        ct::Cloud::Ptr cloud = tree->getCloud(item);
+        if (cloud) node.uuid = QString::fromStdString(cloud->id());
     }
+    if (type == ct::NodeFile) {
+        node.filepath = item->data(0, ct::NodeFilePathRole).toString();
+    }
+
+    for (int i = 0; i < item->childCount(); ++i) {
+        node.children.append(treeNodeFromItem(item->child(i), tree));
+    }
+
+    return node;
+}
+
+// ================================================================
+// 辅助：从 TreeNode 重建 QTreeWidgetItem 树骨架
+// ================================================================
+
+QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node)
+{
+    ct::SceneNodeType type = (node.type == "file")  ? ct::NodeFile :
+                             (node.type == "group") ? ct::NodeGroup :
+                                                     ct::NodeCloud;
+
+    QTreeWidgetItem* item;
+    if (parent) {
+        item = new QTreeWidgetItem(parent);
+    } else {
+        item = new QTreeWidgetItem();
+    }
+
+    item->setText(0, node.text);
+    item->setData(0, ct::NodeTypeRole, static_cast<int>(type));
+    item->setExpanded(node.expanded);
+    item->setCheckState(0, node.is_visible ? Qt::Checked : Qt::Unchecked);
+
+    if (type == ct::NodeFile) {
+        item->setData(0, ct::NodeFilePathRole, node.filepath);
+    }
+
+    // 递归子节点
+    for (const auto& child : node.children) {
+        rebuildTreeNode(item, child);
+    }
+
+    return item;
 }
