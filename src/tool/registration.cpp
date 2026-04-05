@@ -56,7 +56,7 @@
 #define REG_ALIGN_ADD_FLAG                              "align-"
 
 Registration::Registration(QWidget *parent) :
-        CustomDock(parent), ui(new Ui::Registration),
+        CustomDialog(parent), ui(new Ui::Registration),
         m_target_cloud(nullptr),
         m_source_cloud(nullptr),
         m_corr(nullptr),

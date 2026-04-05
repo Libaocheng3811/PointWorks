@@ -11,7 +11,6 @@
 #include "ui_mainwindow.h"
 
 #include "ui/base/customdialog.h"
-#include "ui/base/customdock.h"
 #include "projectmanager.h"
 #include "recentprojects.h"
 
@@ -31,27 +30,6 @@ public:
     ~MainWindow();
 
     template <class T>
-    void createLeftDock(const QString& label)
-    {
-        ct::createDock<T>(this, label, ui->cloudview, ui->cloudtree, ui->console,
-                          Qt::LeftDockWidgetArea, ui->PropertiesDock);
-    }
-
-    template <class T>
-    void createRightDock(const QString& label)
-    {
-        ct::createDock<T>(this, label, ui->cloudview, ui->cloudtree, ui->console,
-                          Qt::RightDockWidgetArea);
-    }
-
-    template <class T>
-    void createBottomDock(const QString& label)
-    {
-        ct::createDock<T>(this, label, ui->cloudview, ui->cloudtree, ui->console,
-                          Qt::BottomDockWidgetArea, ui->ConsoleDock);
-    }
-
-    template <class T>
     void createDialog(const QString& label)
     {
         ct::createDialog<T>(this, label, ui->cloudview, ui->cloudtree, ui->console);
@@ -61,6 +39,12 @@ public:
     void createModalDialog(const QString& label)
     {
         ct::createDialog<T>(this, label, ui->cloudview, ui->cloudtree, ui->console, false, true);
+    }
+
+    template <class T>
+    void createToolDialog(const QString& label)
+    {
+        ct::createDialog<T>(this, label, ui->cloudview, ui->cloudtree, ui->console, false, false);
     }
 
 protected:

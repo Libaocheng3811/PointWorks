@@ -5,7 +5,7 @@
 #ifndef CLOUDTOOL2_DESCRIPTOR_H
 #define CLOUDTOOL2_DESCRIPTOR_H
 
-#include "ui/base/customdock.h"
+#include "ui/base/customdialog.h"
 
 #include "algorithm/features.h"
 
@@ -20,7 +20,7 @@ namespace Ui {
 }
 QT_END_NAMESPACE
 
-class Descriptor : public ct::CustomDock {
+class Descriptor : public ct::CustomDialog {
 Q_OBJECT
 
 public:

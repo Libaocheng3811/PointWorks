@@ -45,7 +45,7 @@ const QColor colors[5][10] = {
 };
 
 Color::Color(QWidget *parent) :
-        CustomDock(parent), ui(new Ui::Color), m_field(""), m_rgb(QColor(255, 255, 255))
+        CustomDialog(parent), ui(new Ui::Color), m_field(""), m_rgb(QColor(255, 255, 255))
 {
     ui->setupUi(this);
     // spacing 参数指定了控件之间的固定空隙，单位是像素

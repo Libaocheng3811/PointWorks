@@ -24,7 +24,7 @@
 #define FILTER_ADD_FLAG                     "filtered-"
 
 Filters::Filters(QWidget *parent) :
-        CustomDock(parent), ui(new Ui::Filters)
+        CustomDialog(parent), ui(new Ui::Filters)
 {
     ui->setupUi(this);
 

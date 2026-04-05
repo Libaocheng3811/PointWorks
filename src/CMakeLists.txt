@@ -40,6 +40,14 @@ set(Hdrs
     plugins/changedetectplugin.h
     )
 
+set(UIS
+    tool/registration.ui
+    tool/filters.ui
+    tool/descriptor.ui
+    edit/color.ui
+    edit/boundingbox.ui
+)
+
 set(QRCs resources/res.qrc)
 set(IRCs resources/logo/logo.rc)
 
@@ -49,7 +57,7 @@ find_package(VTK COMPONENTS
     vtkRenderingGL2PSOpenGL2
     vtkRenderingVolumeOpenGL2)
 
-add_executable(cloudtool WIN32 ${Srcs} ${Hdrs} ${QRCs} ${IRCs})
+add_executable(cloudtool WIN32 ${Srcs} ${Hdrs} ${UIS} ${QRCs} ${IRCs})
 
 target_include_directories(cloudtool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

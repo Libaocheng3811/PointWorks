@@ -5,7 +5,7 @@
 #ifndef CLOUDTOOL2_REGISTRATION_H
 #define CLOUDTOOL2_REGISTRATION_H
 
-#include "ui/base/customdock.h"
+#include "ui/base/customdialog.h"
 #include "core/common.h"
 #include "algorithm/registration.h"
 #include "tool/descriptor.h"
@@ -20,7 +20,7 @@ namespace Ui {
 }
 QT_END_NAMESPACE
 
-class Registration : public ct::CustomDock {
+class Registration : public ct::CustomDialog {
 Q_OBJECT
 
 public:

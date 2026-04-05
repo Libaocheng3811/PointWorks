@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Registration</class>
- <widget class="QDockWidget" name="Registration">
+ <widget class="QDialog" name="Registration">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -31,14 +31,7 @@
   <property name="windowTitle">
    <string>Registration</string>
   </property>
-  <widget class="QWidget" name="dockWidgetContents">
-   <property name="minimumSize">
-    <size>
-     <width>0</width>
-     <height>0</height>
-    </size>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QGroupBox" name="groupBox">
       <property name="sizePolicy">
@@ -2231,7 +2224,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
  </widget>
  <resources>
   <include location="../resources/res.qrc"/>

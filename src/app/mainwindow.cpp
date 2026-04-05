@@ -100,8 +100,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
 
     // edit
-    connect(ui->actionBoundingBox, &QAction::triggered, [=] {this->createLeftDock<BoundingBox>("BoundingBox"); });
-    connect(ui->actionColors, &QAction::triggered, [=] {this->createLeftDock<Color>("Color"); });
+    connect(ui->actionBoundingBox, &QAction::triggered, [=] {this->createToolDialog<BoundingBox>("BoundingBox"); });
+    connect(ui->actionColors, &QAction::triggered, [=] {this->createToolDialog<Color>("Color"); });
 
     // view
     connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &ct::CloudTree::zoomToSelected);
@@ -147,22 +147,22 @@ MainWindow::MainWindow(QWidget *parent) :
     // tools
     connect(ui->actionCutting, &QAction::triggered, [=] { this->createDialog<Cutting>("Cutting"); });
     connect(ui->actionPickPoints, &QAction::triggered, [=] {this->createDialog<PickPoints>("PickPoints"); });
-    connect(ui->actionFilters, &QAction::triggered, [=] {this->createLeftDock<Filters>("Filters"); });
+    connect(ui->actionFilters, &QAction::triggered, [=] {this->createToolDialog<Filters>("Filters"); });
     connect(ui->actionSampling, &QAction::triggered, [=] {
         this->createModalDialog<Sampling>("Point Cloud Sampling");
     });
     connect(ui->actionRangeImage, &QAction::triggered, [=]{this->createDialog<RangeImage>("RangeImage");});
     connect(ui->actionDescriptor, &QAction::triggered, [=]
     {
-        this->createLeftDock<Descriptor>("Descriptor");
-        if (ct::getDock<Registration>("Registration"))
-            ct::getDock<Registration>("Registration")->setDescriptor(ct::getDock<Descriptor>("Descriptor"));
+        this->createToolDialog<Descriptor>("Descriptor");
+        if (ct::getDialog<Registration>("Registration"))
+            ct::getDialog<Registration>("Registration")->setDescriptor(ct::getDialog<Descriptor>("Descriptor"));
     });
     connect(ui->actionRegistration, &QAction::triggered, [=]
     {
-      this->createRightDock<Registration>("Registration");
-      if (ct::getDock<Registration>("Registration"))
-          ct::getDock<Registration>("Registration")->setDescriptor(ct::getDock<Descriptor>("Descriptor"));
+      this->createToolDialog<Registration>("Registration");
+      if (ct::getDialog<Registration>("Registration"))
+          ct::getDialog<Registration>("Registration")->setDescriptor(ct::getDialog<Descriptor>("Descriptor"));
     } );
 
     // plugins

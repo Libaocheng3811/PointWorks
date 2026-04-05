@@ -25,7 +25,7 @@
 
 
 Descriptor::Descriptor(QWidget *parent) :
-        CustomDock(parent), ui(new Ui::Descriptor),
+        CustomDialog(parent), ui(new Ui::Descriptor),
         m_plotter(new pcl::visualization::PCLPlotter) {
     ui->setupUi(this);
 

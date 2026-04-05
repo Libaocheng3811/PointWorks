@@ -5,7 +5,7 @@
 #ifndef TOOL_FILTERS_H
 #define TOOL_FILTERS_H
 
-#include "ui/base/customdock.h"
+#include "ui/base/customdialog.h"
 #include "algorithm/filters.h"
 
 QT_BEGIN_NAMESPACE
@@ -14,7 +14,7 @@ namespace Ui {
 }
 QT_END_NAMESPACE
 
-class Filters : public ct::CustomDock {
+class Filters : public ct::CustomDialog {
 Q_OBJECT
 
 public:

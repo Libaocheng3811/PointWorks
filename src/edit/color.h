@@ -1,7 +1,7 @@
 #ifndef CLOUDTOOL2_COLOR_H
 #define CLOUDTOOL2_COLOR_H
 
-#include "ui/base/customdock.h"
+#include "ui/base/customdialog.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -11,7 +11,7 @@ namespace Ui
 }
 QT_END_NAMESPACE
 
-class Color : public ct::CustomDock
+class Color : public ct::CustomDialog
 {
     Q_OBJECT
 

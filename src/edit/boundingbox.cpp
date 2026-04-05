@@ -17,7 +17,7 @@
 
 
 BoundingBox::BoundingBox(QWidget *parent) :
-        CustomDock(parent), ui(new Ui::BoundingBox), m_box_type(BOX_TYPE_WIREFRAME)
+        CustomDialog(parent), ui(new Ui::BoundingBox), m_box_type(BOX_TYPE_WIREFRAME)
 {
     ui->setupUi(this);
 

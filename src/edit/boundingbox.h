@@ -5,7 +5,7 @@
 #ifndef CLOUDTOOL2_BOUNDINGBOX_H
 #define CLOUDTOOL2_BOUNDINGBOX_H
 
-#include "ui/base/customdock.h"
+#include "ui/base/customdialog.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -15,7 +15,7 @@ namespace Ui
 }
 QT_END_NAMESPACE
 
-class BoundingBox : public ct::CustomDock
+class BoundingBox : public ct::CustomDialog
 {
     Q_OBJECT
 

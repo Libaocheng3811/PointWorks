@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Descriptor</class>
- <widget class="QDockWidget" name="Descriptor">
+ <widget class="QDialog" name="Descriptor">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>468</width>
-    <height>552</height>
+    <width>500</width>
+    <height>580</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -17,14 +17,13 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>DockWidget</string>
+   <string>Descriptor</string>
   </property>
-  <widget class="QWidget" name="dockWidgetContents">
-   <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
-       <string/>
+       <string>Feature</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
@@ -2048,7 +2047,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
  </widget>
  <resources>
   <include location="../resources/res.qrc"/>
