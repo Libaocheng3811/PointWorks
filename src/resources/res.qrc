@@ -498,6 +498,7 @@
         <file>icon/zoom-out-y.svg</file>
         <file>icon/zoom-pixels.svg</file>
         <file>icon/zoom-previous.svg</file>
+        <file>icon/folder.svg</file>
         <file>logo/logo.png</file>
     </qresource>
 </RCC>

@@ -152,6 +152,12 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<Sampling>("Point Cloud Sampling");
     });
     connect(ui->actionRangeImage, &QAction::triggered, [=]{this->createDialog<RangeImage>("RangeImage");});
+    connect(ui->actionKeyPoint, &QAction::triggered, [=]
+    {
+        this->createToolDialog<KeyPoints>("KeyPoints");
+        if (ct::getDialog<KeyPoints>("KeyPoints"))
+            ct::getDialog<KeyPoints>("KeyPoints")->setRangeImage(ct::getDialog<RangeImage>("RangeImage"));
+    });
     connect(ui->actionDescriptor, &QAction::triggered, [=]
     {
         this->createToolDialog<Descriptor>("Descriptor");
@@ -585,8 +591,6 @@ MainWindow::~MainWindow() {
 
 // ================================================================
 // 项目管理
-// ================================================================
-
 void MainWindow::connectProjectSignals()
 {
     m_project_manager = new ProjectManager(this);
