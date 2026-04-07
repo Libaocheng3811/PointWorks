@@ -90,4 +90,32 @@ namespace ct {
         // 调用PCL库的函数pcl::getTransformation计算从三维空间坐标到仿射变换的矩阵
         return pcl::getTransformation(x, y, z, pcl::deg2rad(roll), pcl::deg2rad(pitch), pcl::deg2rad(yaw));
     }
+
+    void getAngleAxis(const Eigen::Affine3f& t, float& angle, float& axisX, float& axisY, float& axisZ)
+    {
+        Eigen::AngleAxisf aa(t.rotation());
+        angle = pcl::rad2deg(aa.angle());
+        axisX = aa.axis().x();
+        axisY = aa.axis().y();
+        axisZ = aa.axis().z();
+    }
+
+    void getTranslationAndEulerAngles(const Eigen::Affine3f& t, float& x, float& y, float& z,
+                                       float& roll, float& pitch, float& yaw)
+    {
+        x = t.translation().x();
+        y = t.translation().y();
+        z = t.translation().z();
+        getEulerAngles(t, roll, pitch, yaw);
+    }
+
+    Eigen::Affine3f getTransformation(float angle, float ax, float ay, float az,
+                                       float tx, float ty, float tz)
+    {
+        Eigen::Vector3f axis(ax, ay, az);
+        if (axis.norm() > 0) axis.normalize();
+        Eigen::AngleAxisf rotation(pcl::deg2rad(angle), axis);
+        Eigen::Affine3f t = Eigen::Translation3f(tx, ty, tz) * rotation;
+        return t;
+    }
 }

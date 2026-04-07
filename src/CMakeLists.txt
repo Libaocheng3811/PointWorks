@@ -3,6 +3,7 @@ set(Srcs
     app/mainwindow.cpp
     edit/color.cpp
     edit/boundingbox.cpp
+    edit/transformation.cpp
     tool/cutting.cpp
     tool/pickpoints.cpp
     tool/filters.cpp
@@ -28,6 +29,7 @@ set(Hdrs
     app/recentprojects.h
     edit/color.h
     edit/boundingbox.h
+    edit/transformation.h
     tool/cutting.h
     tool/pickpoints.h
     tool/filters.h
@@ -55,6 +57,7 @@ set(UIS
     tool/descriptor.ui
     edit/color.ui
     edit/boundingbox.ui
+    edit/transformation.ui
 )
 
 set(QRCs resources/res.qrc)

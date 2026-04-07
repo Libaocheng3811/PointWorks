@@ -17,6 +17,7 @@
 #include "tool/segmentation.h"
 #include "tool/surface.h"
 #include "tool/boundary.h"
+#include "edit/transformation.h"
 #include "tool/registration.h"
 
 #include "plugins/csfplugin.h"
@@ -105,6 +106,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // edit
     connect(ui->actionBoundingBox, &QAction::triggered, [=] {this->createToolDialog<BoundingBox>("BoundingBox"); });
     connect(ui->actionColors, &QAction::triggered, [=] {this->createToolDialog<Color>("Color"); });
+    connect(ui->actionTransformation, &QAction::triggered, [=] {this->createToolDialog<Transformation>("Transformation"); });
 
     // view
     connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &ct::CloudTree::zoomToSelected);

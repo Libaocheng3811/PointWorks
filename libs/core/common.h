@@ -44,6 +44,15 @@ namespace ct
      * @brief 从给定的平移和欧拉角（内在旋转，ZYX约定）创建变换
      */
     Eigen::Affine3f CT_EXPORT getTransformation(float x, float y, float z, float roll, float pitch, float yaw);
+
+    /**
+     * @brief 从给定的轴角和平移创建变换
+     * @param angle 旋转角度（度）
+     * @param ax, ay, az 旋转轴方向
+     * @param tx, ty, tz 平移量
+     */
+    Eigen::Affine3f CT_EXPORT getTransformation(float angle, float ax, float ay, float az,
+                                                float tx, float ty, float tz);
 }
 
 
