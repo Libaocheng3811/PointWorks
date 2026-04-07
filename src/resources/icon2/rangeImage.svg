@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22">
+  <defs>
+    <linearGradient id="viridis_grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FDE725; stop-opacity:1.0" />
+      <stop offset="25%" style="stop-color:#5EC962; stop-opacity:1.0" />
+      <stop offset="50%" style="stop-color:#21918C; stop-opacity:1.0" />
+      <stop offset="75%" style="stop-color:#3B528B; stop-opacity:1.0" />
+      <stop offset="100%" style="stop-color:#440154; stop-opacity:1.0" />
+    </linearGradient>
+  </defs>
+  
+  <path style="fill:url(#viridis_grad); stroke:none;"
+        d="M 3,3 h 16 v 16 h -16 z" />
+</svg>

@@ -361,6 +361,24 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
+    void CloudView::addPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport)
+    {
+        std::string std_id = id.toStdString();
+        if (m_viewer->contains(std_id))
+            m_viewer->removeShape(std_id);
+        m_viewer->addPolygonMesh(*mesh, std_id, viewport);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::addPolylineFromPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport)
+    {
+        std::string std_id = id.toStdString();
+        if (m_viewer->contains(std_id))
+            m_viewer->removeShape(std_id);
+        m_viewer->addPolylineFromPolygonMesh(*mesh, std_id, viewport);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
     void CloudView::addArrow(const ct::PointXYZRGBN &pt1, const ct::PointXYZRGBN &pt2, const QString &id,
                              bool display_length, const ct::RGB &rgb)
     {
@@ -652,6 +670,12 @@ namespace ct
             m_viewer->removeShape(std_id);
             if (m_auto_render) m_viewer->getRenderWindow()->Render();
         }
+    }
+
+    void CloudView::removePolygonMesh(const QString& id, int viewport)
+    {
+	m_viewer->removePolygonMesh(id.toStdString(), viewport);
+	if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
     void CloudView::removeCorrespondences(const QString &id)

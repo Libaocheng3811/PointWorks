@@ -60,6 +60,11 @@
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuOpenRecent">
+     <property name="title">
+      <string>Open Recent</string>
+     </property>
+    </widget>
     <addaction name="actionOpen"/>
     <addaction name="actionNewProject"/>
     <addaction name="actionOpenProject"/>
@@ -74,12 +79,6 @@
     <addaction name="actionClone"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
-   </widget>
-   <widget class="QMenu" name="menuOpenRecent">
-    <property name="title">
-     <string>Open Recent</string>
-    </property>
-    <addaction name="actionRecentPlaceholder"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="font">
@@ -947,7 +946,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionTransformation">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/exchange-positions.svg</normaloff>:/res/icon/exchange-positions.svg</iconset>
+     <normaloff>:/res/icon/target.svg</normaloff>:/res/icon/target.svg</iconset>
    </property>
    <property name="text">
     <string>Transformation</string>
@@ -962,7 +961,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionTopView">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view_top.svg</normaloff>:/res/icon/view_top.svg</iconset>
+     <normaloff>:/res/icon2/top_view.svg</normaloff>:/res/icon2/top_view.svg</iconset>
    </property>
    <property name="text">
     <string>TopView</string>
@@ -977,7 +976,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionFrontView">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view_front.svg</normaloff>:/res/icon/view_front.svg</iconset>
+     <normaloff>:/res/icon2/front_view.svg</normaloff>:/res/icon2/front_view.svg</iconset>
    </property>
    <property name="text">
     <string>FrontView</string>
@@ -992,7 +991,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionLeftSideView">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view_leftside.svg</normaloff>:/res/icon/view_leftside.svg</iconset>
+     <normaloff>:/res/icon2/leftside_view.svg</normaloff>:/res/icon2/leftside_view.svg</iconset>
    </property>
    <property name="text">
     <string>LeftSideView</string>
@@ -1007,7 +1006,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionBackView">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view_back.svg</normaloff>:/res/icon/view_back.svg</iconset>
+     <normaloff>:/res/icon2/back_view.svg</normaloff>:/res/icon2/back_view.svg</iconset>
    </property>
    <property name="text">
     <string>BackView</string>
@@ -1022,7 +1021,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionRightSideView">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view_rightside.svg</normaloff>:/res/icon/view_rightside.svg</iconset>
+     <normaloff>:/res/icon2/rightside_view.svg</normaloff>:/res/icon2/rightside_view.svg</iconset>
    </property>
    <property name="text">
     <string>RightSideView</string>
@@ -1037,7 +1036,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionBottomView">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view_bottom.svg</normaloff>:/res/icon/view_bottom.svg</iconset>
+     <normaloff>:/res/icon2/bottom_view.svg</normaloff>:/res/icon2/bottom_view.svg</iconset>
    </property>
    <property name="text">
     <string>BottomView</string>
@@ -1229,7 +1228,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionSurface">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/draw-cuboid.svg</normaloff>:/res/icon/draw-cuboid.svg</iconset>
+     <normaloff>:/res/icon2/surface.svg</normaloff>:/res/icon2/surface.svg</iconset>
    </property>
    <property name="text">
     <string>Surface</string>
@@ -1349,7 +1348,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionRangeImage">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/adjusthsl.svg</normaloff>:/res/icon/adjusthsl.svg</iconset>
+     <normaloff>:/res/icon2/rangeImage.svg</normaloff>:/res/icon2/rangeImage.svg</iconset>
    </property>
    <property name="text">
     <string>RangeImage</string>
@@ -1638,7 +1637,7 @@ QScrollBar::sub-line:horizontal {
     <string>Python Console</string>
    </property>
    <property name="toolTip">
-    <string>Toggle Python Console</string>
+    <string>Python Console</string>
    </property>
    <property name="font">
     <font>
@@ -1662,7 +1661,7 @@ QScrollBar::sub-line:horizontal {
     <string>Python Editor</string>
    </property>
    <property name="toolTip">
-    <string>Toggle Python Editor</string>
+    <string>Python Editor</string>
    </property>
    <property name="font">
     <font>

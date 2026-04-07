@@ -15,6 +15,7 @@
 #include "tool/rangeimage.h"
 #include "tool/keypoints.h"
 #include "tool/segmentation.h"
+#include "tool/surface.h"
 #include "tool/registration.h"
 
 #include "plugins/csfplugin.h"
@@ -162,6 +163,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionSegmentation, &QAction::triggered, [=]
     {
         this->createToolDialog<Segmentation>("Segmentation");
+    });
+    connect(ui->actionSurface, &QAction::triggered, [=]
+    {
+        this->createToolDialog<Surface>("Surface");
     });
     connect(ui->actionDescriptor, &QAction::triggered, [=]
     {

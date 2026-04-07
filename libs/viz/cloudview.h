@@ -7,6 +7,7 @@
 #include "octreerenderer.h"
 
 #include "QVTKOpenGLNativeWidget.h"
+#include <pcl/PolygonMesh.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/range_image/range_image.h>
 #include <vtkGenericOpenGLRenderWindow.h>
@@ -118,6 +119,22 @@ namespace ct {
         void add3DLabel(const PointXYZRGBN& pos, const QString& text, const QString& id,
                         double r = 1.0, double g = 1.0, double b = 0.0);
 
+        /**
+         * @brief 添加多边形网格（PolygonMesh）到视图
+         * @param mesh 多边形网格
+         * @param id 网格标识符
+         * @param viewport 视口（默认 0 = 全部）
+         */
+        void addPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport = 0);
+
+        /**
+         * @brief 从 PolygonMesh 添加线框到视图
+         * @param mesh 多边形网格
+         * @param id 线框标识符
+         * @param viewport 视口（默认 0 = 全部）
+         */
+        void addPolylineFromPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport = 0);
+
         ////////////////////////////////////////////////////////
         // 2D->3D(display to world)
 
@@ -164,6 +181,13 @@ namespace ct {
          * @brief 移除模型
          */
         void removeShape(const QString& id);
+
+        /**
+         * @brief 移除多边形网格
+         * @param id 网格标识符
+         * @param viewport 视口（默认 0 = 全部）
+         */
+        void removePolygonMesh(const QString& id, int viewport = 0);
 
         /**
          * @brief 移除对应关系
