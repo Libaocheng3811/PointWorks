@@ -158,6 +158,18 @@ namespace ct
         static LRFResult SHOTLocalReferenceFrameEstimation(const Cloud::Ptr& cloud,
                                                              std::atomic<bool>* cancel = nullptr,
                                                              std::function<void(int)> on_progress = nullptr);
+
+        /**
+         * @brief 边界点估计
+         * @param cloud 输入点云（需要法线）
+         * @param k 最近邻搜索数量
+         * @param radius 搜索半径
+         * @param angle 角度阈值（度）
+         */
+        static Cloud::Ptr BoundaryEstimation(const Cloud::Ptr& cloud,
+                                              int k, double radius, double angle,
+                                              std::atomic<bool>* cancel = nullptr,
+                                              std::function<void(int)> on_progress = nullptr);
     };
 
 

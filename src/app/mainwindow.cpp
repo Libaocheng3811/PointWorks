@@ -16,6 +16,7 @@
 #include "tool/keypoints.h"
 #include "tool/segmentation.h"
 #include "tool/surface.h"
+#include "tool/boundary.h"
 #include "tool/registration.h"
 
 #include "plugins/csfplugin.h"
@@ -167,6 +168,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionSurface, &QAction::triggered, [=]
     {
         this->createToolDialog<Surface>("Surface");
+    });
+    connect(ui->actionBoundary, &QAction::triggered, [=]
+    {
+        this->createDialog<Boundary>("Boundary");
     });
     connect(ui->actionDescriptor, &QAction::triggered, [=]
     {

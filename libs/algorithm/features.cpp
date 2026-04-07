@@ -5,6 +5,7 @@
 #include "features.h"
 
 #include <pcl/features/boundary.h>
+#include <pcl/common/angles.h>
 #include <pcl/features/impl/3dsc.hpp>
 #include <pcl/features/impl/board.hpp>
 #include <pcl/features/impl/crh.hpp>
@@ -688,6 +689,60 @@ namespace ct
         _progress(100);
 
         return {cloud->id(), lrf, (float)time.toc()};
+    }
+
+    Cloud::Ptr Features::BoundaryEstimation(const Cloud::Ptr& cloud,
+                                             int k, double radius, double angle,
+                                             std::atomic<bool>* cancel,
+                                             std::function<void(int)> on_progress)
+    {
+        if (cancel && cancel->load()) return nullptr;
+        if (!cloud->hasNormals()) return nullptr;
+
+        auto _progress = [&](int pct) { if (cancel && cancel->load()) return; if (on_progress) on_progress(pct); };
+        _progress(10);
+
+        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        _progress(30);
+
+        pcl::search::KdTree<PointXYZRGBN>::Ptr tree(new pcl::search::KdTree<PointXYZRGBN>);
+        pcl::PointCloud<pcl::Boundary>::Ptr boundary(new pcl::PointCloud<pcl::Boundary>);
+
+        pcl::BoundaryEstimation<PointXYZRGBN, PointXYZRGBN, pcl::Boundary> be;
+        be.setInputCloud(pcl_cloud);
+        be.setInputNormals(pcl_cloud);
+        be.setSearchMethod(tree);
+        be.setKSearch(k);
+        be.setRadiusSearch(radius);
+        be.setAngleThreshold(static_cast<float>(pcl::deg2rad(angle)));
+
+        _progress(50);
+        be.compute(*boundary);
+        _progress(80);
+
+        // 提取边界点
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr boundary_pts(new pcl::PointCloud<pcl::PointXYZRGB>);
+        for (size_t i = 0; i < boundary->size(); ++i)
+        {
+            if (boundary->points[i].boundary_point > 0)
+            {
+                pcl::PointXYZRGB pt;
+                pt.x = pcl_cloud->points[i].x;
+                pt.y = pcl_cloud->points[i].y;
+                pt.z = pcl_cloud->points[i].z;
+                pt.r = pcl_cloud->points[i].r;
+                pt.g = pcl_cloud->points[i].g;
+                pt.b = pcl_cloud->points[i].b;
+                boundary_pts->push_back(pt);
+            }
+        }
+
+        auto result = Cloud::fromPCL_XYZRGB(*boundary_pts);
+        result->setId(cloud->id());
+        result->setPointSize(cloud->pointSize() + 2);
+
+        _progress(100);
+        return result;
     }
 
 } // namespace ct
