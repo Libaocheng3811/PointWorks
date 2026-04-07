@@ -7,6 +7,7 @@ set(Srcs
     tool/pickpoints.cpp
     tool/filters.cpp
     tool/keypoints.cpp
+    tool/segmentation.cpp
     tool/rangeimage.cpp
     tool/registration.cpp
     tool/descriptor.cpp
@@ -29,6 +30,7 @@ set(Hdrs
     tool/pickpoints.h
     tool/filters.h
     tool/keypoints.h
+    tool/segmentation.h
     tool/rangeimage.h
     tool/registration.h
     tool/descriptor.h
@@ -43,6 +45,7 @@ set(Hdrs
 set(UIS
     tool/registration.ui
     tool/filters.ui
+    tool/segmentation.ui
     tool/descriptor.ui
     edit/color.ui
     edit/boundingbox.ui

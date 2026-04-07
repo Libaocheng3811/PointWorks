@@ -14,6 +14,7 @@
 #include "tool/sampling.h"
 #include "tool/rangeimage.h"
 #include "tool/keypoints.h"
+#include "tool/segmentation.h"
 #include "tool/registration.h"
 
 #include "plugins/csfplugin.h"
@@ -157,6 +158,10 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createToolDialog<KeyPoints>("KeyPoints");
         if (ct::getDialog<KeyPoints>("KeyPoints"))
             ct::getDialog<KeyPoints>("KeyPoints")->setRangeImage(ct::getDialog<RangeImage>("RangeImage"));
+    });
+    connect(ui->actionSegmentation, &QAction::triggered, [=]
+    {
+        this->createToolDialog<Segmentation>("Segmentation");
     });
     connect(ui->actionDescriptor, &QAction::triggered, [=]
     {
