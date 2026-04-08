@@ -698,6 +698,31 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
+    void CloudView::addCoordinateSystem(const Coord& coord)
+    {
+        QString qid = QString::fromStdString(coord.id);
+        if (m_viewer->contains(qid.toStdString()))
+            m_viewer->removeCoordinateSystem(qid.toStdString());
+        m_viewer->addCoordinateSystem(coord.scale, coord.pose, qid.toStdString());
+        m_coord_ids.insert(qid);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::removeCoordinateSystem(const QString& id)
+    {
+        m_viewer->removeCoordinateSystem(id.toStdString());
+        m_coord_ids.remove(id);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::removeAllCoordinateSystems()
+    {
+        for (const auto& id : m_coord_ids)
+            m_viewer->removeCoordinateSystem(id.toStdString());
+        m_coord_ids.clear();
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
     void CloudView::setPointCloudColor(const Cloud::Ptr &cloud, const RGB& rgb)
     {
         cloud->setCloudColor(rgb);

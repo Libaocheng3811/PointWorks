@@ -35,6 +35,19 @@ namespace ct {
         Eigen::Quaternionf rotation = Eigen::Quaternionf::Identity();
     };
 
+    // 坐标系
+    struct Coord {
+        std::string id;
+        double scale;
+        Eigen::Affine3f pose;
+
+        Coord()
+            : scale(1.0), pose(Eigen::Affine3f::Identity()) {}
+
+        Coord(const std::string& id_, double scale_, const Eigen::Affine3f& pose_)
+            : id(id_), scale(scale_), pose(pose_) {}
+    };
+
     struct RGB {
         RGB() = default;
 

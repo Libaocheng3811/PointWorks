@@ -6,6 +6,7 @@ set(Srcs
     edit/transformation.cpp
     edit/normals.cpp
     edit/scale.cpp
+    edit/coordinate.cpp
     tool/cutting.cpp
     tool/pickpoints.cpp
     tool/filters.cpp
@@ -34,6 +35,7 @@ set(Hdrs
     edit/transformation.h
     edit/normals.h
     edit/scale.h
+    edit/coordinate.h
     tool/cutting.h
     tool/pickpoints.h
     tool/filters.h
@@ -64,6 +66,7 @@ set(UIS
     edit/transformation.ui
     edit/normals.ui
     edit/scale.ui
+    edit/coordinate.ui
 )
 
 set(QRCs resources/res.qrc)

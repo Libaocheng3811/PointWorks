@@ -204,6 +204,21 @@ namespace ct {
          */
         void removeAllShapes();
 
+        /**
+         * @brief 添加坐标系
+         */
+        void addCoordinateSystem(const Coord& coord);
+
+        /**
+         * @brief 移除指定坐标系
+         */
+        void removeCoordinateSystem(const QString& id);
+
+        /**
+         * @brief 移除所有坐标系
+         */
+        void removeAllCoordinateSystems();
+
         ///////////////////////////////////////////////////////////
         // properties
         /**
@@ -482,6 +497,7 @@ namespace ct {
         bool m_auto_render = true; //默认开启自动渲染
 
         QMap<QString, std::shared_ptr<OctreeRenderer>> m_OctreeRenders;
+        QSet<QString> m_coord_ids;
         unsigned long m_observer_tag = 0; // 回调 ID
         unsigned long m_interaction_tag = 0; //保存交互回调的 ID
 
