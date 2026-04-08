@@ -4,6 +4,7 @@ set(Srcs
     edit/color.cpp
     edit/boundingbox.cpp
     edit/transformation.cpp
+    edit/normals.cpp
     tool/cutting.cpp
     tool/pickpoints.cpp
     tool/filters.cpp
@@ -30,6 +31,7 @@ set(Hdrs
     edit/color.h
     edit/boundingbox.h
     edit/transformation.h
+    edit/normals.h
     tool/cutting.h
     tool/pickpoints.h
     tool/filters.h
@@ -58,6 +60,7 @@ set(UIS
     edit/color.ui
     edit/boundingbox.ui
     edit/transformation.ui
+    edit/normals.ui
 )
 
 set(QRCs resources/res.qrc)
