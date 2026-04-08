@@ -766,7 +766,7 @@ void MainWindow::updateWindowTitle()
     if (!m_project_manager->currentProjectPath().isEmpty()) {
         projName = QFileInfo(m_project_manager->currentProjectPath()).completeBaseName();
     }
-    QString title = (m_project_manager->isModified() ? "* " : "") + projName + " - CloudTool2";
+    QString title = (m_project_manager->isModified() ? "* " : "") + projName + " - PointWorks";
     setWindowTitle(title);
 }
 

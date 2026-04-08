@@ -8,6 +8,7 @@
 #include "ui_Color.h"
 
 #include <QColorDialog>
+#include <QCloseEvent>
 
 // 通过宏定义为常量命名，并且为每个常量赋值，
 #define CT_COLOR_POINTCLOUD    (0)
@@ -111,14 +112,26 @@ Color::~Color() {
 
 void Color::apply()
 {
+    bool was_restore = m_restore_default;
+    m_restore_default = false;
+    m_applied = true;
+
     // 背景色不需要选择点云
     if (ui->cbox_type->currentIndex() == CT_COLOR_BACKGROUND)
     {
-        m_cloudview->setBackgroundColor({static_cast<uint8_t>(m_rgb.red()),
-                                         static_cast<uint8_t>(m_rgb.green()),
-                                         static_cast<uint8_t>(m_rgb.blue())});
-        printI(QString("Set background color[r:%1, g:%2, b:%3] done.")
-                .arg(m_rgb.red()).arg(m_rgb.green()).arg(m_rgb.blue()));
+        if (was_restore)
+        {
+            m_cloudview->resetBackgroundColor();
+            printI("Restore background color done.");
+        }
+        else
+        {
+            m_cloudview->setBackgroundColor({static_cast<uint8_t>(m_rgb.red()),
+                                             static_cast<uint8_t>(m_rgb.green()),
+                                             static_cast<uint8_t>(m_rgb.blue())});
+            printI(QString("Set background color[r:%1, g:%2, b:%3] done.")
+                    .arg(m_rgb.red()).arg(m_rgb.green()).arg(m_rgb.blue()));
+        }
         return;
     }
 
@@ -134,8 +147,14 @@ void Color::apply()
         switch (ui->cbox_type->currentIndex())
         {
             case CT_COLOR_POINTCLOUD:
+                // 恢复默认颜色
+                if (was_restore)
+                {
+                    cloud->restoreColors();
+                    printI(QString("Restore cloud[id:%1] default color done.").arg(QString::fromStdString(cloud->id())));
+                }
                 // 为某个坐标轴设置颜色，例如x轴，就是颜色是根据点云点的x坐标变化的
-                if (m_field != "")
+                else if (m_field != "")
                 {
                     cloud->setCloudColor(m_field.toStdString());
                     printI(QString("Apply cloud[id:%1] point color[axis:%2] done.").arg(QString::fromStdString(cloud->id())).arg(m_field));
@@ -172,6 +191,14 @@ void Color::apply()
 void Color::reset()
 {
     m_rgb = QColor(255, 255, 255), m_field = "";
+    m_restore_default = true;
+    m_applied = true; // Reset 本身就是"提交恢复"，关闭时不应撤销
+    if (ui->cbox_type->currentIndex() == CT_COLOR_BACKGROUND)
+    {
+        m_cloudview->resetBackgroundColor();
+        printI("Reset background color done.");
+        return;
+    }
     for (auto& cloud : m_cloudtree->getSelectedClouds())
     {
         switch (ui->cbox_type->currentIndex())
@@ -190,14 +217,22 @@ void Color::reset()
         }
         printI(QString("Reset cloud[id:%1] color done.").arg(QString::fromStdString(cloud->id())));
     }
-    // 背景色是视图级持久设置，关闭弹窗时不应恢复
+}
+
+void Color::closeEvent(QCloseEvent* event)
+{
+    // 已 Apply 的更改应持久化，不应被关闭时撤销
+    if (!m_applied)
+        reset();
+    deinit();
+    return QDialog::closeEvent(event);
 }
 
 void Color::setColorRGB(const QColor &rgb)
 {
     m_rgb = rgb, m_field = "";
-
-    // 背景色不需要选择点云
+    m_restore_default = false;
+    m_applied = false; // 新预览，尚未提交
     if (ui->cbox_type->currentIndex() == CT_COLOR_BACKGROUND)
     {
         m_cloudview->setBackgroundColor({static_cast<uint8_t>(m_rgb.red()),
@@ -216,7 +251,6 @@ void Color::setColorRGB(const QColor &rgb)
     {
         case CT_COLOR_POINTCLOUD:
             for (auto& cloud : selected_clouds)
-                // 传入CloudView执行时，颜色是RGB类型的，而在Color类中颜色是QColor类型的
                 m_cloudview->setPointCloudColor(cloud, {static_cast<uint8_t>(m_rgb.red()),
                                                         static_cast<uint8_t>(m_rgb.green()),
                                                         static_cast<uint8_t>(m_rgb.blue())});
@@ -243,6 +277,8 @@ void Color::setColorField(const QString &field)
 {
     // 更新变量成员的状态
     m_field = field, m_rgb = QColor(255, 255, 255);
+    m_restore_default = false;
+    m_applied = false; // 新预览，尚未提交
     std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {

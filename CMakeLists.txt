@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(CloudTool2)
+project(PointWorks)
 
 if (POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)

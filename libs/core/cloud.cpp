@@ -1275,6 +1275,7 @@ namespace ct
             auto& block = m_all_blocks[k];
 
             if (block->empty() || !block->m_colors) continue;
+            if (block->m_backup_colors) continue; // 只保留第一次备份（原始颜色）
 
             block->m_backup_colors = std::make_unique<std::vector<RGB>>(*block->m_colors);
         }

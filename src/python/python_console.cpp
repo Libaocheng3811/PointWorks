@@ -68,8 +68,8 @@ PythonConsole::PythonConsole(QWidget* parent)
     }
 
     // 欢迎信息
-    appendToOutput("Python Console — CloudTool2\n"
-                   "Use import ct to access the CloudTool2 API.\n",
+    appendToOutput("Python Console — PointWorks\n"
+                   "Use import ct to access the PointWorks API.\n",
                    QColor("#569cd6"));
 }
 
