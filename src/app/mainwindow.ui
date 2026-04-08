@@ -131,7 +131,6 @@
     <property name="title">
      <string>Tools</string>
     </property>
-    <addaction name="actionTreeSearch"/>
     <addaction name="actionFilters"/>
     <addaction name="actionKeyPoint"/>
     <addaction name="actionSegmentation"/>
@@ -150,7 +149,6 @@
     <addaction name="actionRangeImage"/>
     <addaction name="separator"/>
     <addaction name="actionScreenShot"/>
-    <addaction name="actionTest"/>
     <addaction name="actionBoundary"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
@@ -219,7 +217,6 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionShortCutKey"/>
     <addaction name="action_Help"/>
     <addaction name="actionAbout"/>
    </widget>
@@ -919,7 +916,7 @@ QScrollBar::sub-line:horizontal {
      <normaloff>:/res/icon/node.svg</normaloff>:/res/icon/node.svg</iconset>
    </property>
    <property name="text">
-    <string>BoundingBos</string>
+    <string>BoundingBox</string>
    </property>
    <property name="font">
     <font>

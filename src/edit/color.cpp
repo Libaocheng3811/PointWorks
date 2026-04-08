@@ -111,6 +111,17 @@ Color::~Color() {
 
 void Color::apply()
 {
+    // 背景色不需要选择点云
+    if (ui->cbox_type->currentIndex() == CT_COLOR_BACKGROUND)
+    {
+        m_cloudview->setBackgroundColor({static_cast<uint8_t>(m_rgb.red()),
+                                         static_cast<uint8_t>(m_rgb.green()),
+                                         static_cast<uint8_t>(m_rgb.blue())});
+        printI(QString("Set background color[r:%1, g:%2, b:%3] done.")
+                .arg(m_rgb.red()).arg(m_rgb.green()).arg(m_rgb.blue()));
+        return;
+    }
+
     // 存储选中的点云
     std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
@@ -120,7 +131,6 @@ void Color::apply()
     }
     for (auto& cloud : selected_clouds)
     {
-        // currentIndex()是ComboBox类中的一个成员函数，用于返回用户当前所选项的索引
         switch (ui->cbox_type->currentIndex())
         {
             case CT_COLOR_POINTCLOUD:
@@ -140,8 +150,6 @@ void Color::apply()
                             .arg(QString::fromStdString(cloud->id())).arg(m_rgb.red()).arg(m_rgb.green()).arg(m_rgb.blue()));
                 }
                 m_cloudview->addPointCloud(cloud);
-                break;
-            case CT_COLOR_BACKGROUND:
                 break;
             case CT_COLOR_NORMALS:
                 cloud->setNormalColor({static_cast<uint8_t>(m_rgb.red()),
@@ -182,13 +190,22 @@ void Color::reset()
         }
         printI(QString("Reset cloud[id:%1] color done.").arg(QString::fromStdString(cloud->id())));
     }
-    if (ui->cbox_type->currentIndex() == CT_COLOR_BACKGROUND)
-        m_cloudview->resetBackgroundColor();
+    // 背景色是视图级持久设置，关闭弹窗时不应恢复
 }
 
 void Color::setColorRGB(const QColor &rgb)
 {
     m_rgb = rgb, m_field = "";
+
+    // 背景色不需要选择点云
+    if (ui->cbox_type->currentIndex() == CT_COLOR_BACKGROUND)
+    {
+        m_cloudview->setBackgroundColor({static_cast<uint8_t>(m_rgb.red()),
+                                         static_cast<uint8_t>(m_rgb.green()),
+                                         static_cast<uint8_t>(m_rgb.blue())});
+        return;
+    }
+
     std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
@@ -205,11 +222,6 @@ void Color::setColorRGB(const QColor &rgb)
                                                         static_cast<uint8_t>(m_rgb.blue())});
             break;
 
-        case CT_COLOR_BACKGROUND:
-            m_cloudview->setBackgroundColor({static_cast<uint8_t>(m_rgb.red()),
-                                             static_cast<uint8_t>(m_rgb.green()),
-                                             static_cast<uint8_t>(m_rgb.blue())});
-            break;
         case CT_COLOR_NORMALS:
             for (auto& cloud : selected_clouds)
                 if (m_cloudview->contains(QString::fromStdString(cloud->normalId())))
