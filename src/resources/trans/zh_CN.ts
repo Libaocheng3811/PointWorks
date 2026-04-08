@@ -455,506 +455,506 @@
     </message>
 </context>
 <context>
-    <name>CloudTool</name>
+    <name>PointWorks</name>
     <message>
-        <location filename="cloudtool.ui" line="29"/>
-        <source>CloudTool</source>
+        <location filename="pointworks.ui" line="29"/>
+        <source>PointWorks</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="96"/>
+        <location filename="pointworks.ui" line="96"/>
         <source>PointCloud</source>
         <translation type="unfinished">点云</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="133"/>
+        <location filename="pointworks.ui" line="133"/>
         <source>Graphics</source>
         <translation type="unfinished">图像</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="169"/>
+        <location filename="pointworks.ui" line="169"/>
         <source>Robot</source>
         <translation type="unfinished">机器人</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="207"/>
+        <location filename="pointworks.ui" line="207"/>
         <source>File</source>
         <translation type="unfinished">文件</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="221"/>
+        <location filename="pointworks.ui" line="221"/>
         <source>View</source>
         <translation type="unfinished">显示</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="225"/>
+        <location filename="pointworks.ui" line="225"/>
         <source>Setview</source>
         <translation type="unfinished">设置显示</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="247"/>
+        <location filename="pointworks.ui" line="247"/>
         <source>Edit</source>
         <translation type="unfinished">编辑</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="260"/>
+        <location filename="pointworks.ui" line="260"/>
         <source>Tools</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="285"/>
+        <location filename="pointworks.ui" line="285"/>
         <source>Device</source>
         <translation type="unfinished">设备</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="293"/>
-        <location filename="cloudtool.ui" line="1312"/>
+        <location filename="pointworks.ui" line="293"/>
+        <location filename="pointworks.ui" line="1312"/>
         <source>Help</source>
         <translation type="unfinished">帮助</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="300"/>
+        <location filename="pointworks.ui" line="300"/>
         <source>Options</source>
         <translation type="unfinished">选项</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="304"/>
+        <location filename="pointworks.ui" line="304"/>
         <source>Theme</source>
         <translation type="unfinished">主题</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="312"/>
+        <location filename="pointworks.ui" line="312"/>
         <source>Lanuage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="330"/>
+        <location filename="pointworks.ui" line="330"/>
         <source>FileTool</source>
         <translation type="unfinished">文件工具</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="386"/>
+        <location filename="pointworks.ui" line="386"/>
         <source>Data Tree</source>
         <translation type="unfinished">数据树</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="428"/>
+        <location filename="pointworks.ui" line="428"/>
         <source>PointCloud File</source>
         <translation type="unfinished">点云文件</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="468"/>
+        <location filename="pointworks.ui" line="468"/>
         <source>Image File</source>
         <translation type="unfinished">图片文件</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="503"/>
+        <location filename="pointworks.ui" line="503"/>
         <source>Console</source>
         <translation type="unfinished">输出</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="525"/>
+        <location filename="pointworks.ui" line="525"/>
         <source>ViewTool</source>
         <translation type="unfinished">查看工具</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="544"/>
+        <location filename="pointworks.ui" line="544"/>
         <source>MoudelTool</source>
         <translation type="unfinished">模块工具</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="589"/>
-        <location filename="cloudtool.ui" line="671"/>
-        <location filename="cloudtool.ui" line="815"/>
-        <location filename="cloudtool.ui" line="921"/>
+        <location filename="pointworks.ui" line="589"/>
+        <location filename="pointworks.ui" line="671"/>
+        <location filename="pointworks.ui" line="815"/>
+        <location filename="pointworks.ui" line="921"/>
         <source>Properties</source>
         <translation type="unfinished">属性</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="676"/>
-        <location filename="cloudtool.ui" line="820"/>
-        <location filename="cloudtool.ui" line="926"/>
+        <location filename="pointworks.ui" line="676"/>
+        <location filename="pointworks.ui" line="820"/>
+        <location filename="pointworks.ui" line="926"/>
         <source>Value</source>
         <translation type="unfinished">值</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="681"/>
-        <location filename="cloudtool.ui" line="825"/>
+        <location filename="pointworks.ui" line="681"/>
+        <location filename="pointworks.ui" line="825"/>
         <source>Id</source>
         <translation type="unfinished">名称</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="690"/>
-        <location filename="cloudtool.ui" line="834"/>
+        <location filename="pointworks.ui" line="690"/>
+        <location filename="pointworks.ui" line="834"/>
         <source>Type</source>
         <translation type="unfinished">类型</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="699"/>
+        <location filename="pointworks.ui" line="699"/>
         <source>Size</source>
         <translation type="unfinished">容量</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="708"/>
+        <location filename="pointworks.ui" line="708"/>
         <source>Radius</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="717"/>
+        <location filename="pointworks.ui" line="717"/>
         <source>Pointsize</source>
         <translation type="unfinished">点大小</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="726"/>
-        <location filename="cloudtool.ui" line="949"/>
+        <location filename="pointworks.ui" line="726"/>
+        <location filename="pointworks.ui" line="949"/>
         <source>Opacity</source>
         <translation type="unfinished">透明度</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="735"/>
-        <location filename="cloudtool.ui" line="1141"/>
+        <location filename="pointworks.ui" line="735"/>
+        <location filename="pointworks.ui" line="1141"/>
         <source>Normals</source>
         <translation type="unfinished">法线</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="843"/>
+        <location filename="pointworks.ui" line="843"/>
         <source>Resolution</source>
         <translation type="unfinished">分辨率</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="852"/>
+        <location filename="pointworks.ui" line="852"/>
         <source>FileSize</source>
         <translation type="unfinished">文件大小</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="931"/>
+        <location filename="pointworks.ui" line="931"/>
         <source>ModelType</source>
         <translation type="unfinished">模型类别</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="940"/>
+        <location filename="pointworks.ui" line="940"/>
         <source>PointSize</source>
         <translation type="unfinished">点大小</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="958"/>
+        <location filename="pointworks.ui" line="958"/>
         <source>LineWidth</source>
         <translation type="unfinished">线宽</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="967"/>
+        <location filename="pointworks.ui" line="967"/>
         <source>Repersentation</source>
         <translation type="unfinished">显示类型</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="976"/>
+        <location filename="pointworks.ui" line="976"/>
         <source>FontSize</source>
         <translation type="unfinished">字体大小</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="985"/>
+        <location filename="pointworks.ui" line="985"/>
         <source>Shading</source>
         <translation type="unfinished">阴影</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1003"/>
+        <location filename="pointworks.ui" line="1003"/>
         <source>DisplayTool</source>
         <translation type="unfinished">显示工具</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1022"/>
+        <location filename="pointworks.ui" line="1022"/>
         <source>ImageTool</source>
         <translation type="unfinished">图片工具</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1042"/>
+        <location filename="pointworks.ui" line="1042"/>
         <source>Open</source>
         <translation type="unfinished">打开</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1051"/>
+        <location filename="pointworks.ui" line="1051"/>
         <source>Save</source>
         <translation type="unfinished">保存</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1060"/>
+        <location filename="pointworks.ui" line="1060"/>
         <source>Close</source>
         <translation type="unfinished">关闭</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1069"/>
+        <location filename="pointworks.ui" line="1069"/>
         <source>Close all</source>
         <translation type="unfinished">关闭所有</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1078"/>
+        <location filename="pointworks.ui" line="1078"/>
         <source>Quit</source>
         <translation type="unfinished">退出</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1087"/>
+        <location filename="pointworks.ui" line="1087"/>
         <source>Filter</source>
         <translation type="unfinished">滤波器</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1096"/>
+        <location filename="pointworks.ui" line="1096"/>
         <source>Surface</source>
         <translation type="unfinished">曲面</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1105"/>
+        <location filename="pointworks.ui" line="1105"/>
         <source>Azure Kinect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1114"/>
+        <location filename="pointworks.ui" line="1114"/>
         <source>Photoneo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1123"/>
+        <location filename="pointworks.ui" line="1123"/>
         <source>Colors</source>
         <translation type="unfinished">颜色</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1132"/>
+        <location filename="pointworks.ui" line="1132"/>
         <source>Coords</source>
         <translation type="unfinished">坐标</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1150"/>
+        <location filename="pointworks.ui" line="1150"/>
         <source>BoundingBox</source>
         <translation type="unfinished">包围盒</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1159"/>
+        <location filename="pointworks.ui" line="1159"/>
         <source>TreeSearch</source>
         <translation type="unfinished">树搜索</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1168"/>
+        <location filename="pointworks.ui" line="1168"/>
         <source>KeyPoint</source>
         <translation type="unfinished">关键点</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1177"/>
+        <location filename="pointworks.ui" line="1177"/>
         <source>Test</source>
         <translation type="unfinished">测试</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1186"/>
+        <location filename="pointworks.ui" line="1186"/>
         <source>Topview</source>
         <translation type="unfinished">顶部</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1195"/>
+        <location filename="pointworks.ui" line="1195"/>
         <source>Frontview</source>
         <translation type="unfinished">正面</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1204"/>
+        <location filename="pointworks.ui" line="1204"/>
         <source>LeftSideview</source>
         <translation type="unfinished">左侧面</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1213"/>
+        <location filename="pointworks.ui" line="1213"/>
         <source>Backview</source>
         <translation type="unfinished">后面</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1222"/>
+        <location filename="pointworks.ui" line="1222"/>
         <source>RightSideview</source>
         <translation type="unfinished">右侧面</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1231"/>
+        <location filename="pointworks.ui" line="1231"/>
         <source>Bottomview</source>
         <translation type="unfinished">底部</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1240"/>
+        <location filename="pointworks.ui" line="1240"/>
         <source>Resetcamera</source>
         <translation type="unfinished">重置相机</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1249"/>
+        <location filename="pointworks.ui" line="1249"/>
         <source>ShortcutKey</source>
         <translation type="unfinished">快捷键</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1258"/>
+        <location filename="pointworks.ui" line="1258"/>
         <source>About</source>
         <translation type="unfinished">关于</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1267"/>
+        <location filename="pointworks.ui" line="1267"/>
         <source>Merge</source>
         <translation type="unfinished">合并</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1276"/>
+        <location filename="pointworks.ui" line="1276"/>
         <source>Transformation</source>
         <translation type="unfinished">转换</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1285"/>
+        <location filename="pointworks.ui" line="1285"/>
         <source>Calibration</source>
         <translation type="unfinished">标定</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1294"/>
+        <location filename="pointworks.ui" line="1294"/>
         <source>Setting</source>
         <translation type="unfinished">设置</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1303"/>
+        <location filename="pointworks.ui" line="1303"/>
         <source>PathPlan</source>
         <translation type="unfinished">路径规划</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1321"/>
+        <location filename="pointworks.ui" line="1321"/>
         <source>Scale</source>
         <translation type="unfinished">缩放</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1330"/>
-        <location filename="cloudtool.ui" line="1333"/>
+        <location filename="pointworks.ui" line="1330"/>
+        <location filename="pointworks.ui" line="1333"/>
         <source>PickPoints</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1342"/>
+        <location filename="pointworks.ui" line="1342"/>
         <source>ProcessPlan</source>
         <translation type="unfinished">过程规划</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1351"/>
+        <location filename="pointworks.ui" line="1351"/>
         <source>ScreenShot</source>
         <translation type="unfinished">截图</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1362"/>
+        <location filename="pointworks.ui" line="1362"/>
         <source>ShowFPS</source>
         <translation type="unfinished">显示FPS</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1373"/>
+        <location filename="pointworks.ui" line="1373"/>
         <source>ShowCloudId</source>
         <translation type="unfinished">显示点云ID</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1384"/>
+        <location filename="pointworks.ui" line="1384"/>
         <source>ShowAxes</source>
         <translation type="unfinished">显示坐标系</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1393"/>
+        <location filename="pointworks.ui" line="1393"/>
         <source>SampleCloud</source>
         <translation type="unfinished">实例点云</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1402"/>
+        <location filename="pointworks.ui" line="1402"/>
         <source>RangeImage</source>
         <translation type="unfinished">深度图</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1411"/>
+        <location filename="pointworks.ui" line="1411"/>
         <source>Segmentation</source>
         <translation type="unfinished">分割</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1420"/>
+        <location filename="pointworks.ui" line="1420"/>
         <source>Registration</source>
         <translation type="unfinished">配准</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1429"/>
+        <location filename="pointworks.ui" line="1429"/>
         <source>ZhiSensor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1438"/>
+        <location filename="pointworks.ui" line="1438"/>
         <source>Measure</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1447"/>
+        <location filename="pointworks.ui" line="1447"/>
         <source>Selection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1456"/>
+        <location filename="pointworks.ui" line="1456"/>
         <source>Factory</source>
         <translation type="unfinished">工厂</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1465"/>
+        <location filename="pointworks.ui" line="1465"/>
         <source>Clone</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1474"/>
-        <location filename="cloudtool.ui" line="1477"/>
+        <location filename="pointworks.ui" line="1474"/>
+        <location filename="pointworks.ui" line="1477"/>
         <source>Sampling</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1486"/>
+        <location filename="pointworks.ui" line="1486"/>
         <source>Connection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1495"/>
+        <location filename="pointworks.ui" line="1495"/>
         <source>segment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1500"/>
+        <location filename="pointworks.ui" line="1500"/>
         <source>Origin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1505"/>
+        <location filename="pointworks.ui" line="1505"/>
         <source>Light</source>
         <translation type="unfinished">浅色</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1510"/>
+        <location filename="pointworks.ui" line="1510"/>
         <source>Dark</source>
         <translation type="unfinished">深色</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1515"/>
+        <location filename="pointworks.ui" line="1515"/>
         <source>English</source>
         <translation type="unfinished">英文</translation>
     </message>
     <message>
-        <location filename="cloudtool.ui" line="1520"/>
+        <location filename="pointworks.ui" line="1520"/>
         <source>Chinese</source>
         <translation type="unfinished">中文</translation>
     </message>
     <message>
-        <location filename="cloudtool.cpp" line="55"/>
-        <source>CloudTool started!</source>
-        <translation type="unfinished">CloudTool 启动!</translation>
+        <location filename="pointworks.cpp" line="55"/>
+        <source>PointWorks started!</source>
+        <translation type="unfinished">PointWorks 启动!</translation>
     </message>
     <message>
-        <location filename="cloudtool.cpp" line="195"/>
+        <location filename="pointworks.cpp" line="195"/>
         <source>Origin Theme</source>
         <translation type="unfinished">原始主题</translation>
     </message>
     <message>
-        <location filename="cloudtool.cpp" line="202"/>
+        <location filename="pointworks.cpp" line="202"/>
         <source>Light Theme</source>
         <translation type="unfinished">浅色主题</translation>
     </message>
     <message>
-        <location filename="cloudtool.cpp" line="209"/>
+        <location filename="pointworks.cpp" line="209"/>
         <source>Dark Theme</source>
         <translation type="unfinished">深色主题</translation>
     </message>
     <message>
-        <location filename="cloudtool.cpp" line="229"/>
+        <location filename="pointworks.cpp" line="229"/>
         <source>Switch language failed</source>
         <translation type="unfinished">切换语言失败</translation>
     </message>
@@ -2441,8 +2441,8 @@
         <translation type="obsolete">切换语言失败</translation>
     </message>
     <message>
-        <source>CloudTool started!</source>
-        <translation type="obsolete">CloudTool 启动!</translation>
+        <source>PointWorks started!</source>
+        <translation type="obsolete">PointWorks 启动!</translation>
     </message>
     <message>
         <source>Image</source>

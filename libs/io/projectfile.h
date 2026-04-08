@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_PROJECTFILE_H
-#define CLOUDTOOL2_PROJECTFILE_H
+#ifndef POINTWORKS_PROJECTFILE_H
+#define POINTWORKS_PROJECTFILE_H
 
 #include "exports.h"
 #include <QString>
@@ -68,7 +68,7 @@ struct CT_IO_EXPORT ViewOptions
 struct CT_IO_EXPORT ProjectData
 {
     QString version = "1.0";
-    QString app_name = "CloudTool2";
+    QString app_name = "PointWorks";
     QDateTime created_at;
     QDateTime modified_at;
 
@@ -95,10 +95,10 @@ public:
     static QString toRelativePath(const QString& baseDir, const QString& absolutePath);
 
     /// 项目文件扩展名
-    static QString fileFilter() { return "CloudTool Project (*.ctp)"; }
+    static QString fileFilter() { return "PointWorks Project (*.ctp)"; }
     static QString defaultSuffix() { return "ctp"; }
 };
 
 } // namespace ct
 
-#endif // CLOUDTOOL2_PROJECTFILE_H
+#endif // POINTWORKS_PROJECTFILE_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_KEYPOINTS_H
-#define CLOUDTOOL2_KEYPOINTS_H
+#ifndef POINTWORKS_KEYPOINTS_H
+#define POINTWORKS_KEYPOINTS_H
 
 #include "ui/base/customdialog.h"
 #include "algorithm/keypoints.h"
@@ -46,4 +46,4 @@ private:
     std::atomic<bool> m_cancel{false};
 };
 
-#endif // CLOUDTOOL2_KEYPOINTS_H
+#endif // POINTWORKS_KEYPOINTS_H

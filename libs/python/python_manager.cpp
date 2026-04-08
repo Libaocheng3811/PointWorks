@@ -44,7 +44,7 @@ void PythonManager::initialize()
         py::initialize_interpreter();
 
         // 2. 设置 sys.argv（numpy 等库依赖）
-        wchar_t argv0[] = L"cloudtool";
+        wchar_t argv0[] = L"pointworks";
         wchar_t* argv[] = { argv0 };
         PySys_SetArgv(1, argv);
 

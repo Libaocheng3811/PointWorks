@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_COLOR_H
-#define CLOUDTOOL2_COLOR_H
+#ifndef POINTWORKS_COLOR_H
+#define POINTWORKS_COLOR_H
 
 #include "ui/base/customdialog.h"
 
@@ -44,4 +44,4 @@ protected:
 };
 
 
-#endif //CLOUDTOOL2_COLOR_H
+#endif //POINTWORKS_COLOR_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_SCENENODETYPE_H
-#define CLOUDTOOL2_SCENENODETYPE_H
+#ifndef POINTWORKS_SCENENODETYPE_H
+#define POINTWORKS_SCENENODETYPE_H
 
 #include <QtGlobal>
 
@@ -24,4 +24,4 @@ constexpr int NodeFilePathRole  = Qt::UserRole + 3;
 
 } // namespace ct
 
-#endif // CLOUDTOOL2_SCENENODETYPE_H
+#endif // POINTWORKS_SCENENODETYPE_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_RECENT_PROJECTS_H
-#define CLOUDTOOL2_RECENT_PROJECTS_H
+#ifndef POINTWORKS_RECENT_PROJECTS_H
+#define POINTWORKS_RECENT_PROJECTS_H
 
 #include <QObject>
 #include <QStringList>
@@ -13,7 +13,7 @@ public:
     static const int MAX_RECENT = 10;
 
     explicit RecentProjects(QObject* parent = nullptr)
-        : QObject(parent), m_settings("CloudTool2", "CloudTool2") { load(); }
+        : QObject(parent), m_settings("PointWorks", "PointWorks") { load(); }
 
     /// 添加项目到最近列表（去重 + LRU）
     void addProject(const QString& path)
@@ -63,4 +63,4 @@ private:
     QSettings m_settings;
 };
 
-#endif // CLOUDTOOL2_RECENT_PROJECTS_H
+#endif // POINTWORKS_RECENT_PROJECTS_H

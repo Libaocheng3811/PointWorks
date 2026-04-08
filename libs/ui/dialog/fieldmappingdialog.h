@@ -2,8 +2,8 @@
 // Created by LBC on 2025/12/23.
 //
 
-#ifndef CLOUDTOOL2_FIELDMAPPINGDIALOG_H
-#define CLOUDTOOL2_FIELDMAPPINGDIALOG_H
+#ifndef POINTWORKS_FIELDMAPPINGDIALOG_H
+#define POINTWORKS_FIELDMAPPINGDIALOG_H
 
 #include "core/field_types.h"
 
@@ -143,4 +143,4 @@ namespace ct {
         QTableWidget *m_table;
     };
 } // namespace ct
-#endif //CLOUDTOOL2_FIELDMAPPINGDIALOG_H
+#endif //POINTWORKS_FIELDMAPPINGDIALOG_H

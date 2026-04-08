@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/19.
 //
 
-#ifndef CLOUDTOOL2_DISTANCECALCULATOR_H
-#define CLOUDTOOL2_DISTANCECALCULATOR_H
+#ifndef POINTWORKS_DISTANCECALCULATOR_H
+#define POINTWORKS_DISTANCECALCULATOR_H
 
 #include <vector>
 #include <functional>
@@ -31,4 +31,4 @@ namespace ct {
     };
 } // namespace ct
 
-#endif //CLOUDTOOL2_DISTANCECALCULATOR_H
+#endif //POINTWORKS_DISTANCECALCULATOR_H

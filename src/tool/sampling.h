@@ -2,8 +2,8 @@
 // Created by LBC on 2026/3/24.
 //
 
-#ifndef CLOUDTOOL2_SAMPLING_H
-#define CLOUDTOOL2_SAMPLING_H
+#ifndef POINTWORKS_SAMPLING_H
+#define POINTWORKS_SAMPLING_H
 
 #include "ui/base/customdialog.h"
 #include "algorithm/filters.h"
@@ -49,4 +49,4 @@ private:
     };
 };
 
-#endif //CLOUDTOOL2_SAMPLING_H
+#endif //POINTWORKS_SAMPLING_H

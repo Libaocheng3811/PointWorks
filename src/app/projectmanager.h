@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_PROJECT_MANAGER_H
-#define CLOUDTOOL2_PROJECT_MANAGER_H
+#ifndef POINTWORKS_PROJECT_MANAGER_H
+#define POINTWORKS_PROJECT_MANAGER_H
 
 #include <QObject>
 #include <QString>
@@ -47,4 +47,4 @@ private:
     int m_total_loads = 0;
 };
 
-#endif // CLOUDTOOL2_PROJECT_MANAGER_H
+#endif // POINTWORKS_PROJECT_MANAGER_H

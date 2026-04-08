@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CLOUD_H
-#define CLOUDTOOL2_CLOUD_H
+#ifndef POINTWORKS_CLOUD_H
+#define POINTWORKS_CLOUD_H
 
 #include "cloudtype.h"
 #include "octree.h"
@@ -227,4 +227,4 @@ namespace ct
     };
 }
 
-#endif //CLOUDTOOL2_CLOUD_H
+#endif //POINTWORKS_CLOUD_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_PYTHON_BRIDGE_H
-#define CLOUDTOOL2_PYTHON_BRIDGE_H
+#ifndef POINTWORKS_PYTHON_BRIDGE_H
+#define POINTWORKS_PYTHON_BRIDGE_H
 
 #include <QObject>
 #include <QString>
@@ -271,4 +271,4 @@ private:
 
 } // namespace ct
 
-#endif // CLOUDTOOL2_PYTHON_BRIDGE_H
+#endif // POINTWORKS_PYTHON_BRIDGE_H

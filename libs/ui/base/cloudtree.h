@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CLOUDTREE_H
-#define CLOUDTOOL2_CLOUDTREE_H
+#ifndef POINTWORKS_CLOUDTREE_H
+#define POINTWORKS_CLOUDTREE_H
 
 #include "customtree.h"
 #include "dialog/processingdialog.h"
@@ -302,4 +302,4 @@ Q_DECLARE_METATYPE(ct::TxtImportParams)
 Q_DECLARE_METATYPE(ct::TxtExportParams)
 Q_DECLARE_METATYPE(Eigen::Vector3d)
 
-#endif //CLOUDTOOL2_CLOUDTREE_H
+#endif //POINTWORKS_CLOUDTREE_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_FILEIO_H
-#define CLOUDTOOL2_FILEIO_H
+#ifndef POINTWORKS_FILEIO_H
+#define POINTWORKS_FILEIO_H
 
 #include "core/cloud.h"
 #include "core/field_types.h"
@@ -149,4 +149,4 @@ namespace ct
 
 
 
-#endif //CLOUDTOOL2_FILEIO_H
+#endif //POINTWORKS_FILEIO_H

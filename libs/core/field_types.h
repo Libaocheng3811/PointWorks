@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_FIELD_TYPES_H
-#define CLOUDTOOL2_FIELD_TYPES_H
+#ifndef POINTWORKS_FIELD_TYPES_H
+#define POINTWORKS_FIELD_TYPES_H
 
 #include "exports.h"
 
@@ -60,4 +60,4 @@ namespace ct
     };
 }
 
-#endif //CLOUDTOOL2_FIELD_TYPES_H
+#endif //POINTWORKS_FIELD_TYPES_H

@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/28.
 //
 
-#ifndef CLOUDTOOL2_OCTREERENDERER_H
-#define CLOUDTOOL2_OCTREERENDERER_H
+#ifndef POINTWORKS_OCTREERENDERER_H
+#define POINTWORKS_OCTREERENDERER_H
 
 #include "core/cloud.h"
 #include "core/octree.h"
@@ -106,4 +106,4 @@ namespace ct{
 
 }// namespace ct
 
-#endif //CLOUDTOOL2_OCTREERENDERER_H
+#endif //POINTWORKS_OCTREERENDERER_H

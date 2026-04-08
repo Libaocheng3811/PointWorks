@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CONSOLE_H
-#define CLOUDTOOL2_CONSOLE_H
+#ifndef POINTWORKS_CONSOLE_H
+#define POINTWORKS_CONSOLE_H
 
 #include "core/exports.h"
 
@@ -31,4 +31,4 @@ namespace ct
 }
 
 
-#endif //CLOUDTOOL2_CONSOLE_H
+#endif //POINTWORKS_CONSOLE_H

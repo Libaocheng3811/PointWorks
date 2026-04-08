@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/6.
 //
 
-#ifndef CLOUDTOOL2_UTILS_H
-#define CLOUDTOOL2_UTILS_H
+#ifndef POINTWORKS_UTILS_H
+#define POINTWORKS_UTILS_H
 
 #include "core/cloud.h"
 #include <vector>
@@ -34,4 +34,4 @@ namespace ct{
         target->backupColors();
     }
 } // namespace ct
-#endif //CLOUDTOOL2_UTILS_H
+#endif //POINTWORKS_UTILS_H

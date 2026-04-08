@@ -2,8 +2,8 @@
 // Created by LBC on 2024/11/26.
 //
 
-#ifndef CLOUDTOOL2_CUTTING_H
-#define CLOUDTOOL2_CUTTING_H
+#ifndef POINTWORKS_CUTTING_H
+#define POINTWORKS_CUTTING_H
 
 #include <QDialog>
 #include "ui/base/customdialog.h"
@@ -65,4 +65,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_CUTTING_H
+#endif //POINTWORKS_CUTTING_H

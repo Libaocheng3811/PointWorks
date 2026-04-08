@@ -694,7 +694,7 @@ void MainWindow::onOpenProject()
     }
 
     QString path = QFileDialog::getOpenFileName(this, "Open Project", QString(),
-        "CloudTool Project (*.ctp);;All Files (*)");
+        "PointWorks Project (*.ctp);;All Files (*)");
     if (path.isEmpty()) return;
 
     m_project_manager->openProject(path, ui->cloudtree, ui->cloudview);
@@ -713,7 +713,7 @@ void MainWindow::onSaveProject()
 void MainWindow::onSaveProjectAs()
 {
     QString path = QFileDialog::getSaveFileName(this, "Save Project As", QString(),
-        "CloudTool Project (*.ctp);;All Files (*)");
+        "PointWorks Project (*.ctp);;All Files (*)");
     if (path.isEmpty()) return;
     m_project_manager->saveProject(path, ui->cloudtree, ui->cloudview);
 }

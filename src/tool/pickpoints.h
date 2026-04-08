@@ -2,8 +2,8 @@
 // Created by LBC on 2024/12/17.
 //
 
-#ifndef CLOUDTOOL2_PICKPOINTS_H
-#define CLOUDTOOL2_PICKPOINTS_H
+#ifndef POINTWORKS_PICKPOINTS_H
+#define POINTWORKS_PICKPOINTS_H
 
 #include "ui/base/customdialog.h"
 #include "core/common.h"
@@ -63,4 +63,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_PICKPOINTS_H
+#endif //POINTWORKS_PICKPOINTS_H

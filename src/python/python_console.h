@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_PYTHON_CONSOLE_H
-#define CLOUDTOOL2_PYTHON_CONSOLE_H
+#ifndef POINTWORKS_PYTHON_CONSOLE_H
+#define POINTWORKS_PYTHON_CONSOLE_H
 
 #include <QWidget>
 #include <QTextBrowser>
@@ -40,4 +40,4 @@ private:
 
 } // namespace ct
 
-#endif // CLOUDTOOL2_PYTHON_CONSOLE_H
+#endif // POINTWORKS_PYTHON_CONSOLE_H

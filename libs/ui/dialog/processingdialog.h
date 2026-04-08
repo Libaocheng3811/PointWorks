@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/5.
 //
 
-#ifndef CLOUDTOOL2_PROCESSINGDIALOG_H
-#define CLOUDTOOL2_PROCESSINGDIALOG_H
+#ifndef POINTWORKS_PROCESSINGDIALOG_H
+#define POINTWORKS_PROCESSINGDIALOG_H
 
 #include <QDialog>
 #include <QProgressBar>
@@ -63,4 +63,4 @@ namespace ct{
         QPushButton* m_btnCancel;
     };
 } // namespace ct
-#endif //CLOUDTOOL2_PROCESSINGDIALOG_H
+#endif //POINTWORKS_PROCESSINGDIALOG_H

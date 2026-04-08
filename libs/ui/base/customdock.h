@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CUSTOMDOCK_H
-#define CLOUDTOOL2_CUSTOMDOCK_H
+#ifndef POINTWORKS_CUSTOMDOCK_H
+#define POINTWORKS_CUSTOMDOCK_H
 
 #include "cloudtree.h"
 
@@ -153,4 +153,4 @@ namespace ct
             return (T*)registed_docks.find(label)->second;
     }
 }
-#endif //CLOUDTOOL2_CUSTOMDOCK_H
+#endif //POINTWORKS_CUSTOMDOCK_H

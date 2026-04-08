@@ -2,8 +2,8 @@
 // Created by LBC on 2024/11/13.
 //
 
-#ifndef CLOUDTOOL2_FEATURES_H
-#define CLOUDTOOL2_FEATURES_H
+#ifndef POINTWORKS_FEATURES_H
+#define POINTWORKS_FEATURES_H
 
 #include "core/exports.h"
 #include "core/cloud.h"
@@ -175,4 +175,4 @@ namespace ct
 
 } // namespace ct
 
-#endif //CLOUDTOOL2_FEATURES_H
+#endif //POINTWORKS_FEATURES_H

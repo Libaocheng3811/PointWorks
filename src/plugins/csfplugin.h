@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/4.
 //
 
-#ifndef CLOUDTOOL2_CSFPLUGIN_H
-#define CLOUDTOOL2_CSFPLUGIN_H
+#ifndef POINTWORKS_CSFPLUGIN_H
+#define POINTWORKS_CSFPLUGIN_H
 
 #include <QDialog>
 
@@ -35,4 +35,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_CSFPLUGIN_H
+#endif //POINTWORKS_CSFPLUGIN_H

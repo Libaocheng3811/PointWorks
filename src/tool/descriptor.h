@@ -2,8 +2,8 @@
 // Created by LBC on 2025/1/10.
 //
 
-#ifndef CLOUDTOOL2_DESCRIPTOR_H
-#define CLOUDTOOL2_DESCRIPTOR_H
+#ifndef POINTWORKS_DESCRIPTOR_H
+#define POINTWORKS_DESCRIPTOR_H
 
 #include "ui/base/customdialog.h"
 
@@ -51,4 +51,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_DESCRIPTOR_H
+#endif //POINTWORKS_DESCRIPTOR_H

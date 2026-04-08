@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/26.
 //
 
-#ifndef CLOUDTOOL2_CLOUDTYPE_H
-#define CLOUDTOOL2_CLOUDTYPE_H
+#ifndef POINTWORKS_CLOUDTYPE_H
+#define POINTWORKS_CLOUDTYPE_H
 
 #define _USE_MATH_DEFINES
 
@@ -175,4 +175,4 @@ namespace ct {
 
 } // namespace ct
 
-#endif CLOUDTOOL2_CLOUDTYPE_H
+#endif POINTWORKS_CLOUDTYPE_H

@@ -78,11 +78,11 @@ find_package(VTK COMPONENTS
     vtkRenderingGL2PSOpenGL2
     vtkRenderingVolumeOpenGL2)
 
-add_executable(cloudtool WIN32 ${Srcs} ${Hdrs} ${UIS} ${QRCs} ${IRCs})
+add_executable(pointworks WIN32 ${Srcs} ${Hdrs} ${UIS} ${QRCs} ${IRCs})
 
-target_include_directories(cloudtool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pointworks PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(cloudtool PRIVATE
+target_link_libraries(pointworks PRIVATE
     ct_core
     ct_viz
     ct_io

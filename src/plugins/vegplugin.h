@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/6.
 //
 
-#ifndef CLOUDTOOL2_VEGPLUGIN_H
-#define CLOUDTOOL2_VEGPLUGIN_H
+#ifndef POINTWORKS_VEGPLUGIN_H
+#define POINTWORKS_VEGPLUGIN_H
 
 #include <QDialog>
 
@@ -33,4 +33,4 @@ private:
     ct::Cloud::Ptr m_cloud;
 };
 
-#endif //CLOUDTOOL2_VEGPLUGIN_H
+#endif //POINTWORKS_VEGPLUGIN_H

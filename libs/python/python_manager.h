@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_PYTHON_MANAGER_H
-#define CLOUDTOOL2_PYTHON_MANAGER_H
+#ifndef POINTWORKS_PYTHON_MANAGER_H
+#define POINTWORKS_PYTHON_MANAGER_H
 
 #include "python_bridge.h"
 
@@ -46,4 +46,4 @@ private:
 
 } // namespace ct
 
-#endif // CLOUDTOOL2_PYTHON_MANAGER_H
+#endif // POINTWORKS_PYTHON_MANAGER_H

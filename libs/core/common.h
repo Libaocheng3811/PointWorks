@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_COMMON_H
-#define CLOUDTOOL2_COMMON_H
+#ifndef POINTWORKS_COMMON_H
+#define POINTWORKS_COMMON_H
 
 #include "exports.h"
 
@@ -56,4 +56,4 @@ namespace ct
 }
 
 
-#endif //CLOUDTOOL2_COMMON_H
+#endif //POINTWORKS_COMMON_H

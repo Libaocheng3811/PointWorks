@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_PYTHON_WORKER_H
-#define CLOUDTOOL2_PYTHON_WORKER_H
+#ifndef POINTWORKS_PYTHON_WORKER_H
+#define POINTWORKS_PYTHON_WORKER_H
 
 #include <QThread>
 #include <QString>
@@ -49,4 +49,4 @@ private:
 
 } // namespace ct
 
-#endif // CLOUDTOOL2_PYTHON_WORKER_H
+#endif // POINTWORKS_PYTHON_WORKER_H

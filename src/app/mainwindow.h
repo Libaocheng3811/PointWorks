@@ -2,8 +2,8 @@
 // Created by LBC on 2024/10/8.
 //
 
-#ifndef CLOUDTOOL2_MAINWINDOW_H
-#define CLOUDTOOL2_MAINWINDOW_H
+#ifndef POINTWORKS_MAINWINDOW_H
+#define POINTWORKS_MAINWINDOW_H
 
 #include <QMainWindow>
 #include <QCloseEvent>
@@ -72,4 +72,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_MAINWINDOW_H
+#endif //POINTWORKS_MAINWINDOW_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_OCTREE_H
-#define CLOUDTOOL2_OCTREE_H
+#ifndef POINTWORKS_OCTREE_H
+#define POINTWORKS_OCTREE_H
 
 #include "cloudtype.h"
 #include <vector>
@@ -186,4 +186,4 @@ namespace ct{
     };
 } // namespace ct
 
-#endif //CLOUDTOOL2_OCTREE_H
+#endif //POINTWORKS_OCTREE_H

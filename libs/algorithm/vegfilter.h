@@ -2,8 +2,8 @@
 // Created by LBC on 2026/1/6.
 //
 
-#ifndef CLOUDTOOL2_VEGFILTER_H
-#define CLOUDTOOL2_VEGFILTER_H
+#ifndef POINTWORKS_VEGFILTER_H
+#define POINTWORKS_VEGFILTER_H
 
 #include "core/cloud.h"
 #include "core/exports.h"
@@ -35,4 +35,4 @@ namespace ct{
 }
 
 
-#endif //CLOUDTOOL2_VEGFILTER_H
+#endif //POINTWORKS_VEGFILTER_H

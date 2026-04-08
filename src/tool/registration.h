@@ -2,8 +2,8 @@
 // Created by LBC on 2025/1/10.
 //
 
-#ifndef CLOUDTOOL2_REGISTRATION_H
-#define CLOUDTOOL2_REGISTRATION_H
+#ifndef POINTWORKS_REGISTRATION_H
+#define POINTWORKS_REGISTRATION_H
 
 #include "ui/base/customdialog.h"
 #include "core/common.h"
@@ -84,4 +84,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_REGISTRATION_H
+#endif //POINTWORKS_REGISTRATION_H

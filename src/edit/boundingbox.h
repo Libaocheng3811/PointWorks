@@ -2,8 +2,8 @@
 // Created by LBC on 2024/11/13.
 //
 
-#ifndef CLOUDTOOL2_BOUNDINGBOX_H
-#define CLOUDTOOL2_BOUNDINGBOX_H
+#ifndef POINTWORKS_BOUNDINGBOX_H
+#define POINTWORKS_BOUNDINGBOX_H
 
 #include "ui/base/customdialog.h"
 
@@ -42,4 +42,4 @@ private:
 };
 
 
-#endif //CLOUDTOOL2_BOUNDINGBOX_H
+#endif //POINTWORKS_BOUNDINGBOX_H

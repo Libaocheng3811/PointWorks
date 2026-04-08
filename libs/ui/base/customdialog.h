@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CUSTOMDIALOG_H
-#define CLOUDTOOL2_CUSTOMDIALOG_H
+#ifndef POINTWORKS_CUSTOMDIALOG_H
+#define POINTWORKS_CUSTOMDIALOG_H
 
 #include "cloudtree.h"
 
@@ -172,4 +172,4 @@ namespace ct
             return (T*)registed_dialogs.find(label)->second;
     }
 }
-#endif //CLOUDTOOL2_CUSTOMDIALOG_H
+#endif //POINTWORKS_CUSTOMDIALOG_H

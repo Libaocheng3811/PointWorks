@@ -2,8 +2,8 @@
 // Created by LBC on 2025/1/9.
 //
 
-#ifndef CLOUDTOOL2_RANGEIMAGE_H
-#define CLOUDTOOL2_RANGEIMAGE_H
+#ifndef POINTWORKS_RANGEIMAGE_H
+#define POINTWORKS_RANGEIMAGE_H
 
 #include "ui/base/customdialog.h"
 
@@ -54,4 +54,4 @@ private:
     ct::Cloud::Ptr m_cloud;
 };
 
-#endif //CLOUDTOOL2_RANGEIMAGE_H
+#endif //POINTWORKS_RANGEIMAGE_H

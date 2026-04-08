@@ -2,8 +2,8 @@
 // Created by LBC on 2025/12/29.
 //
 
-#ifndef CLOUDTOOL2_TXTIMPORTDIALOG_H
-#define CLOUDTOOL2_TXTIMPORTDIALOG_H
+#ifndef POINTWORKS_TXTIMPORTDIALOG_H
+#define POINTWORKS_TXTIMPORTDIALOG_H
 
 #include "core/field_types.h"
 
@@ -190,4 +190,4 @@ namespace ct{
 
     };
 } // namespace ct
-#endif //CLOUDTOOL2_TXTIMPORTDIALOG_H
+#endif //POINTWORKS_TXTIMPORTDIALOG_H

@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CUSTORMTREE_H
-#define CLOUDTOOL2_CUSTORMTREE_H
+#ifndef POINTWORKS_CUSTORMTREE_H
+#define POINTWORKS_CUSTORMTREE_H
 
 #include "core/exports.h"
 #include "viz/cloudview.h"
@@ -182,4 +182,4 @@ namespace ct
 }
 
 
-#endif //CLOUDTOOL2_CUSTORMTREE_H
+#endif //POINTWORKS_CUSTORMTREE_H

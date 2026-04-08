@@ -1,5 +1,5 @@
-#ifndef CLOUDTOOL2_CLOUDVIEW_H
-#define CLOUDTOOL2_CLOUDVIEW_H
+#ifndef POINTWORKS_CLOUDVIEW_H
+#define POINTWORKS_CLOUDVIEW_H
 
 #include "core/cloud.h"
 #include "core/exports.h"
@@ -504,4 +504,4 @@ namespace ct {
     };
 } // namespace ct
 
-#endif //CLOUDTOOL2_CLOUDVIEW_H
+#endif //POINTWORKS_CLOUDVIEW_H
