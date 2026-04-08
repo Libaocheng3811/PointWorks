@@ -19,6 +19,7 @@
 #include "tool/boundary.h"
 #include "edit/transformation.h"
 #include "edit/normals.h"
+#include "edit/scale.h"
 #include "tool/registration.h"
 
 #include "plugins/csfplugin.h"
@@ -109,6 +110,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionColors, &QAction::triggered, [=] {this->createToolDialog<Color>("Color"); });
     connect(ui->actionTransformation, &QAction::triggered, [=] {this->createToolDialog<Transformation>("Transformation"); });
     connect(ui->actionNormals, &QAction::triggered, [=] {this->createToolDialog<Normals>("Normals"); });
+    connect(ui->actionScale, &QAction::triggered, [=] {this->createDialog<Scale>("Scale"); });
 
     // view
     connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &ct::CloudTree::zoomToSelected);
