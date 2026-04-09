@@ -13,6 +13,8 @@
 #include <QDoubleSpinBox>
 #include <QGroupBox>
 #include <QShowEvent>
+#include <QFutureWatcher>
+#include <atomic>
 
 #include <vtkSmartPointer.h>
 
@@ -107,6 +109,8 @@ private:
 
     // --- 业务数据（m_ 前缀） ---
     bool m_is_picking;
+    bool m_is_computing;
+    std::atomic<bool> m_canceled;
     QVector<Eigen::Vector4f> m_source_points;
     QVector<Eigen::Vector4f> m_target_points;
     ct::PointPairErrorResult m_last_result;

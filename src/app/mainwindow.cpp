@@ -186,17 +186,21 @@ MainWindow::MainWindow(QWidget *parent) :
         auto* dlg = ct::createDialog<PointPairsAlignment>(
             this, "PointPairsAlignment", ui->cloudview, ui->cloudtree, ui->console);
         if (dlg) {
-            // 禁用菜单栏、工具栏和文件树
+            // 禁用菜单栏、工具栏、文件树和属性栏
             menuBar()->setEnabled(false);
             for (auto* tb : findChildren<QToolBar*>())
                 tb->setEnabled(false);
             ui->cloudtree->setEnabled(false);
+            ui->PropertiesDock->setEnabled(false);
+            ui->DataDock->setEnabled(false);
 
             connect(dlg, &QDialog::destroyed, this, [=] {
                 menuBar()->setEnabled(true);
                 for (auto* tb : findChildren<QToolBar*>())
                     tb->setEnabled(true);
                 ui->cloudtree->setEnabled(true);
+                ui->PropertiesDock->setEnabled(true);
+                ui->DataDock->setEnabled(true);
             });
         }
     });

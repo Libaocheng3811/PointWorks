@@ -17,6 +17,7 @@
 #include <QFileDialog>
 #include <QTextStream>
 #include <QGroupBox>
+#include <QtConcurrent/QtConcurrent>
 #include <cmath>
 
 #include <pcl/common/transforms.h>
@@ -24,7 +25,7 @@
 // ======================== Constructor ========================
 
 PointPairsAlignment::PointPairsAlignment(QWidget* parent)
-    : ct::CustomDialog(parent), m_is_picking(false), m_has_preview(false)
+    : ct::CustomDialog(parent), m_is_picking(false), m_has_preview(false), m_is_computing(false), m_canceled(false)
 {
     setupUi();
 
@@ -383,34 +384,71 @@ void PointPairsAlignment::onAlign()
         tgt_pts.push_back({m_target_points[i][0], m_target_points[i][1], m_target_points[i][2]});
     }
 
-    m_last_result = ct::Registration::ConstrainedPointPairsRegistration(
-        src_pts, tgt_pts, currentConstraintParams());
+    // UI 状态
+    btn_align_->setEnabled(false);
+    btn_start_->setEnabled(false);
+    m_is_computing = true;
+    m_canceled.store(false);
+    label_status_->setText("Computing...");
 
-    label_rms_->setText(QString("RMS: %1").arg(m_last_result.rms, 0, 'f', 4));
-    updateTableErrors(m_last_result);
+    // 捕获参数
+    auto params = currentConstraintParams();
+    int si = cbox_source_->currentIndex();
 
     auto clouds = m_cloudtree->getAllClouds();
-    int si = cbox_source_->currentIndex();
-    if (si >= (int)clouds.size()) return;
+    ct::Cloud::Ptr source = (si < (int)clouds.size()) ? clouds[si] : nullptr;
+    auto result_ptr = std::make_shared<ct::PointPairErrorResult>();
 
-    auto source = clouds[si];
-    if (!source) return;
+    auto future = QtConcurrent::run([=]() -> ct::Cloud::Ptr {
+        if (m_canceled.load()) return nullptr;
 
-    auto pcl_src = source->toPCL_XYZRGBN();
-    pcl::transformPointCloud(*pcl_src, *pcl_src, m_last_result.matrix);
-    auto preview_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src);
-    preview_cloud->setId(source->id() + "_ppa_preview");
-    m_cloudtree->insertCloud(preview_cloud);
-    m_cloudview->addPointCloud(preview_cloud);
-    m_cloudview->refresh();
+        // 1. SVD 约束变换估计（很快）
+        *result_ptr = ct::Registration::ConstrainedPointPairsRegistration(src_pts, tgt_pts, params);
+        if (m_canceled.load()) return nullptr;
 
-    m_has_preview = true;
-    btn_apply_->setEnabled(true);
-    btn_cancel_->setEnabled(true);
-    label_status_->setText("Preview applied. Click Apply to confirm or Cancel to revert.");
+        // 2. 点云变换（耗时与点数成正比）
+        auto pcl_src = source->toPCL_XYZRGBN();
+        if (m_canceled.load()) return nullptr;
+        pcl::transformPointCloud(*pcl_src, *pcl_src, result_ptr->matrix);
+        auto preview_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src);
+        preview_cloud->setId(source->id() + "_ppa_preview");
 
-    printI(QString("Align: %1 pairs, RMS: %2, Scale: %3")
-           .arg(pair_count).arg(m_last_result.rms, 0, 'f', 4).arg(m_last_result.scale, 0, 'f', 6));
+        return preview_cloud;
+    });
+
+    auto* watcher = new QFutureWatcher<ct::Cloud::Ptr>(this);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this, [this, watcher, result_ptr]() mutable {
+        auto preview_cloud = watcher->result();
+        watcher->deleteLater();
+
+        m_is_computing = false;
+        btn_start_->setEnabled(true);
+
+        if (m_canceled.load() || !preview_cloud) {
+            label_status_->setText("Canceled.");
+            btn_align_->setEnabled(true);
+            return;
+        }
+
+        m_last_result = *result_ptr;
+        label_rms_->setText(QString("RMS: %1").arg(m_last_result.rms, 0, 'f', 4));
+        updateTableErrors(m_last_result);
+
+        m_cloudtree->insertCloud(preview_cloud);
+        m_cloudview->addPointCloud(preview_cloud);
+        m_cloudview->refresh();
+
+        m_has_preview = true;
+        btn_align_->setEnabled(true);
+        btn_apply_->setEnabled(true);
+        btn_cancel_->setEnabled(true);
+        label_status_->setText("Preview applied. Click Apply to confirm or Cancel to revert.");
+
+        int pair_count = std::min(m_source_points.size(), m_target_points.size());
+        printI(QString("Align: %1 pairs, RMS: %2, Scale: %3")
+               .arg(pair_count).arg(m_last_result.rms, 0, 'f', 4).arg(m_last_result.scale, 0, 'f', 6));
+    });
 }
 
 void PointPairsAlignment::onApply()

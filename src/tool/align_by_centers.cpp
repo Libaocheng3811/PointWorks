@@ -8,6 +8,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QTimer>
+#include <QtConcurrent/QtConcurrent>
 
 #include <pcl/common/transforms.h>
 
@@ -52,13 +53,13 @@ void AlignByCentersDialog::setupUi()
 
     auto* btn_row = new QHBoxLayout();
     btn_row->addStretch();
-    auto* btn_align = new QPushButton("Align", this);
+    btn_align_ = new QPushButton("Align", this);
     auto* btn_cancel = new QPushButton("Cancel", this);
-    btn_row->addWidget(btn_align);
+    btn_row->addWidget(btn_align_);
     btn_row->addWidget(btn_cancel);
     main_layout->addLayout(btn_row);
 
-    connect(btn_align, &QPushButton::clicked, this, &AlignByCentersDialog::onAlign);
+    connect(btn_align_, &QPushButton::clicked, this, &AlignByCentersDialog::onAlign);
     connect(btn_cancel, &QPushButton::clicked, this, &AlignByCentersDialog::close);
 }
 
@@ -99,30 +100,66 @@ void AlignByCentersDialog::onAlign()
         return;
     }
 
+    // 禁用按钮
+    btn_align_->setEnabled(false);
+    m_canceled.store(false);
+    m_source_id = QString::fromStdString(source->id());
+
+    // 计算平移矩阵（很快，可在主线程）
     Eigen::Vector3f src_center = source->center();
     Eigen::Vector3f tgt_center = target->center();
     Eigen::Vector3f offset = tgt_center - src_center;
 
-    Eigen::Matrix4f matrix = Eigen::Matrix4f::Identity();
-    matrix(0, 3) = offset.x();
-    matrix(1, 3) = offset.y();
-    matrix(2, 3) = offset.z();
+    m_matrix = Eigen::Matrix4f::Identity();
+    m_matrix(0, 3) = offset.x();
+    m_matrix(1, 3) = offset.y();
+    m_matrix(2, 3) = offset.z();
 
-    auto pcl_cloud = source->toPCL_XYZRGBN();
-    pcl::transformPointCloud(*pcl_cloud, *pcl_cloud, matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud);
-    transformed->setId(source->id());
+    // 异步执行点云变换（耗时与点数成正比）
+    auto future = QtConcurrent::run([=]() -> ct::Cloud::Ptr {
+        if (m_canceled.load()) return nullptr;
+        auto pcl_cloud = source->toPCL_XYZRGBN();
+        if (m_canceled.load()) return nullptr;
+        pcl::transformPointCloud(*pcl_cloud, *pcl_cloud, m_matrix);
+        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud);
+        return transformed;
+    });
 
-    m_cloudtree->updateCloud(source, transformed);
-    m_cloudview->invalidateCloudRender(QString::fromStdString(source->id()));
+    auto* watcher = new QFutureWatcher<ct::Cloud::Ptr>(this);
+    watcher->setFuture(future);
+    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this, &AlignByCentersDialog::onAlignFinished);
+}
+
+void AlignByCentersDialog::onAlignFinished()
+{
+    auto* watcher = dynamic_cast<QFutureWatcher<ct::Cloud::Ptr>*>(sender());
+    auto result = watcher->result();
+    watcher->deleteLater();
+
+    btn_align_->setEnabled(true);
+
+    if (m_canceled.load() || !result) {
+        printI("Align by centers canceled.");
+        return;
+    }
+
+    auto clouds = m_cloudtree->getAllClouds();
+    ct::Cloud::Ptr source;
+    for (const auto& c : clouds) {
+        if (QString::fromStdString(c->id()) == m_source_id) { source = c; break; }
+    }
+    if (!source) return;
+
+    result->setId(source->id());
+    m_cloudtree->updateCloud(source, result);
+    m_cloudview->invalidateCloudRender(m_source_id);
     m_cloudview->refresh();
 
-    printI(QString("Aligned [%1] to [%2]. Offset: (%3, %4, %5)")
-           .arg(QString::fromStdString(source->id()))
-           .arg(QString::fromStdString(target->id()))
-           .arg(offset.x(), 0, 'f', 3)
-           .arg(offset.y(), 0, 'f', 3)
-           .arg(offset.z(), 0, 'f', 3));
+    printI(QString("Aligned [%1]. Offset: (%2, %3, %4)")
+           .arg(m_source_id)
+           .arg(m_matrix(0, 3), 0, 'f', 3)
+           .arg(m_matrix(1, 3), 0, 'f', 3)
+           .arg(m_matrix(2, 3), 0, 'f', 3));
 
     this->close();
 }
