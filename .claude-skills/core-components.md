@@ -1,13 +1,12 @@
 # 核心组件详解
 
-CloudTool2 的核心数据结构与渲染系统。所有组件位于 `core/` 目录。
+PointWorks 的核心数据结构、文件 I/O 与渲染系统。分布在 `libs/core/`、`libs/io/`、`libs/viz/` 目录。
 
-## Cloud (core/cloud.h)
+## Cloud (libs/core/cloud.h)
 
 主要点云数据结构，采用 **AOS (Array of Structures)** 格式以节省内存。
 
 **关键特性**:
-- 基于 AOS 重构（提交 192e688），可处理更大的点云文件
 - 基于八叉树的空间索引，`CloudBlock` 叶子节点最多存储 6 万个点
 - 支持多种点类型：XYZ、XYZRGB、XYZNormal、XYZRGBNormal
 - 标量字段管理 (`m_scalar_cache`)，支持自定义属性
@@ -28,7 +27,7 @@ class Cloud {
 - 点数 < 1000 万：直通模式（禁用八叉树）
 - 点数 >= 1000 万：八叉树模式，自动计算 Block 大小和 LOD 参数
 
-## CloudBlock (core/cloud.h)
+## CloudBlock (libs/core/cloud.h)
 
 八叉树叶子节点负载，存储实际点云数据。
 
@@ -46,7 +45,7 @@ class CloudBlock {
 };
 ```
 
-## Octree (core/octree.h)
+## Octree (libs/core/octree.h)
 
 空间分割与 LOD 生成。
 
@@ -76,7 +75,7 @@ if (node->m_lod_points.size() < capacity) {
 }
 ```
 
-## OctreeRenderer (core/octreerenderer.h)
+## OctreeRenderer (libs/viz/octreerenderer.h)
 
 高性能渲染器，采用 SSE 遍历策略。
 
@@ -111,7 +110,7 @@ void OctreeRenderer::update() {
 }
 ```
 
-## FileIO (core/fileio.h)
+## FileIO (libs/io/fileio.h)
 
 流式文件加载与保存。
 
@@ -155,7 +154,11 @@ Eigen::Vector3d shift = calculateCentroid(cloud);
 cloud->setGlobalShift(shift);
 ```
 
-## CloudView (core/cloudview.h)
+## ProjectFile (libs/io/projectfile.h)
+
+项目文件保存/加载，管理多点云工作区状态。
+
+## CloudView (libs/viz/cloudview.h)
 
 基于 VTK 的三维可视化控件。
 
@@ -165,7 +168,11 @@ cloud->setGlobalShift(shift);
 - 支持添加形状、箭头、标签、对应关系
 - 多点云渲染管理
 
-## CloudType (core/cloudtype.h)
+## Console (libs/viz/console.h)
+
+日志输出控件，提供 GUI 控制台输出功能。
+
+## CloudType (libs/core/cloudtype.h)
 
 点类型定义与数据结构。
 

@@ -1,6 +1,6 @@
 # UI 组件、工具与插件系统
 
-## CustomDialog (widgets/customdialog.h)
+## CustomDialog (libs/ui/base/customdialog.h)
 
 对话框基类。
 
@@ -19,7 +19,7 @@ createDialog<Filters>(parent, "Filters", cloudview, cloudtree, console,
 createModalDialog<GlobalShiftDialog>(parent, "Global Shift", ...);
 ```
 
-## CloudTree (widgets/cloudtree.h)
+## CloudTree (libs/ui/base/cloudtree.h)
 
 点云树管理控件。
 
@@ -39,29 +39,43 @@ class CloudTree {
 };
 ```
 
-## 通用对话框
+## 通用对话框 (libs/ui/dialog/)
 
 | 对话框 | 文件 | 功能 |
 |--------|------|------|
-| ProcessingDialog | common_ui/processingdialog.h | 进度条 + 取消按钮 |
-| GlobalShiftDialog | common_ui/globalshiftdialog.h | 全局偏移设置 + 记忆 |
-| FieldMappingDialog | common_ui/fieldmappingdialog.h | TXT 字段映射 |
-| TxtImportDialog | common_ui/txtimportdialog.h | TXT 导入配置 |
-| TxtExportDialog | common_ui/txtexportdialog.h | TXT 导出配置 |
+| ProcessingDialog | processingdialog.h | 进度条 + 取消按钮 |
+| GlobalShiftDialog | globalshiftdialog.h/cpp/ui | 全局偏移设置 + 记忆 |
+| FieldMappingDialog | fieldmappingdialog.h | TXT 字段映射 |
+| TxtImportDialog | txtimportdialog.h | TXT 导入配置 |
+| TxtExportDialog | txtexportdialog.h | TXT 导出配置 |
 
-## 工具列表
+## 工具列表 (src/tool/)
 
 | 工具 | 文件 | 功能 |
 |------|------|------|
-| Filters | cloudtool/tool/filters.h | 滤波器类型选择、参数配置、预览/应用 |
-| Registration | cloudtool/tool/registration.h | 配准参数配置、结果显示、对应关系可视化 |
-| Keypoints | cloudtool/tool/keypoints.h | 关键点检测 |
-| Cutting | cloudtool/tool/cutting.h | 包围盒裁剪、多边形裁剪 |
-| PickPoints | cloudtool/tool/pickpoints.h | 单点拾取、多边形区域选择 |
-| RangeImage | cloudtool/tool/rangeimage.h | 深度图、边界提取、法线估计 |
-| Descriptor | cloudtool/tool/descriptor.h | 描述符工具 |
-| Color | cloudtool/edit/color.h | 颜色设置 |
-| BoundingBox | cloudtool/edit/boundingbox.h | 包围盒绘制 |
+| Filters | src/tool/filters.h | 滤波器类型选择、参数配置、预览/应用 |
+| Cutting | src/tool/cutting.h | 包围盒裁剪、多边形裁剪 |
+| PickPoints | src/tool/pickpoints.h | 单点拾取、多边形区域选择 |
+| RangeImage | src/tool/rangeimage.h | 深度图、边界提取、法线估计 |
+| Segmentation | src/tool/segmentation.h | 点云分割 |
+| Surface | src/tool/surface.h | 曲面重建 |
+| Boundary | src/tool/boundary.h | 边界提取 |
+| Sampling | src/tool/sampling.h | 点云采样 |
+| AlignByCenters | src/tool/align_by_centers.h | 中心对齐 |
+| GlobalRegistration | src/tool/global_registration.h | 全局配准 |
+| FineRegistration | src/tool/fine_registration.h | 精配准 |
+| PointPairsAlignment | src/tool/point_pairs_alignment.h | 点对配准 |
+
+## 编辑工具列表 (src/edit/)
+
+| 工具 | 文件 | 功能 |
+|------|------|------|
+| Color | src/edit/color.h | 颜色设置 |
+| BoundingBox | src/edit/boundingbox.h | 包围盒绘制 |
+| Transformation | src/edit/transformation.h | 点云变换（平移/旋转/矩阵） |
+| Normals | src/edit/normals.h | 法线编辑 |
+| Scale | src/edit/scale.h | 尺度缩放 |
+| Coordinate | src/edit/coordinate.h | 坐标系操作 |
 
 ## 插件系统
 
@@ -86,17 +100,10 @@ class Plugin : public ct::CustomDialog {
 - 原子标志 `m_is_canceled` 用于协作式取消
 - 模态对话框 `ProcessingDialog` 提供用户反馈
 
-### 已有插件
+### 已有插件 (src/plugins/)
 
 | 插件 | 文件 | 功能 |
 |------|------|------|
-| CSFPlugin | cloudtool/plugins/csfplugin.h | 地面点分割 |
-| VegPlugin | cloudtool/plugins/vegplugin.h | 植被分割（4 种植被指数 + Otsu） |
-| ChangeDetectPlugin | cloudtool/plugins/changedetectplugin.h | 变化检测（多种距离方法 + Jet 色带） |
-
-## 相机 SDK 支持
-
-| SDK | 目录 | 说明 |
-|-----|------|------|
-| Azure Kinect | camera/AzureKinect/ | 深度相机，头文件 `include/k4a/k4a.h` |
-| Photoneo | camera/Photoneo/ | 3D 扫描仪，头文件 `include/` |
+| CSFPlugin | src/plugins/csfplugin.h | 地面点分割 |
+| VegPlugin | src/plugins/vegplugin.h | 植被分割（4 种植被指数 + Otsu） |
+| ChangeDetectPlugin | src/plugins/changedetectplugin.h | 变化检测（多种距离方法 + Jet 色带） |

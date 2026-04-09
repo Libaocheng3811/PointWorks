@@ -70,13 +70,13 @@ bool ProjectManager::openProject(const QString& path, ct::CloudTree* tree, ct::C
     QList<PendingFile> pendingFiles;
 
     for (const auto& root : data.tree_roots) {
-        QTreeWidgetItem* item = rebuildTreeNode(nullptr, root);
+        QTreeWidgetItem* item = rebuildTreeNode(nullptr, root, tree);
         if (item) tree->addTopLevelItem(item);
 
         // 递归收集所有 FileNode
         std::function<void(QTreeWidgetItem*, const ct::TreeNode&)> collectFiles;
         collectFiles = [&](QTreeWidgetItem* treeItem, const ct::TreeNode& node) {
-            if (node.type == "file" && !node.filepath.isEmpty()) {
+            if ((node.type == "file" || node.type == "folder") && !node.filepath.isEmpty()) {
                 QString resolved = ct::ProjectFile::resolveFilePath(projectDir, node.filepath);
                 if (!resolved.isEmpty()) {
                     pendingFiles.append({resolved, treeItem});
@@ -115,7 +115,11 @@ bool ProjectManager::openProject(const QString& path, ct::CloudTree* tree, ct::C
     }
 
     tree->setScriptMode(true);
-    m_total_loads = validPaths.size();
+    m_total_loads = 0;
+    for (const auto& pf : pendingFiles) {
+        if (QFileInfo::exists(pf.filepath))
+            ++m_total_loads;
+    }
     m_pending_loads = 0;
 
     // 信号驱动：每插入一个点云计数，全部完成时恢复视图
@@ -222,11 +226,14 @@ ct::TreeNode ProjectManager::treeNodeFromItem(QTreeWidgetItem* item, ct::CloudTr
 // 从 TreeNode 重建 QTreeWidgetItem 树骨架
 // ================================================================
 
-QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node)
+QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node, ct::CloudTree* tree)
 {
-    ct::SceneNodeType type = (node.type == "file")  ? ct::NodeFile :
+    // cloud 类型节点由 loadCloudResult → insertCloud 动态创建，不在此处重建骨架
+    if (node.type == "cloud") return nullptr;
+
+    ct::SceneNodeType type = (node.type == "file" || node.type == "folder") ? ct::NodeFile :
                              (node.type == "group") ? ct::NodeGroup :
-                                                     ct::NodeCloud;
+                                                       ct::NodeCloud;
 
     QTreeWidgetItem* item;
     if (parent) {
@@ -237,6 +244,7 @@ QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const 
 
     item->setText(0, node.text);
     item->setData(0, ct::NodeTypeRole, static_cast<int>(type));
+    item->setIcon(0, tree->iconForType(type));
     item->setExpanded(node.expanded);
     item->setCheckState(0, node.is_visible ? Qt::Checked : Qt::Unchecked);
 
@@ -246,7 +254,7 @@ QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const 
 
     // 递归子节点
     for (const auto& child : node.children) {
-        rebuildTreeNode(item, child);
+        rebuildTreeNode(item, child, tree);
     }
 
     return item;

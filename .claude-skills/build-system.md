@@ -18,6 +18,8 @@ cmake --build build --config Release
 - `build/bin/` - 可执行文件 (.exe) 和动态库 (.dll)
 - `build/lib/` - 静态库 (.lib)
 
+**Debug 后缀**: Debug 版本库自动添加 `d` 后缀（如 `ct_cored.lib`）
+
 ## 编译器标志 (MSVC)
 
 - `/MP` - 多处理器编译（根据 CPU 核心数自动设置）
@@ -40,68 +42,93 @@ set(MY_NATIVE_PYTHON_DIR "F:/Program Files/Python39")
 set(Python3_ROOT_DIR ${MY_NATIVE_PYTHON_DIR})
 ```
 
-## CMake 库配置
+## 库结构
 
-### ct_core (core/CMakeLists.txt)
+项目包含 7 个 CMake 库目标 + 1 个可执行文件目标：
+
+### ct_core (libs/core/CMakeLists.txt) — SHARED
 ```cmake
-add_library(ct_core SHARED ${LibSrcs} ${LibHdrs})
+add_library(ct_core SHARED ...)
 target_link_libraries(ct_core
-    PUBLIC Qt5::Widgets ${PCL_LIBRARIES} ${VTK_LIBRARIES}
+    PUBLIC Qt5::Widgets ${PCL_LIBRARIES}
     PRIVATE LASlib OpenMP::OpenMP_CXX)
 target_compile_definitions(ct_core PRIVATE CT_LIBRARY)
 ```
 
-### ct_modules (modules/CMakeLists.txt)
+### ct_viz (libs/viz/CMakeLists.txt) — SHARED
 ```cmake
-add_library(ct_modules SHARED ${LibSrcs} ${LibHdrs})
-target_link_libraries(ct_modules
-    PRIVATE ct_core CSF_Lib Qt5::Widgets ${PCL_LIBRARIES})
+add_library(ct_viz SHARED ...)
+target_link_libraries(ct_viz
+    PRIVATE ct_core ct_io Qt5::Widgets ${VTK_LIBRARIES} ${PCL_LIBRARIES})
 ```
 
-### ct_widget & ct_common_ui (widgets/CMakeLists.txt)
+### ct_io (libs/io/CMakeLists.txt) — SHARED
 ```cmake
-add_library(ct_common_ui STATIC ${UI_SOURCES} ${UI_HEADERS} ${UI_FORMS})
-add_library(ct_widget STATIC ${Widget_Srcs} ${Widget_Hdrs})
-target_link_libraries(ct_widget PUBLIC ct_common_ui ct_core)
+add_library(ct_io SHARED ...)
+target_link_libraries(ct_io
+    PRIVATE ct_core Qt5::Widgets LASlib)
 ```
 
-### cloudtool (cloudtool/CMakeLists.txt)
+### ct_algorithm (libs/algorithm/CMakeLists.txt) — STATIC
 ```cmake
-add_executable(cloudtool WIN32 ${Srcs} ${Hdrs} ${QRCs} ${IRCs})
-target_link_libraries(cloudtool
-    PRIVATE ct_core ct_widget ct_modules ct_python
-            Qt5::Widgets ${VTK_LIBRARIES} pybind11::embed Python3::Python)
+add_library(ct_algorithm STATIC ...)
+target_link_libraries(ct_algorithm
+    PRIVATE ct_core CSF_Lib ${PCL_LIBRARIES} ${VTK_LIBRARIES} OpenMP::OpenMP_CXX)
+```
+
+### ct_ui_dialog (libs/ui/CMakeLists.txt) — STATIC
+```cmake
+add_library(ct_ui_dialog STATIC ...)
+target_link_libraries(ct_ui_dialog PRIVATE ct_core Qt5::Widgets)
+```
+
+### ct_ui_base (libs/ui/CMakeLists.txt) — STATIC
+```cmake
+add_library(ct_ui_base STATIC ...)
+target_link_libraries(ct_ui_base
+    PUBLIC ct_ui_dialog ct_core ct_viz ct_io Qt5::Widgets)
+```
+
+### ct_python (libs/python/CMakeLists.txt) — OBJECT
+```cmake
+add_library(ct_python OBJECT ...)
+target_link_libraries(ct_python
+    PRIVATE Qt5::Widgets pybind11::embed Python3::Python ct_core ct_algorithm)
+```
+
+### pointworks (src/CMakeLists.txt) — 可执行文件
+```cmake
+add_executable(pointworks WIN32 ...)
+target_link_libraries(pointworks PRIVATE
+    ct_core ct_viz ct_io ct_algorithm ct_ui_base ct_python
+    Qt5::Widgets Qt5::Concurrent ${VTK_LIBRARIES} ${PCL_LIBRARIES}
+    pybind11::embed Python3::Python)
 ```
 
 ## 第三方库配置
 
 ### LAStools
 ```cmake
-# 调用式配置
 set(LASZIP_BUILD_STATIC ON CACHE BOOL "Build static laszip" FORCE)
 set(LASLIB_BUILD_STATIC ON CACHE BOOL "Build static laslib" FORCE)
 add_subdirectory(3rdparty/LAStools)
-
-# 链接
 target_link_libraries(ct_core PRIVATE LASlib)
 ```
 
 ### CSF
 ```cmake
-# 托管式配置（自定义 CMakeLists）
 # 3rdparty/CSF/CMakeLists.txt:
 file(GLOB CSF_Srcs "src/*.cpp")
 file(GLOB CSF_Hdrs "src/*.h")
 add_library(CSF_Lib STATIC ${CSF_Srcs} ${CSF_Hdrs})
 target_link_libraries(CSF_Lib PRIVATE OpenMP::OpenMP_CXX)
 
-# 主程序链接
-target_link_libraries(ct_modules PRIVATE CSF_Lib)
+# 链接
+target_link_libraries(ct_algorithm PRIVATE CSF_Lib)
 ```
 
 ### pybind11
 ```cmake
-# git submodule 方式引入
 add_subdirectory(3rdparty/pybind11)
 # ct_python 通过 pybind11::embed 链接
 ```

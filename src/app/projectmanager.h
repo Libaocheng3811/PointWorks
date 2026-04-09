@@ -39,7 +39,7 @@ private:
                              const QString& projectDir, ct::ProjectData& data);
     void collectTreeNodes(ct::CloudTree* tree, QList<ct::TreeNode>& roots);
     ct::TreeNode treeNodeFromItem(QTreeWidgetItem* item, ct::CloudTree* tree);
-    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node);
+    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node, ct::CloudTree* tree);
 
     QString m_current_path;
     bool m_modified = false;

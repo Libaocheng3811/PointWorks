@@ -1,11 +1,11 @@
 # 嵌入式 Python 集成
 
-CloudTool2 通过 pybind11 embed 模式嵌入 Python 3.9 解释器，允许用户通过 Python 脚本访问和操作点云数据。
+PointWorks 通过 pybind11 embed 模式嵌入 Python 3.9 解释器，允许用户通过 Python 脚本访问和操作点云数据。
 
 ## 解释器生命周期
 
 ```cpp
-// cloudtool/main.cpp
+// src/app/main.cpp
 int main() {
     QApplication app;
     ct::PythonManager::instance().initialize();  // Py_Initialize + 注册模块
@@ -21,11 +21,18 @@ int main() {
 
 ## 架构三要素
 
-| 组件 | 职责 |
-|------|------|
-| `PythonManager` | 单例，管理解释器初始化/销毁、stdio 重定向、DLL 搜索路径 |
-| `PythonWorker` | QThread，GIL 管理的脚本执行（`PyGILState_Ensure/Release`），支持异步取消 |
-| `PythonBridge` | 信号桥接 + 线程安全云注册表。Python 侧只发信号，不直接操作 UI |
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| `PythonManager` | `libs/python/python_manager.h` | 单例，管理解释器初始化/销毁、stdio 重定向、DLL 搜索路径 |
+| `PythonWorker` | `libs/python/python_worker.h` | QThread，GIL 管理的脚本执行（`PyGILState_Ensure/Release`），支持异步取消 |
+| `PythonBridge` | `libs/python/python_bridge.h` | 信号桥接 + 线程安全云注册表。Python 侧只发信号，不直接操作 UI |
+
+## Python UI 组件
+
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| PythonConsole | `src/python/python_console.h` | Python 交互式控制台 UI |
+| PythonEditor | `src/python/python_editor.h` | Python 脚本编辑器 UI |
 
 ## 线程安全规则
 
@@ -81,7 +88,7 @@ bridge->releaseAllInUse();          // 取消删除保护
 
 ## 构建配置
 
-- **ct_python** 为 OBJECT 库（非 STATIC/SHARED），编译产物直接链接到 cloudtool 可执行文件
+- **ct_python** 为 OBJECT 库（非 STATIC/SHARED），编译产物直接链接到 pointworks 可执行文件
 - pybind11 通过 `3rdparty/pybind11` git submodule 引入
 - Python 路径硬编码为 `MY_NATIVE_PYTHON_DIR`，需根据本地环境修改
 - `#undef slots` 必须在包含 pybind11 头文件之前，解决 Qt `slots` 宏与 Python `object.h` 的冲突

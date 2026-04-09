@@ -109,7 +109,7 @@ namespace ct
 
     void CloudTree::loadCloudFile(const QString& filepath)
     {
-        m_pending_parent = nullptr;
+        m_pending_parents.clear();
         showProgress("Loading Point Cloud...");
         bindWorker(m_fileio);
         m_loading_queue_count = 1;
@@ -118,7 +118,7 @@ namespace ct
 
     void CloudTree::loadCloudFile(const QString& filepath, QTreeWidgetItem* targetParent)
     {
-        m_pending_parent = targetParent;
+        m_pending_parents[QFileInfo(filepath).absoluteFilePath()] = targetParent;
         showProgress("Loading Point Cloud...");
         bindWorker(m_fileio);
         m_loading_queue_count = 1;
@@ -621,11 +621,21 @@ namespace ct
             printI(QString("Load the file [path:%1] done, take time %2 ms.").arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
             m_path = QFileInfo(QString::fromStdString(cloud->filepath())).path();
 
-            if (m_pending_parent)
+            if (!m_pending_parents.isEmpty())
             {
-                // 恢复模式：插入到指定父节点（不创建 FileNode）
-                insertCloud(cloud, m_pending_parent, true);
-                m_pending_parent = nullptr;
+                // 恢复模式：查找对应的目标父节点（不创建 FileNode）
+                QString fp = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
+                QTreeWidgetItem* parent = m_pending_parents.value(fp, nullptr);
+                if (parent) {
+                    insertCloud(cloud, parent, true);
+                    m_pending_parents.remove(fp);
+                } else {
+                    // fallback：未找到匹配的父节点，按普通模式处理
+                    QString folderName = QFileInfo(fp).fileName();
+                    QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fp + ")", NodeFile);
+                    fileNode->setData(0, NodeFilePathRole, fp);
+                    insertCloud(cloud, fileNode, true);
+                }
             }
             else
             {

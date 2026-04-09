@@ -1,6 +1,6 @@
 # 算法模块与多线程规范
 
-所有算法位于 `modules/` 目录。核心原则：**耗时算法严禁在主线程执行**，必须通过 `QThread` 或 `QtConcurrent::run` 放入后台。
+所有算法位于 `libs/algorithm/` 目录，编译为 `ct_algorithm` 静态库。核心原则：**耗时算法严禁在主线程执行**，必须通过 `QThread` 或 `QtConcurrent::run` 放入后台。
 
 ## PCL 开发规范
 
@@ -8,7 +8,7 @@
 2. **内存释放**: 算法执行完毕后，确保临时点云变量的指针被正确重置或随作用域销毁
 3. **PCL 转换限制**: 完整的 `toPCL()`/`fromPCL()` 在大点云下可能导致内存问题，需选择性使用
 
-## Filters (modules/filters.h)
+## Filters (libs/algorithm/filters.h)
 
 支持的滤波器：
 
@@ -22,7 +22,7 @@
 | GridMinimum | 2D 网格最小值投影 |
 | LocalMaximum | 局部最大值移除 |
 
-## Features (modules/features.h)
+## Features (libs/algorithm/features.h)
 
 支持的特征描述符：
 
@@ -35,7 +35,7 @@
 | ESF | Ensemble of Shape Functions |
 | GASD | Globally Aligned Spatial Distribution |
 
-## Registration (modules/registration.h)
+## Registration (libs/algorithm/registration.h)
 
 配准算法：
 
@@ -50,7 +50,7 @@
 | KFPCS | KFPCSInitialAlignment |
 | NDT | Normal Distributions Transform |
 
-## Keypoints (modules/keypoints.h)
+## Keypoints (libs/algorithm/keypoints.h)
 
 关键点检测算法：
 
@@ -61,7 +61,33 @@
 | SIFT3D | SIFT 3D |
 | NARF | Normal Aligned Radial Features |
 
-## CSFFilter (modules/csffilter.h)
+## Normals (libs/algorithm/normals.h) — NEW
+
+法线估计模块。
+
+**功能**:
+- 点云法线估计与计算
+- 支持多种搜索半径和邻域策略
+
+## Segmentation (libs/algorithm/segmentation.h) — NEW
+
+点云分割模块。
+
+**功能**:
+- 区域生长分割
+- 平面分割
+- 欧式聚类分割
+- RANSAC 分割
+
+## Surface (libs/algorithm/surface.h) — NEW
+
+曲面重建模块。
+
+**功能**:
+- 点云到网格转换
+- 三角化与曲面拟合
+
+## CSFFilter (libs/algorithm/csffilter.h)
 
 布料模拟地面滤波器。
 
@@ -73,7 +99,7 @@
 - `rigidness` - 布料硬度 (1-3)
 - `iterations` - 迭代次数
 
-## VegFilter (modules/vegfilter.h)
+## VegFilter (libs/algorithm/vegfilter.h)
 
 植被分割滤波器。
 
@@ -91,7 +117,7 @@ enum class VegIndexType {
 - 用户手动设置
 - Otsu 自动阈值（大津法）
 
-## DistanceCalculator (modules/distancecalculator.h)
+## DistanceCalculator (libs/algorithm/distancecalculator.h)
 
 点云距离计算（变化检测）。
 
@@ -105,3 +131,7 @@ enum Method {
     M3C2 = 4              // M3C2 算法（预留）
 };
 ```
+
+## utils.h (libs/algorithm/utils.h)
+
+算法工具函数（头文件），提供通用辅助功能。

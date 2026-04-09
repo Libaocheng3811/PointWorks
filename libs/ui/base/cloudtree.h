@@ -274,7 +274,7 @@ namespace ct
         QThread m_thread;
         FileIO* m_fileio;
         QMenu* m_tree_menu;
-        QTreeWidgetItem* m_pending_parent = nullptr;  // 用于 loadCloudFile 恢复模式
+        QMap<QString, QTreeWidgetItem*> m_pending_parents;  // filepath → 目标父节点（恢复模式）
 
     public:
         ProcessingDialog* m_processing_dialog = nullptr;

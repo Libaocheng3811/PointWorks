@@ -173,6 +173,7 @@ namespace ct
         QIcon m_parent_icon;
         QIcon m_child_icon;
 
+    public:
         /**
          * @brief 根据节点类型获取对应的图标
          */
