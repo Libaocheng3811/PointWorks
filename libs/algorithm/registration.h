@@ -19,6 +19,7 @@
 #include <functional>
 #include <atomic>
 #include <limits>
+#include <vector>
 
 namespace ct {
     typedef pcl::registration::TransformationEstimation<PointXYZRGBN, PointXYZRGBN, float> TransEst;
@@ -74,6 +75,35 @@ namespace ct {
         CorreEst::Ptr correspondence_estimation;
         std::map<int, CorreRej::Ptr> correspondence_rejectors;
         RegistrationParams params;
+    };
+
+    // --- Constrained Point-Pairs Alignment ---
+
+    enum class RotationConstraint {
+        NONE,       // 无旋转（纯平移）
+        X_ONLY,     // 仅绕 X 轴旋转
+        Y_ONLY,     // 仅绕 Y 轴旋转
+        Z_ONLY,     // 仅绕 Z 轴旋转
+        XY,         // 绕 X、Y 轴旋转
+        XZ,         // 绕 X、Z 轴旋转
+        YZ,         // 绕 Y、Z 轴旋转
+        XYZ         // 全自由度旋转（默认）
+    };
+
+    struct ConstrainedTransformParams {
+        RotationConstraint rotation = RotationConstraint::XYZ;
+        bool tx_enabled = true;
+        bool ty_enabled = true;
+        bool tz_enabled = true;
+        bool adjust_scale = false; // 7 DOF 相似变换
+    };
+
+    struct PointPairErrorResult {
+        Eigen::Matrix4f matrix;
+        double rms = 0.0;
+        std::vector<Eigen::Vector3f> deltas;  // 每对的 Delta XYZ
+        std::vector<double> errors;            // 每对的欧氏距离误差
+        double scale = 1.0;                    // 缩放因子
     };
 
     class Registration {
@@ -384,6 +414,20 @@ namespace ct {
         // Helper: DataContainer
         static double DataContainer(const RegistrationContext& ctx,
                                     const pcl::Correspondence& corr, bool from_normals);
+
+        // --- Constrained Point-Pairs Registration ---
+
+        /**
+         * @brief 带约束的点对配准变换估计（SVD + 旋转/平移约束投影）
+         * @param source_points 源点坐标
+         * @param target_points 目标点坐标（与 source 一一对应）
+         * @param params 约束参数
+         * @return 变换矩阵、RMS、逐点误差
+         */
+        static PointPairErrorResult ConstrainedPointPairsRegistration(
+            const std::vector<Eigen::Vector3f>& source_points,
+            const std::vector<Eigen::Vector3f>& target_points,
+            const ConstrainedTransformParams& params);
     };
 }
 

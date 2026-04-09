@@ -13,7 +13,6 @@
 #include "tool/filters.h"
 #include "tool/sampling.h"
 #include "tool/rangeimage.h"
-#include "tool/keypoints.h"
 #include "tool/segmentation.h"
 #include "tool/surface.h"
 #include "tool/boundary.h"
@@ -21,7 +20,10 @@
 #include "edit/normals.h"
 #include "edit/scale.h"
 #include "edit/coordinate.h"
-#include "tool/registration.h"
+#include "tool/global_registration.h"
+#include "tool/fine_registration.h"
+#include "tool/point_pairs_alignment.h"
+#include "tool/align_by_centers.h"
 
 #include "plugins/csfplugin.h"
 #include "plugins/vegplugin.h"
@@ -163,12 +165,6 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<Sampling>("Point Cloud Sampling");
     });
     connect(ui->actionRangeImage, &QAction::triggered, [=]{this->createDialog<RangeImage>("RangeImage");});
-    connect(ui->actionKeyPoint, &QAction::triggered, [=]
-    {
-        this->createToolDialog<KeyPoints>("KeyPoints");
-        if (ct::getDialog<KeyPoints>("KeyPoints"))
-            ct::getDialog<KeyPoints>("KeyPoints")->setRangeImage(ct::getDialog<RangeImage>("RangeImage"));
-    });
     connect(ui->actionSegmentation, &QAction::triggered, [=]
     {
         this->createToolDialog<Segmentation>("Segmentation");
@@ -181,18 +177,35 @@ MainWindow::MainWindow(QWidget *parent) :
     {
         this->createDialog<Boundary>("Boundary");
     });
-    connect(ui->actionDescriptor, &QAction::triggered, [=]
-    {
-        this->createToolDialog<Descriptor>("Descriptor");
-        if (ct::getDialog<Registration>("Registration"))
-            ct::getDialog<Registration>("Registration")->setDescriptor(ct::getDialog<Descriptor>("Descriptor"));
+
+    // registration submenu
+    connect(ui->actionAlignByCenters, &QAction::triggered, [=] {
+        this->createModalDialog<AlignByCentersDialog>("AlignByCenters");
     });
-    connect(ui->actionRegistration, &QAction::triggered, [=]
-    {
-      this->createToolDialog<Registration>("Registration");
-      if (ct::getDialog<Registration>("Registration"))
-          ct::getDialog<Registration>("Registration")->setDescriptor(ct::getDialog<Descriptor>("Descriptor"));
-    } );
+    connect(ui->actionPointPairsAlignment, &QAction::triggered, [=] {
+        auto* dlg = ct::createDialog<PointPairsAlignment>(
+            this, "PointPairsAlignment", ui->cloudview, ui->cloudtree, ui->console);
+        if (dlg) {
+            // 禁用菜单栏、工具栏和文件树
+            menuBar()->setEnabled(false);
+            for (auto* tb : findChildren<QToolBar*>())
+                tb->setEnabled(false);
+            ui->cloudtree->setEnabled(false);
+
+            connect(dlg, &QDialog::destroyed, this, [=] {
+                menuBar()->setEnabled(true);
+                for (auto* tb : findChildren<QToolBar*>())
+                    tb->setEnabled(true);
+                ui->cloudtree->setEnabled(true);
+            });
+        }
+    });
+    connect(ui->actionGlobalRegistration, &QAction::triggered, [=] {
+        this->createModalDialog<GlobalRegistrationDialog>("GlobalRegistration");
+    });
+    connect(ui->actionFineRegistration, &QAction::triggered, [=] {
+        this->createModalDialog<FineRegistrationDialog>("FineRegistration");
+    });
 
     // plugins
     connect(ui->actionCSF, &QAction::triggered, [=] {
@@ -614,6 +627,7 @@ MainWindow::~MainWindow() {
 
 // ================================================================
 // 项目管理
+// ================================================================
 void MainWindow::connectProjectSignals()
 {
     m_project_manager = new ProjectManager(this);

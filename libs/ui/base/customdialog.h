@@ -77,22 +77,20 @@ namespace ct
      * @param isModal 是否为模态窗口（阻塞），默认为 false
      */
     template <class T>
-    void createDialog(QMainWindow* parent, const QString& label, CloudView* cloudview = nullptr,
+    T* createDialog(QMainWindow* parent, const QString& label, CloudView* cloudview = nullptr,
                       CloudTree* cloudtree = nullptr, Console* console = nullptr,
                       bool isToolWidget = true, bool isModal = false)
     {
-        if (parent == nullptr) return;
+        if (parent == nullptr) return nullptr;
 
         if (registed_dialogs.find(label) == registed_dialogs.end()) // register dock
             registed_dialogs[label] = nullptr;
 
         if (registed_dialogs.find(label)->second == nullptr) // create new dialog
         {
-            // 如果是工具浮窗，保持互斥逻辑（关闭其他已打开的工具浮窗）
-            if (isToolWidget){
-                for (auto& dialog : registed_dialogs){
-                    if (dialog.first != label && dialog.second != nullptr) return;
-                }
+            // 互斥逻辑：已有对话框打开时，不允许打开其他对话框
+            for (auto& dialog : registed_dialogs){
+                if (dialog.first != label && dialog.second != nullptr) return nullptr;
             }
 
             registed_dialogs[label] = new T(parent);
@@ -154,6 +152,7 @@ namespace ct
         else{ // update dialog (已存在则关闭，通常用于 toggle)
             registed_dialogs[label]->close();
         }
+        return (T*)registed_dialogs[label];
     }
 
     /**

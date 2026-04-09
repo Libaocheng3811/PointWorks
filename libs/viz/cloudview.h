@@ -17,6 +17,8 @@
 #include <vtkSmartPointer.h>
 #include <vtkCallbackCommand.h>
 
+class vtkBillboardTextActor3D;
+
 #include <QMap>
 
 #include <memory>
@@ -117,7 +119,26 @@ namespace ct {
          * @param r, g, b 文本颜色 (0-1.0)
          */
         void add3DLabel(const PointXYZRGBN& pos, const QString& text, const QString& id,
-                        double r = 1.0, double g = 1.0, double b = 0.0);
+                        double scale = 0.03, double r = 1.0, double g = 1.0, double b = 0.0);
+
+        /**
+         * @brief 添加 3D 号码牌标签（带背景色，始终可见不被点云遮挡）
+         * @param pos 3D坐标点
+         * @param text 显示的文本
+         * @param id 标签的ID
+         * @param scale 字体缩放
+         * @param textR/textG/textB 文字颜色 (0-1.0)
+         * @param bgR/bgG/bgB 背景色 (0-1.0)
+         * @param bgOpacity 背景不透明度 (0-1.0)
+         */
+        void add3DBadge(const PointXYZRGBN& pos, const QString& text, const QString& id,
+                        double scale = 0.01,
+                        double textR = 1.0, double textG = 0.0, double textB = 0.0,
+                        double bgR = 1.0, double bgG = 1.0, double bgB = 1.0,
+                        double bgOpacity = 0.8);
+
+        void remove3DBadge(const QString& id);
+        void removeAll3DBadges();
 
         /**
          * @brief 添加多边形网格（PolygonMesh）到视图
@@ -498,6 +519,7 @@ namespace ct {
 
         QMap<QString, std::shared_ptr<OctreeRenderer>> m_OctreeRenders;
         QSet<QString> m_coord_ids;
+        QMap<QString, vtkSmartPointer<vtkBillboardTextActor3D>> m_badge_actors;
         unsigned long m_observer_tag = 0; // 回调 ID
         unsigned long m_interaction_tag = 0; //保存交互回调的 ID
 

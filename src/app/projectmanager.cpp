@@ -219,7 +219,7 @@ ct::TreeNode ProjectManager::treeNodeFromItem(QTreeWidgetItem* item, ct::CloudTr
 }
 
 // ================================================================
-// 辅助：从 TreeNode 重建 QTreeWidgetItem 树骨架
+// 从 TreeNode 重建 QTreeWidgetItem 树骨架
 // ================================================================
 
 QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node)

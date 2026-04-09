@@ -10,13 +10,14 @@ set(Srcs
     tool/cutting.cpp
     tool/pickpoints.cpp
     tool/filters.cpp
-    tool/keypoints.cpp
     tool/segmentation.cpp
     tool/surface.cpp
     tool/boundary.cpp
     tool/rangeimage.cpp
-    tool/registration.cpp
-    tool/descriptor.cpp
+    tool/align_by_centers.cpp
+    tool/global_registration.cpp
+    tool/fine_registration.cpp
+    tool/point_pairs_alignment.cpp
     tool/sampling.cpp
     python/python_console.cpp
     python/python_editor.cpp
@@ -39,13 +40,14 @@ set(Hdrs
     tool/cutting.h
     tool/pickpoints.h
     tool/filters.h
-    tool/keypoints.h
     tool/segmentation.h
     tool/surface.h
     tool/boundary.h
     tool/rangeimage.h
-    tool/registration.h
-    tool/descriptor.h
+    tool/align_by_centers.h
+    tool/global_registration.h
+    tool/fine_registration.h
+    tool/point_pairs_alignment.h
     tool/sampling.h
     python/python_console.h
     python/python_editor.h
@@ -55,12 +57,10 @@ set(Hdrs
     )
 
 set(UIS
-    tool/registration.ui
     tool/filters.ui
     tool/segmentation.ui
     tool/surface.ui
     tool/boundary.ui
-    tool/descriptor.ui
     edit/color.ui
     edit/boundingbox.ui
     edit/transformation.ui

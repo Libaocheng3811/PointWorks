@@ -132,10 +132,8 @@
      <string>Tools</string>
     </property>
     <addaction name="actionFilters"/>
-    <addaction name="actionKeyPoint"/>
+    <addaction name="menuRegistration"/>
     <addaction name="actionSegmentation"/>
-    <addaction name="actionRegistration"/>
-    <addaction name="actionDescriptor"/>
     <addaction name="actionRecognition"/>
     <addaction name="actionPickPoints"/>
     <addaction name="actionSurface"/>
@@ -150,6 +148,22 @@
     <addaction name="separator"/>
     <addaction name="actionScreenShot"/>
     <addaction name="actionBoundary"/>
+   </widget>
+   <widget class="QMenu" name="menuRegistration">
+    <property name="title">
+     <string>Registration</string>
+    </property>
+    <property name="font">
+     <font>
+      <family>Microsoft YaHei UI</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <addaction name="actionAlignByCenters"/>
+    <addaction name="actionPointPairsAlignment"/>
+    <addaction name="actionGlobalRegistration"/>
+    <addaction name="separator"/>
+    <addaction name="actionFineRegistration"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
     <property name="font">
@@ -695,13 +709,13 @@ QScrollBar::sub-line:horizontal {
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionKeyPoint"/>
-   <addaction name="actionDescriptor"/>
+   <addaction name="actionGlobalRegistration"/>
    <addaction name="actionFilters"/>
    <addaction name="actionSampling"/>
    <addaction name="actionSegmentation"/>
-   <addaction name="actionRegistration"/>
+   <addaction name="actionFineRegistration"/>
    <addaction name="actionSurface"/>
+   <addaction name="actionPointPairsAlignment"/>
    <addaction name="actionPickPoints"/>
    <addaction name="actionCutting"/>
    <addaction name="actionBoundary"/>
@@ -1132,13 +1146,39 @@ QScrollBar::sub-line:horizontal {
     </font>
    </property>
   </action>
-  <action name="actionKeyPoint">
+  <action name="actionAlignByCenters">
+   <property name="text">
+    <string>Align by Centers</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPointPairsAlignment">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
      <normaloff>:/res/icon/snap-bounding-box-center.svg</normaloff>:/res/icon/snap-bounding-box-center.svg</iconset>
    </property>
    <property name="text">
-    <string>KeyPoint</string>
+    <string>Point-Pairs Alignment</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionGlobalRegistration">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/exchange-positions-clockwise.svg</normaloff>:/res/icon/exchange-positions-clockwise.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Global Registration</string>
    </property>
    <property name="font">
     <font>
@@ -1162,28 +1202,13 @@ QScrollBar::sub-line:horizontal {
     </font>
    </property>
   </action>
-  <action name="actionRegistration">
+  <action name="actionFineRegistration">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/exchange-positions-clockwise.svg</normaloff>:/res/icon/exchange-positions-clockwise.svg</iconset>
+     <normaloff>:/res/icon/transform-rotate.svg</normaloff>:/res/icon/transform-rotate.svg</iconset>
    </property>
    <property name="text">
-    <string>Registration</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionDescriptor">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/feature.svg</normaloff>:/res/icon/feature.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Descriptor</string>
+    <string>ICP (Fine Registration)</string>
    </property>
    <property name="font">
     <font>

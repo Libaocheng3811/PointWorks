@@ -12,6 +12,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 #include <vtkCamera.h>
 #include <vtkProperty2D.h>
 #include <vtkTextActor.h>
+#include <vtkBillboardTextActor3D.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkCommand.h>
 
@@ -428,6 +429,75 @@ namespace ct
             m_viewer->removeShape(std_id);
             m_viewer->addCube(box.translation, box.rotation, box.width, box.height, box.depth, std_id);
         }
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::add3DLabel(const PointXYZRGBN& pos, const QString& text,
+                                const QString& id, double scale, double r, double g, double b)
+    {
+        std::string std_id = id.toStdString();
+        pcl::PointXYZ pcl_pos;
+        pcl_pos.x = pos.x;
+        pcl_pos.y = pos.y;
+        pcl_pos.z = pos.z;
+
+        if (!m_viewer->contains(std_id))
+            m_viewer->addText3D(text.toStdString(), pcl_pos, scale, r, g, b, std_id);
+        else
+        {
+            m_viewer->removeShape(std_id);
+            m_viewer->addText3D(text.toStdString(), pcl_pos, scale, r, g, b, std_id);
+        }
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::add3DBadge(const PointXYZRGBN& pos, const QString& text,
+                                 const QString& id, double scale,
+                                 double textR, double textG, double textB,
+                                 double bgR, double bgG, double bgB, double bgOpacity)
+    {
+        // 移除已有的
+        if (m_badge_actors.contains(id)) {
+            m_render->RemoveActor(m_badge_actors[id]);
+            m_badge_actors.remove(id);
+        }
+
+        vtkSmartPointer<vtkBillboardTextActor3D> actor = vtkSmartPointer<vtkBillboardTextActor3D>::New();
+        actor->SetInput(text.toStdString().c_str());
+        actor->SetPosition(pos.x, pos.y, pos.z);
+        actor->SetScale(scale);
+
+        vtkTextProperty* prop = actor->GetTextProperty();
+        prop->SetColor(textR, textG, textB);
+        prop->SetBackgroundColor(bgR, bgG, bgB);
+        prop->SetBackgroundOpacity(bgOpacity);
+        prop->SetFrame(true);
+        prop->SetFrameWidth(2);
+        prop->SetFrameColor(textR * 0.5, textG * 0.5, textB * 0.5);
+        prop->SetBold(true);
+        prop->SetJustificationToCentered();
+        prop->SetFontFamilyToCourier();
+
+        m_render->AddActor(actor);
+        m_badge_actors[id] = actor;
+
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::remove3DBadge(const QString& id)
+    {
+        if (m_badge_actors.contains(id)) {
+            m_render->RemoveActor(m_badge_actors[id]);
+            m_badge_actors.remove(id);
+            if (m_auto_render) m_viewer->getRenderWindow()->Render();
+        }
+    }
+
+    void CloudView::removeAll3DBadges()
+    {
+        for (auto it = m_badge_actors.begin(); it != m_badge_actors.end(); ++it)
+            m_render->RemoveActor(it.value());
+        m_badge_actors.clear();
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
