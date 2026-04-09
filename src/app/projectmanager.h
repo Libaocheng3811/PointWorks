@@ -25,6 +25,9 @@ public:
     QString currentProjectPath() const { return m_current_path; }
     bool isModified() const { return m_modified; }
 
+    /// 返回当前应显示的窗口标题字符串
+    QString windowTitle() const;
+
     /// closeEvent 中调用，返回 true 表示允许关闭
     bool confirmClose();
 

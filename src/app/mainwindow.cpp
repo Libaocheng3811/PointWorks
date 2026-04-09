@@ -185,10 +185,11 @@ MainWindow::MainWindow(QWidget *parent) :
         auto* dlg = ct::createDialog<PointPairsAlignment>(
             this, "PointPairsAlignment", ui->cloudview, ui->cloudtree, ui->console);
         if (dlg) {
-            // 禁用菜单栏、工具栏、文件树和属性栏
+            // 禁用菜单栏、工具栏、文件树和属性栏，但保留 ViewBar 用于视角调整
             menuBar()->setEnabled(false);
             for (auto* tb : findChildren<QToolBar*>())
                 tb->setEnabled(false);
+            ui->ViewBar->setEnabled(true);
             ui->cloudtree->setEnabled(false);
             ui->PropertiesDock->setEnabled(false);
             ui->DataDock->setEnabled(false);
@@ -623,8 +624,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // === 项目管理（自包含控制器） ===
     m_project_manager = new ProjectManager(ui->cloudtree, ui->cloudview, ui->menuOpenRecent, this);
     connect(m_project_manager, &ProjectManager::windowTitleChanged, this, &MainWindow::setWindowTitle);
-
-    // UI Action → ProjectManager 槽
+    setWindowTitle(m_project_manager->windowTitle()); // 初始标题（信号在连接前已发）
     connect(ui->actionNewProject, &QAction::triggered, m_project_manager, &ProjectManager::onNewProject);
     connect(ui->actionOpenProject, &QAction::triggered, m_project_manager, &ProjectManager::onOpenProject);
     connect(ui->actionSaveProject, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProject);

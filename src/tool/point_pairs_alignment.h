@@ -13,6 +13,7 @@
 #include <QDoubleSpinBox>
 #include <QGroupBox>
 #include <QShowEvent>
+#include <QCloseEvent>
 #include <QFutureWatcher>
 #include <atomic>
 
@@ -32,6 +33,7 @@ public:
 
 protected:
     void showEvent(QShowEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private slots:
     void onStartStop();
@@ -49,7 +51,7 @@ private slots:
     void onImportTargetPoints();
     void onImportSourcePoints();
     void onSwapSourceTarget();
-    void onFilterByRMS();
+    void onRmsFilterToggled(bool checked);
 
 private:
     void setupUi();
@@ -63,10 +65,13 @@ private:
     void deleteTargetPoint(int index);
     void rebuildMarkers();
     void rebuildLabels();
+    QVector<Eigen::Vector3d> displaySourcePoints() const;
     double calcLabelScale() const;
     void refreshCloudList();
     ct::PickResult doPick(const ct::PointXY& pt);
     ct::ConstrainedTransformParams currentConstraintParams() const;
+    void hideNonSelectedClouds();
+    void restoreAllCloudVisibility();
 
     // --- 控件（_ 后缀） ---
     QComboBox* cbox_source_;
@@ -96,8 +101,8 @@ private:
     QCheckBox* check_tx_;
     QCheckBox* check_ty_;
     QCheckBox* check_tz_;
+    QCheckBox* check_rms_filter_;
     QDoubleSpinBox* spin_rms_threshold_;
-    QPushButton* btn_filter_;
 
     QPushButton* btn_start_;
     QPushButton* btn_reset_;
@@ -111,14 +116,17 @@ private:
     bool m_is_picking;
     bool m_is_computing;
     std::atomic<bool> m_canceled;
-    QVector<Eigen::Vector4f> m_source_points;
-    QVector<Eigen::Vector4f> m_target_points;
+    QVector<Eigen::Vector3d> m_source_points;
+    QVector<Eigen::Vector3d> m_target_points;
     ct::PointPairErrorResult m_last_result;
     bool m_has_preview;
+    ct::Cloud::Ptr m_original_source_cloud;  // 缓存原始源点云用于还原
+    QString m_source_id;                     // 源点云 ID
 
     static constexpr const char* MARKER_SRC_ID = "ppa_markers_src";
     static constexpr const char* MARKER_TGT_ID = "ppa_markers_tgt";
     static constexpr const char* LINES_ID = "point_pairs_lines";
+    static constexpr const char* PREVIEW_ID = "ppa_preview";
 };
 
 #endif // POINTWORKS_POINT_PAIRS_ALIGNMENT_H

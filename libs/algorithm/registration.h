@@ -99,9 +99,9 @@ namespace ct {
     };
 
     struct PointPairErrorResult {
-        Eigen::Matrix4f matrix;
+        Eigen::Matrix4d matrix;
         double rms = 0.0;
-        std::vector<Eigen::Vector3f> deltas;  // 每对的 Delta XYZ
+        std::vector<Eigen::Vector3d> deltas;  // 每对的 Delta XYZ
         std::vector<double> errors;            // 每对的欧氏距离误差
         double scale = 1.0;                    // 缩放因子
     };
@@ -425,8 +425,8 @@ namespace ct {
          * @return 变换矩阵、RMS、逐点误差
          */
         static PointPairErrorResult ConstrainedPointPairsRegistration(
-            const std::vector<Eigen::Vector3f>& source_points,
-            const std::vector<Eigen::Vector3f>& target_points,
+            const std::vector<Eigen::Vector3d>& source_points,
+            const std::vector<Eigen::Vector3d>& target_points,
             const ConstrainedTransformParams& params);
     };
 }

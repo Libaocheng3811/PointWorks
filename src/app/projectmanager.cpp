@@ -60,6 +60,14 @@ void ProjectManager::clearModified()
     updateWindowTitle();
 }
 
+QString ProjectManager::windowTitle() const
+{
+    QString projName = "Untitled";
+    if (!m_current_path.isEmpty())
+        projName = QFileInfo(m_current_path).completeBaseName();
+    return (m_modified ? "* " : "") + projName + " - PointWorks";
+}
+
 void ProjectManager::updateWindowTitle()
 {
     QString projName = "Untitled";

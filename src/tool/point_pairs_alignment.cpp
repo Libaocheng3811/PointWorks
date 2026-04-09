@@ -90,10 +90,12 @@ void PointPairsAlignment::setupUi()
     auto* src_toolbar = new QHBoxLayout();
     check_show_source_ = new QCheckBox("Show", this);
     check_show_source_->setChecked(true);
-    btn_clear_src_ = new QPushButton("Clear", this);
-    btn_clear_src_->setFixedHeight(24);
-    btn_manual_src_ = new QPushButton("+ Manual", this);
-    btn_manual_src_->setFixedHeight(24);
+    btn_clear_src_ = new QPushButton(QIcon(":/res/icon/clear.svg"), "", this);
+    btn_clear_src_->setFixedSize(24, 24);
+    btn_clear_src_->setToolTip("Clear");
+    btn_manual_src_ = new QPushButton(QIcon(":/res/icon2/pencil.svg"), "", this);
+    btn_manual_src_->setFixedSize(24, 24);
+    btn_manual_src_->setToolTip("Manual Input");
     src_toolbar->addWidget(check_show_source_);
     src_toolbar->addStretch();
     src_toolbar->addWidget(btn_clear_src_);
@@ -123,10 +125,12 @@ void PointPairsAlignment::setupUi()
     auto* tgt_toolbar = new QHBoxLayout();
     check_show_target_ = new QCheckBox("Show", this);
     check_show_target_->setChecked(true);
-    btn_clear_tgt_ = new QPushButton("Clear", this);
-    btn_clear_tgt_->setFixedHeight(24);
-    btn_manual_tgt_ = new QPushButton("+ Manual", this);
-    btn_manual_tgt_->setFixedHeight(24);
+    btn_clear_tgt_ = new QPushButton(QIcon(":/res/icon/clear.svg"), "", this);
+    btn_clear_tgt_->setFixedSize(24, 24);
+    btn_clear_tgt_->setToolTip("Clear");
+    btn_manual_tgt_ = new QPushButton(QIcon(":/res/icon2/pencil.svg"), "", this);
+    btn_manual_tgt_->setFixedSize(24, 24);
+    btn_manual_tgt_->setToolTip("Manual Input");
     btn_import_tgt_ = new QPushButton("Import...", this);
     btn_import_tgt_->setFixedHeight(24);
     tgt_toolbar->addWidget(check_show_target_);
@@ -178,6 +182,9 @@ void PointPairsAlignment::setupUi()
     check_tx_ = new QCheckBox("X", this);
     check_ty_ = new QCheckBox("Y", this);
     check_tz_ = new QCheckBox("Z", this);
+    check_tx_->setChecked(true);
+    check_ty_->setChecked(true);
+    check_tz_->setChecked(true);
     rot_trans_row->addWidget(check_tx_);
     rot_trans_row->addWidget(check_ty_);
     rot_trans_row->addWidget(check_tz_);
@@ -186,17 +193,16 @@ void PointPairsAlignment::setupUi()
     constraint_layout->addWidget(check_adjust_scale_);
 
     auto* filter_row = new QHBoxLayout();
-    filter_row->addWidget(new QLabel("RMS Threshold:", this));
+    check_rms_filter_ = new QCheckBox("RMS Filter", this);
+    filter_row->addWidget(check_rms_filter_);
     spin_rms_threshold_ = new QDoubleSpinBox(this);
     spin_rms_threshold_->setRange(0, 1e9);
     spin_rms_threshold_->setDecimals(4);
     spin_rms_threshold_->setSingleStep(0.001);
-    spin_rms_threshold_->setValue(0.0);
-    spin_rms_threshold_->setSpecialValueText("Off");
+    spin_rms_threshold_->setValue(0.1);
+    spin_rms_threshold_->setEnabled(false);
     filter_row->addWidget(spin_rms_threshold_);
-    btn_filter_ = new QPushButton("Filter", this);
-    btn_filter_->setFixedHeight(24);
-    filter_row->addWidget(btn_filter_);
+    filter_row->addWidget(new QLabel("(remove pairs with error > threshold after align)", this));
     filter_row->addStretch();
     constraint_layout->addLayout(filter_row);
 
@@ -241,7 +247,7 @@ void PointPairsAlignment::setupUi()
     connect(btn_manual_tgt_, &QPushButton::clicked, this, &PointPairsAlignment::onAddTargetPoint);
     connect(btn_import_src_, &QPushButton::clicked, this, &PointPairsAlignment::onImportSourcePoints);
     connect(btn_import_tgt_, &QPushButton::clicked, this, &PointPairsAlignment::onImportTargetPoints);
-    connect(btn_filter_, &QPushButton::clicked, this, &PointPairsAlignment::onFilterByRMS);
+    connect(check_rms_filter_, &QCheckBox::toggled, this, &PointPairsAlignment::onRmsFilterToggled);
     connect(check_show_source_, &QCheckBox::toggled, this, &PointPairsAlignment::onToggleSourceVisibility);
     connect(check_show_target_, &QCheckBox::toggled, this, &PointPairsAlignment::onToggleTargetVisibility);
 
@@ -279,6 +285,8 @@ void PointPairsAlignment::reset()
     m_target_points.clear();
     m_last_result = {};
     m_has_preview = false;
+    m_original_source_cloud.reset();
+    m_source_id.clear();
     clearAllLines();
     m_cloudview->removePointCloud(MARKER_SRC_ID);
     m_cloudview->removePointCloud(MARKER_TGT_ID);
@@ -293,13 +301,17 @@ void PointPairsAlignment::reset()
 
 void PointPairsAlignment::deinit()
 {
+    // 清理预览云（closeEvent 已处理还原，这里做防御性清理）
+    m_cloudview->removePointCloud(PREVIEW_ID);
+
     // 恢复所有点云可见性
+    restoreAllCloudVisibility();
+
+    // 恢复 source/target checkbox
     if (check_show_source_ && !check_show_source_->isChecked())
-        onToggleSourceVisibility(true);
+        check_show_source_->setChecked(true);
     if (check_show_target_ && !check_show_target_->isChecked())
-        onToggleTargetVisibility(true);
-    if (check_show_source_) check_show_source_->setChecked(true);
-    if (check_show_target_) check_show_target_->setChecked(true);
+        check_show_target_->setChecked(true);
 
     // 清理 3D 号码牌
     for (int i = 0; i < 100; i++) {
@@ -321,6 +333,19 @@ void PointPairsAlignment::showEvent(QShowEvent* event)
     }
 }
 
+void PointPairsAlignment::closeEvent(QCloseEvent* event)
+{
+    // 移除预览云，恢复源点云可见（源点云从未被修改，无需还原）
+    if (m_has_preview) {
+        m_cloudview->removePointCloud(PREVIEW_ID);
+        m_cloudview->setPointCloudVisibility(m_source_id, true);
+        m_cloudview->refresh();
+        printI("Point-pairs alignment reverted (dialog closed without apply).");
+    }
+
+    ct::CustomDialog::closeEvent(event);
+}
+
 // ======================== Slots ========================
 
 void PointPairsAlignment::onStartStop()
@@ -339,6 +364,8 @@ void PointPairsAlignment::onStartStop()
         btn_start_->setText("Stop");
         cbox_source_->setEnabled(false);
         cbox_target_->setEnabled(false);
+
+        hideNonSelectedClouds();
 
         connect(m_cloudview, &ct::CloudView::mouseLeftPressed,
                 this, &PointPairsAlignment::onMouseLeftPressed);
@@ -376,12 +403,13 @@ void PointPairsAlignment::onAlign()
         return;
     }
 
-    std::vector<Eigen::Vector3f> src_pts, tgt_pts;
+    // m_source_points 始终保持原始坐标（用户拾取位置），不随变换修改
+    std::vector<Eigen::Vector3d> src_pts, tgt_pts;
     src_pts.reserve(pair_count);
     tgt_pts.reserve(pair_count);
     for (int i = 0; i < pair_count; i++) {
-        src_pts.push_back({m_source_points[i][0], m_source_points[i][1], m_source_points[i][2]});
-        tgt_pts.push_back({m_target_points[i][0], m_target_points[i][1], m_target_points[i][2]});
+        src_pts.push_back(m_source_points[i]);
+        tgt_pts.push_back(m_target_points[i]);
     }
 
     // UI 状态
@@ -391,62 +419,109 @@ void PointPairsAlignment::onAlign()
     m_canceled.store(false);
     label_status_->setText("Computing...");
 
-    // 捕获参数
     auto params = currentConstraintParams();
-    int si = cbox_source_->currentIndex();
-
-    auto clouds = m_cloudtree->getAllClouds();
-    ct::Cloud::Ptr source = (si < (int)clouds.size()) ? clouds[si] : nullptr;
     auto result_ptr = std::make_shared<ct::PointPairErrorResult>();
 
-    auto future = QtConcurrent::run([=]() -> ct::Cloud::Ptr {
+    // 首次时备份原始源点云并记录 ID
+    bool first_time = !m_original_source_cloud;
+    if (first_time) {
+        auto clouds = m_cloudtree->getAllClouds();
+        int si = cbox_source_->currentIndex();
+        ct::Cloud::Ptr source = (si < (int)clouds.size()) ? clouds[si] : nullptr;
+        if (!source) {
+            m_is_computing = false;
+            btn_align_->setEnabled(true);
+            btn_start_->setEnabled(true);
+            return;
+        }
+        m_source_id = QString::fromStdString(source->id());
+        // 深拷贝原始点云作为备份
+        auto pcl_src = source->toPCL_XYZRGBN();
+        m_original_source_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src);
+        m_original_source_cloud->setId(source->id());
+    }
+
+    // 捕获原始备份用于工作线程变换
+    ct::Cloud::Ptr source_snap = m_original_source_cloud;
+
+    auto future = QtConcurrent::run([this, source_snap, result_ptr, params, src_pts, tgt_pts]() -> ct::Cloud::Ptr {
         if (m_canceled.load()) return nullptr;
 
-        // 1. SVD 约束变换估计（很快）
         *result_ptr = ct::Registration::ConstrainedPointPairsRegistration(src_pts, tgt_pts, params);
         if (m_canceled.load()) return nullptr;
 
-        // 2. 点云变换（耗时与点数成正比）
-        auto pcl_src = source->toPCL_XYZRGBN();
-        if (m_canceled.load()) return nullptr;
-        pcl::transformPointCloud(*pcl_src, *pcl_src, result_ptr->matrix);
-        auto preview_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src);
-        preview_cloud->setId(source->id() + "_ppa_preview");
-
-        return preview_cloud;
+        // 始终从原始备份变换，不会叠加
+        // 注意：toPCL_XYZRGBN() 返回内部缓存 shared_ptr，必须深拷贝后再变换，否则会污染备份
+        auto pcl_src = source_snap->toPCL_XYZRGBN();
+        auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+        pcl::transformPointCloud(*pcl_copy, *pcl_copy, result_ptr->matrix.cast<float>());
+        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+        transformed->setId(PREVIEW_ID);
+        return transformed;
     });
 
     auto* watcher = new QFutureWatcher<ct::Cloud::Ptr>(this);
     watcher->setFuture(future);
-    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this, [this, watcher, result_ptr]() mutable {
-        auto preview_cloud = watcher->result();
+    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this,
+        [this, watcher, result_ptr]() mutable {
+        auto transformed = watcher->result();
         watcher->deleteLater();
 
         m_is_computing = false;
         btn_start_->setEnabled(true);
 
-        if (m_canceled.load() || !preview_cloud) {
+        if (m_canceled.load() || !transformed) {
             label_status_->setText("Canceled.");
             btn_align_->setEnabled(true);
             return;
         }
 
         m_last_result = *result_ptr;
-        label_rms_->setText(QString("RMS: %1").arg(m_last_result.rms, 0, 'f', 4));
+        label_rms_->setText(QString("RMS: %1").arg(m_last_result.rms, 0, 'f', 6));
         updateTableErrors(m_last_result);
 
-        m_cloudtree->insertCloud(preview_cloud);
-        m_cloudview->addPointCloud(preview_cloud);
+        // 如果启用了 RMS Filter，自动剔除粗差点
+        if (check_rms_filter_->isChecked()) {
+            double threshold = spin_rms_threshold_->value();
+            int pc = std::min({m_source_points.size(), m_target_points.size(),
+                              (int)m_last_result.deltas.size(), (int)m_last_result.errors.size()});
+            if (pc >= 4) {
+                QVector<int> to_remove;
+                for (int i = 0; i < pc; i++) {
+                    if (m_last_result.errors[i] > threshold)
+                        to_remove.append(i);
+                }
+                if (!to_remove.isEmpty() && pc - to_remove.size() >= 3) {
+                    for (int i = to_remove.size() - 1; i >= 0; i--) {
+                        m_source_points.removeAt(to_remove[i]);
+                        m_target_points.removeAt(to_remove[i]);
+                    }
+                    printI(QString("RMS filter: removed %1 pair(s) (error > %2), %3 remaining.")
+                           .arg(to_remove.size()).arg(threshold, 0, 'f', 4)
+                           .arg(std::min(m_source_points.size(), m_target_points.size())));
+                }
+            }
+        }
+
+        // 移除旧预览云（如果有），隐藏源点云，显示新的预览云
+        m_cloudview->removePointCloud(PREVIEW_ID);
+        m_cloudview->setPointCloudVisibility(m_source_id, false);
+        m_cloudview->addPointCloud(transformed);
         m_cloudview->refresh();
+
+        rebuildMarkers();
+        rebuildLabels();
+        updateAllLines();
+        updateTables();
 
         m_has_preview = true;
         btn_align_->setEnabled(true);
         btn_apply_->setEnabled(true);
         btn_cancel_->setEnabled(true);
-        label_status_->setText("Preview applied. Click Apply to confirm or Cancel to revert.");
+        label_status_->setText("Preview. Click Apply to confirm, Cancel to revert, or re-click Align.");
 
         int pair_count = std::min(m_source_points.size(), m_target_points.size());
-        printI(QString("Align: %1 pairs, RMS: %2, Scale: %3")
+        printI(QString("Align preview: %1 pairs, RMS: %2, Scale: %3")
                .arg(pair_count).arg(m_last_result.rms, 0, 'f', 4).arg(m_last_result.scale, 0, 'f', 6));
     });
 }
@@ -455,28 +530,32 @@ void PointPairsAlignment::onApply()
 {
     if (!m_has_preview) return;
 
-    auto clouds = m_cloudtree->getAllClouds();
-    int si = cbox_source_->currentIndex();
-    if (si < (int)clouds.size()) {
-        QString preview_id = QString::fromStdString(clouds[si]->id()) + "_ppa_preview";
-        m_cloudview->removePointCloud(preview_id);
-    }
-
     int pair_count = std::min(m_source_points.size(), m_target_points.size());
 
-    if (si >= (int)clouds.size()) return;
-    auto source = clouds[si];
-    if (!source) return;
+    // 从原始备份变换，写入树中源点云
+    auto pcl_src = m_original_source_cloud->toPCL_XYZRGBN();
+    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_last_result.matrix.cast<float>());
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    transformed->setId(m_source_id.toStdString());
 
-    auto pcl_src = source->toPCL_XYZRGBN();
-    pcl::transformPointCloud(*pcl_src, *pcl_src, m_last_result.matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_src);
-    transformed->setId(source->id());
+    {
+        auto all_clouds = m_cloudtree->getAllClouds();
+        for (auto& c : all_clouds) {
+            if (QString::fromStdString(c->id()) == m_source_id) {
+                m_cloudtree->updateCloud(c, transformed);
+                break;
+            }
+        }
+    }
 
-    m_cloudtree->updateCloud(source, transformed);
-    m_cloudview->invalidateCloudRender(QString::fromStdString(source->id()));
+    // 移除预览云，恢复源点云可见
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->invalidateCloudRender(m_source_id);
     m_cloudview->refresh();
 
+    m_original_source_cloud.reset();
     clearAllLines();
     m_has_preview = false;
     printI(QString("Point-pairs alignment applied (%1 pairs, RMS: %2).")
@@ -488,12 +567,9 @@ void PointPairsAlignment::onCancel()
 {
     if (!m_has_preview) return;
 
-    auto clouds = m_cloudtree->getAllClouds();
-    int si = cbox_source_->currentIndex();
-    if (si < (int)clouds.size()) {
-        QString preview_id = QString::fromStdString(clouds[si]->id()) + "_ppa_preview";
-        m_cloudview->removePointCloud(preview_id);
-    }
+    // 移除预览云，恢复源点云可见（源点云从未被修改）
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
     m_cloudview->refresh();
 
     clearAllLines();
@@ -532,7 +608,7 @@ void PointPairsAlignment::onMouseLeftPressed(const ct::PointXY& pt)
     QString target_id = cbox_target_->currentText();
     QString clicked_id = QString::fromStdString(res.cloud->id());
 
-    Eigen::Vector4f picked_pt(res.point.x, res.point.y, res.point.z, 1.0f);
+    Eigen::Vector3d picked_pt(res.point.x, res.point.y, res.point.z);
 
     if (clicked_id == source_id) {
         m_source_points.append(picked_pt);
@@ -575,9 +651,9 @@ void PointPairsAlignment::updateTables()
     for (int i = 0; i < m_source_points.size(); i++) {
         const auto& p = m_source_points[i];
         table_source_->setItem(i, 0, new QTableWidgetItem(QString::number(i + 1)));
-        table_source_->setItem(i, 1, new QTableWidgetItem(QString::number(p[0], 'f', 4)));
-        table_source_->setItem(i, 2, new QTableWidgetItem(QString::number(p[1], 'f', 4)));
-        table_source_->setItem(i, 3, new QTableWidgetItem(QString::number(p[2], 'f', 4)));
+        table_source_->setItem(i, 1, new QTableWidgetItem(QString::number(p[0], 'f', 6)));
+        table_source_->setItem(i, 2, new QTableWidgetItem(QString::number(p[1], 'f', 6)));
+        table_source_->setItem(i, 3, new QTableWidgetItem(QString::number(p[2], 'f', 6)));
         for (int c = 4; c < 8; c++)
             table_source_->setItem(i, c, new QTableWidgetItem(""));
 
@@ -594,9 +670,9 @@ void PointPairsAlignment::updateTables()
     for (int i = 0; i < m_target_points.size(); i++) {
         const auto& p = m_target_points[i];
         table_target_->setItem(i, 0, new QTableWidgetItem(QString::number(i + 1)));
-        table_target_->setItem(i, 1, new QTableWidgetItem(QString::number(p[0], 'f', 4)));
-        table_target_->setItem(i, 2, new QTableWidgetItem(QString::number(p[1], 'f', 4)));
-        table_target_->setItem(i, 3, new QTableWidgetItem(QString::number(p[2], 'f', 4)));
+        table_target_->setItem(i, 1, new QTableWidgetItem(QString::number(p[0], 'f', 6)));
+        table_target_->setItem(i, 2, new QTableWidgetItem(QString::number(p[1], 'f', 6)));
+        table_target_->setItem(i, 3, new QTableWidgetItem(QString::number(p[2], 'f', 6)));
         for (int c = 4; c < 8; c++)
             table_target_->setItem(i, c, new QTableWidgetItem(""));
 
@@ -649,15 +725,19 @@ void PointPairsAlignment::deleteTargetPoint(int index)
 
 void PointPairsAlignment::rebuildMarkers()
 {
+    double scale = calcLabelScale();
+    int marker_size = std::max(8, static_cast<int>(scale * 4000));
+
     // --- Source markers (red) ---
     m_cloudview->removePointCloud(MARKER_SRC_ID);
-    if (check_show_source_->isChecked() && !m_source_points.isEmpty()) {
+    auto src_display = displaySourcePoints();
+    if (check_show_source_->isChecked() && !src_display.isEmpty()) {
         ct::Cloud::Ptr src_markers(new ct::Cloud);
         src_markers->setId(MARKER_SRC_ID);
-        src_markers->setPointSize(14);
-        for (const auto& p : m_source_points) {
+        src_markers->setPointSize(marker_size);
+        for (const auto& p : src_display) {
             ct::PointXYZRGBN pt;
-            pt.x = p[0]; pt.y = p[1]; pt.z = p[2];
+            pt.x = static_cast<float>(p[0]); pt.y = static_cast<float>(p[1]); pt.z = static_cast<float>(p[2]);
             pt.r = 255; pt.g = 60; pt.b = 60;
             src_markers->addPoint(pt);
         }
@@ -669,10 +749,10 @@ void PointPairsAlignment::rebuildMarkers()
     if (check_show_target_->isChecked() && !m_target_points.isEmpty()) {
         ct::Cloud::Ptr tgt_markers(new ct::Cloud);
         tgt_markers->setId(MARKER_TGT_ID);
-        tgt_markers->setPointSize(14);
+        tgt_markers->setPointSize(marker_size);
         for (const auto& p : m_target_points) {
             ct::PointXYZRGBN pt;
-            pt.x = p[0]; pt.y = p[1]; pt.z = p[2];
+            pt.x = static_cast<float>(p[0]); pt.y = static_cast<float>(p[1]); pt.z = static_cast<float>(p[2]);
             pt.r = 60; pt.g = 120; pt.b = 255;
             tgt_markers->addPoint(pt);
         }
@@ -691,12 +771,13 @@ void PointPairsAlignment::rebuildLabels()
     double scale = calcLabelScale();
 
     // Source 标签（红色号码牌）
+    auto src_disp = displaySourcePoints();
     if (check_show_source_->isChecked()) {
-        for (int i = 0; i < m_source_points.size(); i++) {
+        for (int i = 0; i < src_disp.size(); i++) {
             ct::PointXYZRGBN pos;
-            pos.x = m_source_points[i][0] + scale * 0.8;
-            pos.y = m_source_points[i][1] + scale * 0.8;
-            pos.z = m_source_points[i][2] + scale * 0.8;
+            pos.x = static_cast<float>(src_disp[i][0] + scale * 0.8);
+            pos.y = static_cast<float>(src_disp[i][1] + scale * 0.8);
+            pos.z = static_cast<float>(src_disp[i][2] + scale * 0.8);
             m_cloudview->add3DBadge(pos, QString::number(i + 1),
                                     QString("ppa_badge_s%1").arg(i), scale * 1.2,
                                     1.0, 0.15, 0.15,   // 红色文字
@@ -709,9 +790,9 @@ void PointPairsAlignment::rebuildLabels()
     if (check_show_target_->isChecked()) {
         for (int i = 0; i < m_target_points.size(); i++) {
             ct::PointXYZRGBN pos;
-            pos.x = m_target_points[i][0] + scale * 0.8;
-            pos.y = m_target_points[i][1] + scale * 0.8;
-            pos.z = m_target_points[i][2] + scale * 0.8;
+            pos.x = static_cast<float>(m_target_points[i][0] + scale * 0.8);
+            pos.y = static_cast<float>(m_target_points[i][1] + scale * 0.8);
+            pos.z = static_cast<float>(m_target_points[i][2] + scale * 0.8);
             m_cloudview->add3DBadge(pos, QString::number(i + 1),
                                     QString("ppa_badge_t%1").arg(i), scale * 1.2,
                                     0.15, 0.35, 1.0,    // 蓝色文字
@@ -719,6 +800,20 @@ void PointPairsAlignment::rebuildLabels()
                                     0.9);
         }
     }
+}
+
+QVector<Eigen::Vector3d> PointPairsAlignment::displaySourcePoints() const
+{
+    if (!m_has_preview) return m_source_points;
+    QVector<Eigen::Vector3d> result;
+    result.reserve(m_source_points.size());
+    const Eigen::Matrix4d& T = m_last_result.matrix;
+    for (const auto& p : m_source_points) {
+        Eigen::Vector4d hp(p[0], p[1], p[2], 1.0);
+        Eigen::Vector4d tp = T * hp;
+        result.append(tp.head<3>());
+    }
+    return result;
 }
 
 double PointPairsAlignment::calcLabelScale() const
@@ -739,7 +834,7 @@ double PointPairsAlignment::calcLabelScale() const
     calcDiag(si);
     calcDiag(ti);
 
-    return max_diag * 0.006;
+    return max_diag * 0.012;
 }
 
 // ======================== Helpers ========================
@@ -747,10 +842,15 @@ double PointPairsAlignment::calcLabelScale() const
 void PointPairsAlignment::onToggleSourceVisibility(bool visible)
 {
     if (!m_cloudtree || cbox_source_->currentIndex() < 0) return;
-    auto clouds = m_cloudtree->getAllClouds();
-    int si = cbox_source_->currentIndex();
-    if (si < clouds.size() && clouds[si]) {
-        m_cloudview->setPointCloudVisibility(QString::fromStdString(clouds[si]->id()), visible);
+    if (m_has_preview) {
+        // 预览模式下控制预览云可见性
+        m_cloudview->setPointCloudVisibility(PREVIEW_ID, visible);
+    } else {
+        auto clouds = m_cloudtree->getAllClouds();
+        int si = cbox_source_->currentIndex();
+        if (si < clouds.size() && clouds[si]) {
+            m_cloudview->setPointCloudVisibility(QString::fromStdString(clouds[si]->id()), visible);
+        }
     }
     rebuildMarkers();
     rebuildLabels();
@@ -780,20 +880,20 @@ void PointPairsAlignment::updateTableErrors(const ct::PointPairErrorResult& resu
         double err = result.errors[i];
 
         if (i < table_source_->rowCount()) {
-            table_source_->item(i, 4)->setText(QString::number(d.x(), 'f', 4));
-            table_source_->item(i, 5)->setText(QString::number(d.y(), 'f', 4));
-            table_source_->item(i, 6)->setText(QString::number(d.z(), 'f', 4));
+            table_source_->item(i, 4)->setText(QString::number(d.x(), 'f', 6));
+            table_source_->item(i, 5)->setText(QString::number(d.y(), 'f', 6));
+            table_source_->item(i, 6)->setText(QString::number(d.z(), 'f', 6));
             auto* err_item = table_source_->item(i, 7);
-            err_item->setText(QString::number(err, 'f', 4));
+            err_item->setText(QString::number(err, 'f', 6));
             err_item->setForeground(err < result.rms ? QColor("#27ae60") : QColor("#e74c3c"));
         }
 
         if (i < table_target_->rowCount()) {
-            table_target_->item(i, 4)->setText(QString::number(d.x(), 'f', 4));
-            table_target_->item(i, 5)->setText(QString::number(d.y(), 'f', 4));
-            table_target_->item(i, 6)->setText(QString::number(d.z(), 'f', 4));
+            table_target_->item(i, 4)->setText(QString::number(d.x(), 'f', 6));
+            table_target_->item(i, 5)->setText(QString::number(d.y(), 'f', 6));
+            table_target_->item(i, 6)->setText(QString::number(d.z(), 'f', 6));
             auto* err_item = table_target_->item(i, 7);
-            err_item->setText(QString::number(err, 'f', 4));
+            err_item->setText(QString::number(err, 'f', 6));
             err_item->setForeground(err < result.rms ? QColor("#27ae60") : QColor("#e74c3c"));
         }
     }
@@ -818,13 +918,15 @@ void PointPairsAlignment::updateAllLines()
     int pair_count = std::min(m_source_points.size(), m_target_points.size());
     if (pair_count == 0) return;
 
+    auto src_disp = displaySourcePoints();
+
     ct::Cloud::Ptr src_cloud(new ct::Cloud);
     ct::Cloud::Ptr tgt_cloud(new ct::Cloud);
 
     for (int i = 0; i < pair_count; i++) {
         ct::PointXYZRGBN sp, tp;
-        sp.x = m_source_points[i][0]; sp.y = m_source_points[i][1]; sp.z = m_source_points[i][2];
-        tp.x = m_target_points[i][0]; tp.y = m_target_points[i][1]; tp.z = m_target_points[i][2];
+        sp.x = static_cast<float>(src_disp[i][0]); sp.y = static_cast<float>(src_disp[i][1]); sp.z = static_cast<float>(src_disp[i][2]);
+        tp.x = static_cast<float>(m_target_points[i][0]); tp.y = static_cast<float>(m_target_points[i][1]); tp.z = static_cast<float>(m_target_points[i][2]);
         src_cloud->addPoint(sp);
         tgt_cloud->addPoint(tp);
     }
@@ -846,7 +948,7 @@ void PointPairsAlignment::clearAllLines()
 
 bool PointPairsAlignment::addPointManual(bool is_source, double x, double y, double z)
 {
-    Eigen::Vector4f pt(x, y, z, 1.0f);
+    Eigen::Vector3d pt(x, y, z);
     if (is_source)
         m_source_points.append(pt);
     else
@@ -957,6 +1059,32 @@ void PointPairsAlignment::refreshCloudList()
 ct::PickResult PointPairsAlignment::doPick(const ct::PointXY& pt)
 {
     return m_cloudview->singlePick(pt, "");
+}
+
+void PointPairsAlignment::hideNonSelectedClouds()
+{
+    if (!m_cloudtree) return;
+    QString source_id = cbox_source_->currentText();
+    QString target_id = cbox_target_->currentText();
+
+    auto clouds = m_cloudtree->getAllClouds();
+    for (const auto& c : clouds) {
+        QString id = QString::fromStdString(c->id());
+        if (id != source_id && id != target_id) {
+            m_cloudview->setPointCloudVisibility(id, false);
+        }
+    }
+    m_cloudview->refresh();
+}
+
+void PointPairsAlignment::restoreAllCloudVisibility()
+{
+    if (!m_cloudtree) return;
+    auto clouds = m_cloudtree->getAllClouds();
+    for (const auto& c : clouds) {
+        m_cloudview->setPointCloudVisibility(QString::fromStdString(c->id()), true);
+    }
+    m_cloudview->refresh();
 }
 
 // ======================== New Slot Functions ========================
@@ -1099,68 +1227,7 @@ void PointPairsAlignment::onImportSourcePoints()
     printI(QString("Imported %1 source points from %2.").arg(count).arg(filepath));
 }
 
-void PointPairsAlignment::onFilterByRMS()
+void PointPairsAlignment::onRmsFilterToggled(bool checked)
 {
-    double threshold = spin_rms_threshold_->value();
-    if (threshold <= 0.0) {
-        printW("Please set a positive RMS threshold to filter.");
-        return;
-    }
-
-    int pair_count = std::min(m_source_points.size(), m_target_points.size());
-    if (pair_count < 4) {
-        printW("Need at least 4 pairs to filter (must keep >= 3).");
-        return;
-    }
-
-    std::vector<Eigen::Vector3f> src_pts, tgt_pts;
-    src_pts.reserve(pair_count);
-    tgt_pts.reserve(pair_count);
-    for (int i = 0; i < pair_count; i++) {
-        src_pts.push_back({m_source_points[i][0], m_source_points[i][1], m_source_points[i][2]});
-        tgt_pts.push_back({m_target_points[i][0], m_target_points[i][1], m_target_points[i][2]});
-    }
-
-    auto result = ct::Registration::ConstrainedPointPairsRegistration(
-        src_pts, tgt_pts, currentConstraintParams());
-
-    QVector<int> to_remove;
-    for (int i = 0; i < pair_count; i++) {
-        if (result.errors[i] > threshold)
-            to_remove.append(i);
-    }
-
-    if (to_remove.isEmpty()) {
-        printI("All point pairs are within the RMS threshold.");
-        return;
-    }
-
-    if (pair_count - to_remove.size() < 3) {
-        printW(QString("Cannot remove %1 pairs: would leave only %2 pairs (minimum 3 required).")
-               .arg(to_remove.size()).arg(pair_count - to_remove.size()));
-        return;
-    }
-
-    auto ret = QMessageBox::question(this, "Filter Points",
-        QString("%1 pair(s) with error > %2 will be removed.\nContinue?")
-            .arg(to_remove.size()).arg(threshold, 0, 'f', 4),
-        QMessageBox::Yes | QMessageBox::No);
-    if (ret != QMessageBox::Yes) return;
-
-    if (m_has_preview) onCancel();
-    for (int i = to_remove.size() - 1; i >= 0; i--) {
-        int idx = to_remove[i];
-        m_source_points.removeAt(idx);
-        m_target_points.removeAt(idx);
-    }
-
-    rebuildMarkers();
-    rebuildLabels();
-    updateAllLines();
-    updateTables();
-
-    int new_pair_count = std::min(m_source_points.size(), m_target_points.size());
-    btn_align_->setEnabled(new_pair_count >= 3);
-    printI(QString("Filtered: removed %1 pair(s), %2 remaining.")
-           .arg(to_remove.size()).arg(new_pair_count));
+    spin_rms_threshold_->setEnabled(checked);
 }

@@ -1139,27 +1139,24 @@ namespace ct
 
     namespace {
 
-    Eigen::Matrix3f applyRotationConstraint(const Eigen::Matrix3f& R, RotationConstraint rc)
+    Eigen::Matrix3d applyRotationConstraint(const Eigen::Matrix3d& R, RotationConstraint rc)
     {
         if (rc == RotationConstraint::XYZ) return R;
 
         // 提取 Euler 角 (ZYX 约定: R = Rz * Ry * Rx)
-        float ay = std::atan2(-R(2, 0),
+        double ay = std::atan2(-R(2, 0),
                               std::sqrt(R(2, 1) * R(2, 1) + R(2, 2) * R(2, 2)));
 
-        float ax, az;
-        if (std::abs(std::cos(ay)) > 1e-6f) {
-            // 非万向锁
+        double ax, az;
+        if (std::abs(std::cos(ay)) > 1e-6) {
             ax = std::atan2(R(2, 1), R(2, 2));
             az = std::atan2(R(1, 0), R(0, 0));
         } else {
-            // 万向锁区域 (ay ≈ ±90°): 无法唯一分解 ax 和 az
-            // 取 ax = 0，只保留 az
-            ax = 0.0f;
+            ax = 0.0;
             az = std::atan2(-R(0, 1), R(0, 2));
         }
 
-        float rx = 0, ry = 0, rz = 0;
+        double rx = 0, ry = 0, rz = 0;
         switch (rc) {
             case RotationConstraint::NONE:    break;
             case RotationConstraint::X_ONLY:  rx = ax; break;
@@ -1172,17 +1169,17 @@ namespace ct
         }
 
         // 组合: R = Rz * Ry * Rx
-        Eigen::Matrix3f result = Eigen::Matrix3f::Identity();
-        if (std::abs(rx) > 1e-10f) {
-            Eigen::AngleAxisf Rx(rx, Eigen::Vector3f::UnitX());
+        Eigen::Matrix3d result = Eigen::Matrix3d::Identity();
+        if (std::abs(rx) > 1e-10) {
+            Eigen::AngleAxisd Rx(rx, Eigen::Vector3d::UnitX());
             result = Rx.toRotationMatrix() * result;
         }
-        if (std::abs(ry) > 1e-10f) {
-            Eigen::AngleAxisf Ry(ry, Eigen::Vector3f::UnitY());
+        if (std::abs(ry) > 1e-10) {
+            Eigen::AngleAxisd Ry(ry, Eigen::Vector3d::UnitY());
             result = Ry.toRotationMatrix() * result;
         }
-        if (std::abs(rz) > 1e-10f) {
-            Eigen::AngleAxisf Rz(rz, Eigen::Vector3f::UnitZ());
+        if (std::abs(rz) > 1e-10) {
+            Eigen::AngleAxisd Rz(rz, Eigen::Vector3d::UnitZ());
             result = Rz.toRotationMatrix() * result;
         }
         return result;
@@ -1191,8 +1188,8 @@ namespace ct
     } // anonymous namespace
 
     PointPairErrorResult Registration::ConstrainedPointPairsRegistration(
-        const std::vector<Eigen::Vector3f>& source_points,
-        const std::vector<Eigen::Vector3f>& target_points,
+        const std::vector<Eigen::Vector3d>& source_points,
+        const std::vector<Eigen::Vector3d>& target_points,
         const ConstrainedTransformParams& params)
     {
         PointPairErrorResult result;
@@ -1200,8 +1197,8 @@ namespace ct
         if (N < 1) return result;
 
         // 1. 质心
-        Eigen::Vector3f c_src = Eigen::Vector3f::Zero();
-        Eigen::Vector3f c_tgt = Eigen::Vector3f::Zero();
+        Eigen::Vector3d c_src = Eigen::Vector3d::Zero();
+        Eigen::Vector3d c_tgt = Eigen::Vector3d::Zero();
         for (int i = 0; i < N; i++) {
             c_src += source_points[i];
             c_tgt += target_points[i];
@@ -1210,61 +1207,59 @@ namespace ct
         c_tgt /= N;
 
         // 2. H 矩阵
-        Eigen::Matrix3f H = Eigen::Matrix3f::Zero();
-        float src_norm_sq_sum = 0.0f;
+        Eigen::Matrix3d H = Eigen::Matrix3d::Zero();
+        double src_norm_sq_sum = 0.0;
         for (int i = 0; i < N; i++) {
-            Eigen::Vector3f sp = source_points[i] - c_src;
-            Eigen::Vector3f tp = target_points[i] - c_tgt;
+            Eigen::Vector3d sp = source_points[i] - c_src;
+            Eigen::Vector3d tp = target_points[i] - c_tgt;
             H += sp * tp.transpose();
             src_norm_sq_sum += sp.squaredNorm();
         }
 
         // 3. SVD 分解
-        Eigen::JacobiSVD<Eigen::Matrix3f> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        Eigen::Matrix3f U = svd.matrixU();
-        Eigen::Matrix3f V = svd.matrixV();
+        Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::Matrix3d U = svd.matrixU();
+        Eigen::Matrix3d V = svd.matrixV();
 
         // 4. 旋转 + 缩放求解
-        Eigen::Matrix3f R_raw;
-        float scale = 1.0f;
+        Eigen::Matrix3d R_raw;
+        double scale = 1.0;
 
         if (params.adjust_scale) {
-            // 相似变换 (Umeyama 风格)
             R_raw = V * U.transpose();
             if (R_raw.determinant() < 0) {
                 V.col(2) *= -1;
                 R_raw = V * U.transpose();
             }
-            scale = svd.singularValues().sum() / std::max(src_norm_sq_sum, 1e-10f);
+            scale = svd.singularValues().sum() / std::max(src_norm_sq_sum, 1e-10);
         } else {
-            // 刚体变换：保证右手系
-            Eigen::Matrix3f D = Eigen::Matrix3f::Identity();
-            D(2, 2) = (V * U.transpose()).determinant() > 0 ? 1.0f : -1.0f;
+            Eigen::Matrix3d D = Eigen::Matrix3d::Identity();
+            D(2, 2) = (V * U.transpose()).determinant() > 0 ? 1.0 : -1.0;
             R_raw = V * D * U.transpose();
         }
 
         // 5. 旋转约束投影
-        Eigen::Matrix3f R_constrained = applyRotationConstraint(R_raw, params.rotation);
+        Eigen::Matrix3d R_constrained = applyRotationConstraint(R_raw, params.rotation);
 
         // 6. 平移
-        Eigen::Vector3f t = c_tgt - scale * R_constrained * c_src;
-        if (!params.tx_enabled) t.x() = 0.0f;
-        if (!params.ty_enabled) t.y() = 0.0f;
-        if (!params.tz_enabled) t.z() = 0.0f;
+        Eigen::Vector3d t = c_tgt - scale * R_constrained * c_src;
+        if (!params.tx_enabled) t.x() = 0.0;
+        if (!params.ty_enabled) t.y() = 0.0;
+        if (!params.tz_enabled) t.z() = 0.0;
 
         // 7. 组装 4x4 变换矩阵
-        result.matrix = Eigen::Matrix4f::Identity();
+        result.matrix = Eigen::Matrix4d::Identity();
         result.matrix.block<3, 3>(0, 0) = scale * R_constrained;
         result.matrix.block<3, 1>(0, 3) = t;
-        result.scale = static_cast<double>(scale);
+        result.scale = scale;
 
         // 8. 逐点对误差
         double sum_sq = 0.0;
         for (int i = 0; i < N; i++) {
-            Eigen::Vector3f transformed = scale * R_constrained * source_points[i] + t;
-            Eigen::Vector3f delta = transformed - target_points[i];
+            Eigen::Vector3d transformed = scale * R_constrained * source_points[i] + t;
+            Eigen::Vector3d delta = transformed - target_points[i];
             result.deltas.push_back(delta);
-            double err = static_cast<double>(delta.norm());
+            double err = delta.norm();
             result.errors.push_back(err);
             sum_sq += err * err;
         }

@@ -8,6 +8,7 @@
     <file>icon2/rightside_view.svg</file>
     <file>icon2/surface.svg</file>
     <file>icon2/top_view.svg</file>
+    <file>icon2/pencil.svg</file>
     <file>trans/zh_CN.qm</file>
     <file>trans/zh_CN.ts</file>
     <file>theme/darkstyle.qss</file>
@@ -508,5 +509,7 @@
     <file>icon/zoom-previous.svg</file>
     <file>icon/folder.svg</file>
     <file>logo/logo.png</file>
+    <file>logo/PointWorks.svg</file>
+    <file>logo/testlogo.svg</file>
   </qresource>
 </RCC>

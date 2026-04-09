@@ -28,6 +28,10 @@
   <property name="windowTitle">
    <string>PointWorks</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../resources/res.qrc">
+    <normaloff>:/res/logo/testlogo.svg</normaloff>:/res/logo/testlogo.svg</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
@@ -131,6 +135,16 @@
     <property name="title">
      <string>Tools</string>
     </property>
+    <widget class="QMenu" name="menuRegistration">
+     <property name="title">
+      <string>Registration</string>
+     </property>
+     <addaction name="actionAlignByCenters"/>
+     <addaction name="actionPointPairsAlignment"/>
+     <addaction name="actionGlobalRegistration"/>
+     <addaction name="separator"/>
+     <addaction name="actionFineRegistration"/>
+    </widget>
     <addaction name="actionFilters"/>
     <addaction name="menuRegistration"/>
     <addaction name="actionSegmentation"/>
@@ -148,22 +162,6 @@
     <addaction name="separator"/>
     <addaction name="actionScreenShot"/>
     <addaction name="actionBoundary"/>
-   </widget>
-   <widget class="QMenu" name="menuRegistration">
-    <property name="title">
-     <string>Registration</string>
-    </property>
-    <property name="font">
-     <font>
-      <family>Microsoft YaHei UI</family>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <addaction name="actionAlignByCenters"/>
-    <addaction name="actionPointPairsAlignment"/>
-    <addaction name="actionGlobalRegistration"/>
-    <addaction name="separator"/>
-    <addaction name="actionFineRegistration"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
     <property name="font">
@@ -1116,21 +1114,6 @@ QScrollBar::sub-line:horizontal {
     </font>
    </property>
   </action>
-  <action name="actionTreeSearch">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/distribute-graph-directed.svg</normaloff>:/res/icon/distribute-graph-directed.svg</iconset>
-   </property>
-   <property name="text">
-    <string>TreeSearch</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
   <action name="actionFilters">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
@@ -1389,21 +1372,6 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>ScreenShot</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionTest">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/run-build.svg</normaloff>:/res/icon/run-build.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Test</string>
    </property>
    <property name="font">
     <font>
