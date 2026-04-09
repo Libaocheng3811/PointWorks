@@ -6,41 +6,64 @@
 #include <QTreeWidgetItem>
 
 #include "io/projectfile.h"
+#include "recentprojects.h"
 
+class QMenu;
+class QWidget;
 namespace ct { class CloudTree; }
 namespace ct { class CloudView; }
 
-/// 项目管理器：保存/打开项目，跟踪修改状态
+/// 项目管理器：自包含控制器，管理项目保存/打开/新建/最近文件
 class ProjectManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit ProjectManager(QObject* parent = nullptr);
-
-    bool saveProject(const QString& path, ct::CloudTree* tree, ct::CloudView* view);
-    bool openProject(const QString& path, ct::CloudTree* tree, ct::CloudView* view);
+    /// 构造即完成所有信号连接
+    ProjectManager(ct::CloudTree* tree, ct::CloudView* view,
+                   QMenu* recentMenu, QWidget* parentWidget);
 
     QString currentProjectPath() const { return m_current_path; }
-    void setCurrentPath(const QString& path) { m_current_path = path; }
     bool isModified() const { return m_modified; }
 
-    void markModified() { m_modified = true; emit modificationChanged(true); }
-    void clearModified() { m_modified = false; emit modificationChanged(false); }
+    /// closeEvent 中调用，返回 true 表示允许关闭
+    bool confirmClose();
+
+    void markModified();
+    void clearModified();
 
 signals:
-    void modificationChanged(bool modified);
-    void projectOpened(const QString& path);
-    void projectSaved(const QString& path);
-    void loadProgress(const QString& msg, int percent);
+    void windowTitleChanged(const QString& title);
     void loadError(const QString& msg);
 
-private:
-    void collectCloudEntries(ct::CloudTree* tree, ct::CloudView* view,
-                             const QString& projectDir, ct::ProjectData& data);
-    void collectTreeNodes(ct::CloudTree* tree, QList<ct::TreeNode>& roots);
-    ct::TreeNode treeNodeFromItem(QTreeWidgetItem* item, ct::CloudTree* tree);
-    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node, ct::CloudTree* tree);
+public slots:
+    void onNewProject();
+    void onOpenProject();
+    void onSaveProject();
+    void onSaveProjectAs();
+    void onOpenRecentProject();
+    void updateRecentMenu();
 
+private:
+    void connectSignals();
+
+    // 项目文件读写
+    bool saveProject(const QString& path);
+    bool openProject(const QString& path);
+
+    void collectCloudEntries(const QString& projectDir, ct::ProjectData& data);
+    void collectTreeNodes(QList<ct::TreeNode>& roots);
+    ct::TreeNode treeNodeFromItem(QTreeWidgetItem* item);
+    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node);
+
+    void updateWindowTitle();
+
+    // 外部依赖（构造时注入，不持有所有权）
+    ct::CloudTree* m_tree;
+    ct::CloudView* m_view;
+    QMenu* m_recent_menu;
+    QWidget* m_parent_widget;
+
+    RecentProjects m_recent_projects;
     QString m_current_path;
     bool m_modified = false;
     int m_pending_loads = 0;

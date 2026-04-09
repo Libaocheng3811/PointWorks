@@ -3,7 +3,6 @@
 #include "mainwindow.h"
 #include "ui_MainWindow.h"
 #include "projectmanager.h"
-#include "recentprojects.h"
 
 #include "edit/boundingbox.h"
 #include "edit/color.h"
@@ -621,186 +620,26 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->cloudtree, [this]() { ui->cloudtree->setScriptMode(false); },
             Qt::QueuedConnection);
 
-    // === 项目管理 ===
-    connectProjectSignals();
+    // === 项目管理（自包含控制器） ===
+    m_project_manager = new ProjectManager(ui->cloudtree, ui->cloudview, ui->menuOpenRecent, this);
+    connect(m_project_manager, &ProjectManager::windowTitleChanged, this, &MainWindow::setWindowTitle);
+
+    // UI Action → ProjectManager 槽
+    connect(ui->actionNewProject, &QAction::triggered, m_project_manager, &ProjectManager::onNewProject);
+    connect(ui->actionOpenProject, &QAction::triggered, m_project_manager, &ProjectManager::onOpenProject);
+    connect(ui->actionSaveProject, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProject);
+    connect(ui->actionSaveProjectAs, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProjectAs);
 }
 
 MainWindow::~MainWindow() {
     delete ui;
 }
 
-// ================================================================
-// 项目管理
-// ================================================================
-void MainWindow::connectProjectSignals()
-{
-    m_project_manager = new ProjectManager(this);
-    m_recent_projects = new RecentProjects(this);
-    m_open_recent_menu = ui->menuOpenRecent;
-
-    // Action 连接
-    connect(ui->actionNewProject, &QAction::triggered, this, &MainWindow::onNewProject);
-    connect(ui->actionOpenProject, &QAction::triggered, this, &MainWindow::onOpenProject);
-    connect(ui->actionSaveProject, &QAction::triggered, this, &MainWindow::onSaveProject);
-    connect(ui->actionSaveProjectAs, &QAction::triggered, this, &MainWindow::onSaveProjectAs);
-
-    // 修改状态 → 窗口标题
-    connect(m_project_manager, &ProjectManager::modificationChanged,
-            this, &MainWindow::onProjectModified);
-
-    // 项目打开/保存 → 更新最近列表 + 标题
-    connect(m_project_manager, &ProjectManager::projectOpened, this, [this](const QString& path) {
-        m_recent_projects->addProject(path);
-        updateRecentMenu();
-        updateWindowTitle();
-    });
-    connect(m_project_manager, &ProjectManager::projectSaved, this, [this](const QString& path) {
-        m_recent_projects->addProject(path);
-        updateRecentMenu();
-        updateWindowTitle();
-    });
-
-    // 点云增删 → 标记项目已修改 + 记录到最近列表
-    connect(ui->cloudtree, &ct::CloudTree::cloudInserted, this, [this](ct::Cloud::Ptr cloud) {
-        m_project_manager->markModified();
-        updateWindowTitle();
-        if (!cloud->filepath().empty())
-            m_recent_projects->addProject(QString::fromStdString(cloud->filepath()));
-    });
-    connect(ui->cloudtree, &ct::CloudTree::removedCloudId, this, [this](const QString&) {
-        m_project_manager->markModified();
-        updateWindowTitle();
-    });
-
-    // 加载进度 → Console
-    connect(m_project_manager, &ProjectManager::loadProgress, ui->console, [this](const QString& msg, int) {
-        ui->console->print(ct::log_level::LOG_INFO, msg);
-    });
-
-    // 加载错误 → 弹窗
-    connect(m_project_manager, &ProjectManager::loadError, this, [](const QString& msg) {
-        QMessageBox::warning(nullptr, "Project Error", msg);
-    });
-
-    updateRecentMenu();
-    updateWindowTitle();
-}
-
-void MainWindow::onNewProject()
-{
-    if (m_project_manager->isModified()) {
-        auto ret = QMessageBox::question(this, "Save Project",
-            "Current project has unsaved changes. Save before creating new project?",
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-        if (ret == QMessageBox::Cancel) return;
-        if (ret == QMessageBox::Save) onSaveProject();
-    }
-    ui->cloudtree->removeAllClouds();
-    m_project_manager->clearModified();
-    m_project_manager->setCurrentPath(QString());
-    updateWindowTitle();
-}
-
-void MainWindow::onOpenProject()
-{
-    if (m_project_manager->isModified()) {
-        auto ret = QMessageBox::question(this, "Save Project",
-            "Current project has unsaved changes. Save before opening?",
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-        if (ret == QMessageBox::Cancel) return;
-        if (ret == QMessageBox::Save) onSaveProject();
-    }
-
-    QString path = QFileDialog::getOpenFileName(this, "Open Project", QString(),
-        "PointWorks Project (*.ctp);;All Files (*)");
-    if (path.isEmpty()) return;
-
-    m_project_manager->openProject(path, ui->cloudtree, ui->cloudview);
-}
-
-void MainWindow::onSaveProject()
-{
-    if (m_project_manager->currentProjectPath().isEmpty()) {
-        onSaveProjectAs();
-        return;
-    }
-    m_project_manager->saveProject(m_project_manager->currentProjectPath(),
-                                   ui->cloudtree, ui->cloudview);
-}
-
-void MainWindow::onSaveProjectAs()
-{
-    QString path = QFileDialog::getSaveFileName(this, "Save Project As", QString(),
-        "PointWorks Project (*.ctp);;All Files (*)");
-    if (path.isEmpty()) return;
-    m_project_manager->saveProject(path, ui->cloudtree, ui->cloudview);
-}
-
-void MainWindow::onOpenRecentProject()
-{
-    auto* action = qobject_cast<QAction*>(sender());
-    if (!action) return;
-    QString path = action->data().toString();
-    if (path.isEmpty()) return;
-
-    if (path.endsWith(".ctp", Qt::CaseInsensitive)) {
-        m_project_manager->openProject(path, ui->cloudtree, ui->cloudview);
-    } else {
-        ui->cloudtree->loadCloudFile(path);
-    }
-}
-
-void MainWindow::updateRecentMenu()
-{
-    m_open_recent_menu->clear();
-    QStringList items = m_recent_projects->projects();
-    if (items.isEmpty()) {
-        auto* placeholder = m_open_recent_menu->addAction("No Recent Files");
-        placeholder->setEnabled(false);
-        return;
-    }
-    for (const auto& p : items) {
-        auto* action = m_open_recent_menu->addAction(p);
-        action->setData(p);
-        connect(action, &QAction::triggered, this, &MainWindow::onOpenRecentProject);
-    }
-    m_open_recent_menu->addSeparator();
-    auto* clearAction = m_open_recent_menu->addAction("Clear Recent Files");
-    connect(clearAction, &QAction::triggered, this, [this]() {
-        m_recent_projects->clear();
-        updateRecentMenu();
-    });
-}
-
-void MainWindow::onProjectModified(bool modified)
-{
-    updateWindowTitle();
-    Q_UNUSED(modified);
-}
-
-void MainWindow::updateWindowTitle()
-{
-    QString projName = "Untitled";
-    if (!m_project_manager->currentProjectPath().isEmpty()) {
-        projName = QFileInfo(m_project_manager->currentProjectPath()).completeBaseName();
-    }
-    QString title = (m_project_manager->isModified() ? "* " : "") + projName + " - PointWorks";
-    setWindowTitle(title);
-}
-
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    if (m_project_manager->isModified()) {
-        auto ret = QMessageBox::question(this, "Save Project",
-            "Current project has unsaved changes. Save before closing?",
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-        if (ret == QMessageBox::Cancel) {
-            event->ignore();
-            return;
-        }
-        if (ret == QMessageBox::Save) {
-            onSaveProject();
-        }
+    if (!m_project_manager->confirmClose()) {
+        event->ignore();
+        return;
     }
     event->accept();
 }
