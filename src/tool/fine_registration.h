@@ -2,6 +2,7 @@
 #define POINTWORKS_FINE_REGISTRATION_H
 
 #include "ui/base/customdialog.h"
+#include "ui/base/paramsnapshot.h"
 #include "algorithm/registration.h"
 
 #include <QComboBox>
@@ -78,10 +79,14 @@ private:
     // --- 业务数据（m_ 前缀） ---
     ct::Cloud::Ptr m_source;
     ct::Cloud::Ptr m_target;
+    QString m_source_id;
     Eigen::Matrix4f m_result_matrix;
     ct::Cloud::Ptr m_aligned_cloud;
 
     std::atomic<bool> m_canceled;
+    ct::ParamSnapshot m_last_compute_snapshot;
+
+    static constexpr const char* PREVIEW_ID = "fr_preview";
 };
 
 #endif // POINTWORKS_FINE_REGISTRATION_H

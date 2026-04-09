@@ -15,14 +15,14 @@
 // ======================== Constructor ========================
 
 AlignByCentersDialog::AlignByCentersDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : ct::CustomDialog(parent), m_has_preview(false)
 {
     setupUi();
 
     this->setWindowTitle("Align by Centers");
     this->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
     this->layout()->setSizeConstraint(QLayout::SetFixedSize);
-    this->resize(320, 140);
+    this->resize(320, 160);
 
     QTimer::singleShot(0, this, [this](){ this->adjustSize(); });
 }
@@ -51,16 +51,25 @@ void AlignByCentersDialog::setupUi()
     tgt_row->addWidget(cbox_target_, 1);
     main_layout->addLayout(tgt_row);
 
+    auto* info = new QLabel("Click Align to preview, then Apply or Cancel.", this);
+    info->setWordWrap(true);
+    info->setStyleSheet("color: #888; font-size: 11px;");
+    main_layout->addWidget(info);
+
     auto* btn_row = new QHBoxLayout();
     btn_row->addStretch();
     btn_align_ = new QPushButton("Align", this);
+    btn_apply_ = new QPushButton("Apply", this);
+    btn_apply_->setEnabled(false);
     auto* btn_cancel = new QPushButton("Cancel", this);
     btn_row->addWidget(btn_align_);
+    btn_row->addWidget(btn_apply_);
     btn_row->addWidget(btn_cancel);
     main_layout->addLayout(btn_row);
 
     connect(btn_align_, &QPushButton::clicked, this, &AlignByCentersDialog::onAlign);
-    connect(btn_cancel, &QPushButton::clicked, this, &AlignByCentersDialog::close);
+    connect(btn_apply_, &QPushButton::clicked, this, &AlignByCentersDialog::onApply);
+    connect(btn_cancel, &QPushButton::clicked, this, &AlignByCentersDialog::onCancel);
 }
 
 // ======================== Init / Reset ========================
@@ -72,7 +81,21 @@ void AlignByCentersDialog::init()
 
 void AlignByCentersDialog::reset()
 {
+    m_aligned_cloud.reset();
+    m_has_preview = false;
+    m_matrix = Eigen::Matrix4f::Identity();
+    m_source_id.clear();
+    m_last_align_snapshot.clear();
     refreshCloudList();
+}
+
+void AlignByCentersDialog::deinit()
+{
+    // 防御性清理预览云
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    if (!m_source_id.isEmpty())
+        m_cloudview->setPointCloudVisibility(m_source_id, true);
+    reset();
 }
 
 // ======================== Slots ========================
@@ -100,12 +123,23 @@ void AlignByCentersDialog::onAlign()
         return;
     }
 
-    // 禁用按钮
+    // 参数快照对比：非首次且参数一致则跳过
+    {
+        ct::ParamSnapshot snap;
+        snap.set("source_id", cbox_source_->currentText());
+        snap.set("target_id", cbox_target_->currentText());
+        if (snap == m_last_align_snapshot && m_has_preview) {
+            printI("Parameters unchanged, skipping recomputation.");
+            return;
+        }
+        m_last_align_snapshot = snap;
+    }
+
     btn_align_->setEnabled(false);
     m_canceled.store(false);
     m_source_id = QString::fromStdString(source->id());
 
-    // 计算平移矩阵（很快，可在主线程）
+    // 计算平移矩阵
     Eigen::Vector3f src_center = source->center();
     Eigen::Vector3f tgt_center = target->center();
     Eigen::Vector3f offset = tgt_center - src_center;
@@ -115,13 +149,14 @@ void AlignByCentersDialog::onAlign()
     m_matrix(1, 3) = offset.y();
     m_matrix(2, 3) = offset.z();
 
-    // 异步执行点云变换（耗时与点数成正比）
+    // 深拷贝后变换，避免污染源点云缓存
     auto future = QtConcurrent::run([=]() -> ct::Cloud::Ptr {
         if (m_canceled.load()) return nullptr;
         auto pcl_cloud = source->toPCL_XYZRGBN();
+        auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_cloud);
         if (m_canceled.load()) return nullptr;
-        pcl::transformPointCloud(*pcl_cloud, *pcl_cloud, m_matrix);
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud);
+        pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_matrix);
+        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
         return transformed;
     });
 
@@ -143,6 +178,28 @@ void AlignByCentersDialog::onAlignFinished()
         return;
     }
 
+    m_aligned_cloud = result;
+
+    // 预览：只在视图中显示，不插入文件树
+    m_aligned_cloud->setId(PREVIEW_ID);
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, false);
+    m_cloudview->addPointCloud(m_aligned_cloud);
+    m_cloudview->refresh();
+
+    m_has_preview = true;
+    btn_apply_->setEnabled(true);
+
+    printI(QString("Align by centers preview. Offset: (%1, %2, %3)")
+           .arg(m_matrix(0, 3), 0, 'f', 3)
+           .arg(m_matrix(1, 3), 0, 'f', 3)
+           .arg(m_matrix(2, 3), 0, 'f', 3));
+}
+
+void AlignByCentersDialog::onApply()
+{
+    if (!m_aligned_cloud || m_source_id.isEmpty()) return;
+
     auto clouds = m_cloudtree->getAllClouds();
     ct::Cloud::Ptr source;
     for (const auto& c : clouds) {
@@ -150,17 +207,42 @@ void AlignByCentersDialog::onAlignFinished()
     }
     if (!source) return;
 
-    result->setId(source->id());
-    m_cloudtree->updateCloud(source, result);
+    // 用变换矩阵变换原始源点云
+    auto pcl_src = source->toPCL_XYZRGBN();
+    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_matrix);
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    transformed->setId(m_source_id.toStdString());
+
+    m_cloudtree->updateCloud(source, transformed);
+
+    // 移除预览云，恢复源点云可见
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
     m_cloudview->invalidateCloudRender(m_source_id);
     m_cloudview->refresh();
 
-    printI(QString("Aligned [%1]. Offset: (%2, %3, %4)")
-           .arg(m_source_id)
-           .arg(m_matrix(0, 3), 0, 'f', 3)
-           .arg(m_matrix(1, 3), 0, 'f', 3)
-           .arg(m_matrix(2, 3), 0, 'f', 3));
+    printI(QString("Align by centers applied to [%1].")
+           .arg(m_source_id));
 
+    m_aligned_cloud.reset();
+    m_has_preview = false;
+    this->close();
+}
+
+void AlignByCentersDialog::onCancel()
+{
+    m_canceled.store(true);
+
+    // 移除预览云，恢复源点云可见（源点云从未被修改）
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->refresh();
+
+    m_aligned_cloud.reset();
+    m_has_preview = false;
+
+    printI("Align by centers canceled.");
     this->close();
 }
 

@@ -2,6 +2,7 @@
 #define POINTWORKS_POINT_PAIRS_ALIGNMENT_H
 
 #include "ui/base/customdialog.h"
+#include "ui/base/paramsnapshot.h"
 #include "algorithm/registration.h"
 #include "core/cloud.h"
 
@@ -122,6 +123,7 @@ private:
     bool m_has_preview;
     ct::Cloud::Ptr m_original_source_cloud;  // 缓存原始源点云用于还原
     QString m_source_id;                     // 源点云 ID
+    ct::ParamSnapshot m_last_align_snapshot;
 
     static constexpr const char* MARKER_SRC_ID = "ppa_markers_src";
     static constexpr const char* MARKER_TGT_ID = "ppa_markers_tgt";

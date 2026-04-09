@@ -129,8 +129,9 @@ namespace ct
         pfh.setSearchSurface(pcl_surface);
         pfh.setInputCloud(pcl_cloud);
         pfh.setInputNormals(pcl_cloud);
-        pfh.setKSearch(k);
-        pfh.setRadiusSearch(radius);
+        // PFH 同样不能同时设置 k 和 radius
+        if (radius > 0) pfh.setRadiusSearch(radius);
+        else if (k > 0) pfh.setKSearch(k);
 
         _progress(20);
 
@@ -164,8 +165,10 @@ namespace ct
         fpfh.setInputCloud(pcl_cloud);
         fpfh.setInputNormals(pcl_cloud);
         fpfh.setSearchSurface(pcl_surface);
-        fpfh.setKSearch(k);
-        fpfh.setRadiusSearch(radius);
+        // FPFH 与关键点一样，k 和 radius 不能同时设置。
+        // radius 控制邻域大小，是 FPFH 的核心参数；k 作为备用不应同时使用。
+        if (radius > 0) fpfh.setRadiusSearch(radius);
+        else if (k > 0) fpfh.setKSearch(k);
         fpfh.setNumberOfThreads(12);
 
         _progress(30);
@@ -712,8 +715,9 @@ namespace ct
         be.setInputCloud(pcl_cloud);
         be.setInputNormals(pcl_cloud);
         be.setSearchMethod(tree);
-        be.setKSearch(k);
-        be.setRadiusSearch(radius);
+        // Boundary 不能同时设置 k 和 radius
+        if (radius > 0) be.setRadiusSearch(radius);
+        else if (k > 0) be.setKSearch(k);
         be.setAngleThreshold(static_cast<float>(pcl::deg2rad(angle)));
 
         _progress(50);

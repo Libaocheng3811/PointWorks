@@ -216,6 +216,7 @@ void FineRegistrationDialog::reset()
 {
     m_aligned_cloud.reset();
     m_result_matrix = Eigen::Matrix4f::Identity();
+    m_last_compute_snapshot.clear();
     txt_result_->clear();
     btn_apply_->setEnabled(false);
     btn_cancel_->setEnabled(false);
@@ -224,6 +225,10 @@ void FineRegistrationDialog::reset()
 
 void FineRegistrationDialog::deinit()
 {
+    // 防御性清理预览云
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    if (!m_source_id.isEmpty())
+        m_cloudview->setPointCloudVisibility(m_source_id, true);
     reset();
 }
 
@@ -254,10 +259,40 @@ void FineRegistrationDialog::onCompute()
 
     m_source = clouds[si];
     m_target = clouds[ti];
+    m_source_id = QString::fromStdString(m_source->id());
 
     if (!m_source || !m_target || m_source->empty() || m_target->empty()) {
         printE("Source or target cloud is empty.");
         return;
+    }
+
+    // 参数快照对比：非首次且参数一致则跳过
+    {
+        ct::ParamSnapshot snap;
+        snap.set("source_id", cbox_source_->currentText());
+        snap.set("target_id", cbox_target_->currentText());
+        snap.set("algorithm", cbox_algorithm_->currentIndex());
+        snap.set("icp_max_iter", spin_icp_max_iter_->value());
+        snap.set("icp_corr_dist", spin_icp_corr_dist_->value());
+        snap.set("icp_reciprocal", check_icp_reciprocal_->isChecked());
+        snap.set("icpn_max_iter", spin_icpn_max_iter_->value());
+        snap.set("icpn_reciprocal", check_icpn_reciprocal_->isChecked());
+        snap.set("icpn_symmetric", check_icpn_symmetric_->isChecked());
+        snap.set("icpn_enforce_normals", check_icpn_enforce_normals_->isChecked());
+        snap.set("icpnl_max_iter", spin_icpnl_max_iter_->value());
+        snap.set("icpnl_corr_dist", spin_icpnl_corr_dist_->value());
+        snap.set("icpnl_reciprocal", check_icpnl_reciprocal_->isChecked());
+        snap.set("gicp_max_iter", spin_gicp_max_iter_->value());
+        snap.set("gicp_k", spin_gicp_k_->value());
+        snap.set("gicp_rol_tolerance", spin_gicp_rol_tolerance_->value());
+        snap.set("ndt_resolution", spin_ndt_resolution_->value());
+        snap.set("ndt_step_size", spin_ndt_step_size_->value());
+        snap.set("ndt_outlier_ratio", spin_ndt_outlier_ratio_->value());
+        if (snap == m_last_compute_snapshot && m_aligned_cloud) {
+            printI("Parameters unchanged, skipping recomputation.");
+            return;
+        }
+        m_last_compute_snapshot = snap;
     }
 
     // 2. 清理上次结果
@@ -380,9 +415,10 @@ void FineRegistrationDialog::onCompute()
         }
         txt_result_->setPlainText(text);
 
-        // 预览
-        m_aligned_cloud->setId(m_source->id() + "_fine_aligned");
-        m_cloudtree->insertCloud(m_aligned_cloud);
+        // 预览：只在视图中显示，不插入文件树
+        m_aligned_cloud->setId(PREVIEW_ID);
+        m_cloudview->removePointCloud(PREVIEW_ID);
+        m_cloudview->setPointCloudVisibility(m_source_id, false);
         m_cloudview->addPointCloud(m_aligned_cloud);
         m_cloudview->refresh();
 
@@ -398,13 +434,20 @@ void FineRegistrationDialog::onApply()
 {
     if (!m_aligned_cloud || !m_source) return;
 
-    // 用配准结果替换 source
-    m_cloudtree->updateCloud(m_source, m_aligned_cloud);
-    m_cloudview->invalidateCloudRender(QString::fromStdString(m_source->id()));
-    m_cloudview->refresh();
+    // 用变换矩阵变换原始源点云（深拷贝避免缓存污染）
+    auto pcl_src = m_source->toPCL_XYZRGBN();
+    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    transformed->setId(m_source_id.toStdString());
 
-    // 清理预览
-    m_cloudview->removePointCloud(QString::fromStdString(m_aligned_cloud->id()));
+    m_cloudtree->updateCloud(m_source, transformed);
+
+    // 移除预览云，恢复源点云可见
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->invalidateCloudRender(m_source_id);
+    m_cloudview->refresh();
 
     printI("Fine registration applied successfully.");
 
@@ -419,9 +462,10 @@ void FineRegistrationDialog::onCancel()
 {
     m_canceled.store(true);
 
-    if (m_aligned_cloud) {
-        m_cloudview->removePointCloud(QString::fromStdString(m_aligned_cloud->id()));
-    }
+    // 移除预览云，恢复源点云可见（源点云从未被修改）
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->refresh();
 
     m_aligned_cloud.reset();
     m_result_matrix = Eigen::Matrix4f::Identity();

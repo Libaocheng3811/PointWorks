@@ -352,6 +352,7 @@ void GlobalRegistrationDialog::reset()
     m_aligned_cloud.reset();
     m_correspondences.reset();
     m_result_matrix = Eigen::Matrix4f::Identity();
+    m_last_compute_snapshot.clear();
     txt_result_->clear();
     btn_apply_->setEnabled(false);
     btn_cancel_->setEnabled(false);
@@ -360,6 +361,10 @@ void GlobalRegistrationDialog::reset()
 
 void GlobalRegistrationDialog::deinit()
 {
+    // 防御性清理预览云（Cancel/closeEvent 可能已处理）
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    if (!m_source_id.isEmpty())
+        m_cloudview->setPointCloudVisibility(m_source_id, true);
     reset();
 }
 
@@ -401,10 +406,49 @@ void GlobalRegistrationDialog::onCompute()
 
     m_source = clouds[si];
     m_target = clouds[ti];
+    m_source_id = QString::fromStdString(m_source->id());
 
     if (!m_source || !m_target || m_source->empty() || m_target->empty()) {
         printE("Source or target cloud is empty.");
         return;
+    }
+
+    // 参数快照对比：非首次且参数一致则跳过
+    {
+        ct::ParamSnapshot snap;
+        snap.set("source_id", cbox_source_->currentText());
+        snap.set("target_id", cbox_target_->currentText());
+        snap.set("keypoint", cbox_keypoint_->currentIndex());
+        snap.set("descriptor", cbox_descriptor_->currentIndex());
+        snap.set("alignment", cbox_alignment_->currentIndex());
+        snap.set("desc_k", spin_desc_k_->value());
+        snap.set("desc_radius", spin_desc_radius_->value());
+        snap.set("iss_gamma21", spin_iss_gamma21_->value());
+        snap.set("iss_gamma32", spin_iss_gamma32_->value());
+        snap.set("iss_min_neighbors", spin_iss_min_neighbors_->value());
+        snap.set("iss_angle", spin_iss_angle_->value());
+        snap.set("harris_method", cbox_harris_method_->currentIndex());
+        snap.set("harris_threshold", spin_harris_threshold_->value());
+        snap.set("sift_min_scale", spin_sift_min_scale_->value());
+        snap.set("sift_octaves", spin_sift_octaves_->value());
+        snap.set("sift_scales", spin_sift_scales_per_octave_->value());
+        snap.set("sift_contrast", spin_sift_min_contrast_->value());
+        snap.set("traj_method", cbox_traj_method_->currentIndex());
+        snap.set("traj_window", spin_traj_window_->value());
+        snap.set("traj_thr1", spin_traj_thr1_->value());
+        snap.set("traj_thr2", spin_traj_thr2_->value());
+        snap.set("sacia_min_dist", spin_sacia_min_dist_->value());
+        snap.set("sacia_samples", spin_sacia_samples_->value());
+        snap.set("sacia_k", spin_sacia_k_->value());
+        snap.set("sacp_samples", spin_sacp_samples_->value());
+        snap.set("sacp_k", spin_sacp_k_->value());
+        snap.set("sacp_similarity", spin_sacp_similarity_->value());
+        snap.set("sacp_inlier_frac", spin_sacp_inlier_frac_->value());
+        if (snap == m_last_compute_snapshot && m_aligned_cloud) {
+            printI("Parameters unchanged, skipping recomputation.");
+            return;
+        }
+        m_last_compute_snapshot = snap;
     }
 
     // 2. 清理上次结果
@@ -548,9 +592,11 @@ void GlobalRegistrationDialog::onCompute()
         if (!tgt_feat) return out;
 
         // --- c. 执行 SAC 配准 ---
+        // SAC-IA/SAC-Prerejective 要求 setInputSource 的点数与特征点数一一对应，
+        // 因此必须传入关键点云而非原始点云
         ct::RegistrationContext ctx;
-        ctx.source_cloud = source;
-        ctx.target_cloud = target;
+        ctx.source_cloud = out.kp_source;
+        ctx.target_cloud = out.kp_target;
         ctx.params.max_iterations = 10;
 
         switch (align_type) {
@@ -627,9 +673,10 @@ void GlobalRegistrationDialog::onCompute()
         }
         txt_result_->setPlainText(text);
 
-        // 预览：添加配准结果到视图
-        m_aligned_cloud->setId(m_source->id() + "_global_aligned");
-        m_cloudtree->insertCloud(m_aligned_cloud);
+        // 预览：只在视图中显示，不插入文件树
+        m_aligned_cloud->setId(PREVIEW_ID);
+        m_cloudview->removePointCloud(PREVIEW_ID);
+        m_cloudview->setPointCloudVisibility(m_source_id, false);
         m_cloudview->addPointCloud(m_aligned_cloud);
         m_cloudview->refresh();
 
@@ -664,13 +711,20 @@ void GlobalRegistrationDialog::onApply()
 {
     if (!m_aligned_cloud || !m_source) return;
 
-    // 用配准结果替换 source 数据
-    m_cloudtree->updateCloud(m_source, m_aligned_cloud);
-    m_cloudview->invalidateCloudRender(QString::fromStdString(m_source->id()));
-    m_cloudview->refresh();
+    // 用变换矩阵直接变换原始源点云（避免 toPCL 缓存被污染，需深拷贝）
+    auto pcl_src = m_source->toPCL_XYZRGBN();
+    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    transformed->setId(m_source_id.toStdString());
 
-    // 清理预览点云
-    m_cloudview->removePointCloud(QString::fromStdString(m_aligned_cloud->id()));
+    m_cloudtree->updateCloud(m_source, transformed);
+
+    // 移除预览云，恢复源点云可见
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->invalidateCloudRender(m_source_id);
+    m_cloudview->refresh();
 
     clearCorrespondenceLines();
     printI("Global registration applied successfully.");
@@ -689,10 +743,10 @@ void GlobalRegistrationDialog::onCancel()
 {
     m_canceled.store(true);
 
-    // 清理预览
-    if (m_aligned_cloud) {
-        m_cloudview->removePointCloud(QString::fromStdString(m_aligned_cloud->id()));
-    }
+    // 移除预览云，恢复源点云可见（源点云从未被修改）
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->refresh();
 
     clearCorrespondenceLines();
     m_aligned_cloud.reset();

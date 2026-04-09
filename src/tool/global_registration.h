@@ -2,6 +2,7 @@
 #define POINTWORKS_GLOBAL_REGISTRATION_H
 
 #include "ui/base/customdialog.h"
+#include "ui/base/paramsnapshot.h"
 #include "algorithm/keypoints.h"
 #include "algorithm/features.h"
 #include "algorithm/registration.h"
@@ -104,6 +105,7 @@ private:
 
     ct::Cloud::Ptr m_source;
     ct::Cloud::Ptr m_target;
+    QString m_source_id;
     Eigen::Matrix4f m_result_matrix;
     ct::Cloud::Ptr m_aligned_cloud;
     ct::Cloud::Ptr m_kp_source;
@@ -112,6 +114,11 @@ private:
 
     QFutureWatcher<ct::RegistrationResult> m_watcher;
     std::atomic<bool> m_canceled;
+    ct::ParamSnapshot m_last_compute_snapshot;
+
+    static constexpr const char* PREVIEW_ID = "gr_preview";
+    static constexpr const char* KP_SRC_ID = "gr_kp_src";
+    static constexpr const char* KP_TGT_ID = "gr_kp_tgt";
 };
 
 #endif // POINTWORKS_GLOBAL_REGISTRATION_H

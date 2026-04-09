@@ -287,6 +287,7 @@ void PointPairsAlignment::reset()
     m_has_preview = false;
     m_original_source_cloud.reset();
     m_source_id.clear();
+    m_last_align_snapshot.clear();
     clearAllLines();
     m_cloudview->removePointCloud(MARKER_SRC_ID);
     m_cloudview->removePointCloud(MARKER_TGT_ID);
@@ -401,6 +402,27 @@ void PointPairsAlignment::onAlign()
         printW(QString("Need at least 3 matched pairs (have %1 source, %2 target).")
                .arg(m_source_points.size()).arg(m_target_points.size()));
         return;
+    }
+
+    // 参数快照对比：非首次且参数一致则跳过
+    {
+        ct::ParamSnapshot snap;
+        snap.set("source_id", cbox_source_->currentText());
+        snap.set("target_id", cbox_target_->currentText());
+        snap.set("rotation", cbox_rotation_->currentIndex());
+        snap.set("tx", check_tx_->isChecked());
+        snap.set("ty", check_ty_->isChecked());
+        snap.set("tz", check_tz_->isChecked());
+        snap.set("adjust_scale", check_adjust_scale_->isChecked());
+        snap.set("rms_filter", check_rms_filter_->isChecked());
+        snap.set("rms_threshold", spin_rms_threshold_->value());
+        snap.set("source_points", ct::ParamSnapshot::pointsToString(m_source_points));
+        snap.set("target_points", ct::ParamSnapshot::pointsToString(m_target_points));
+        if (snap == m_last_align_snapshot && m_has_preview) {
+            printI("Parameters unchanged, skipping recomputation.");
+            return;
+        }
+        m_last_align_snapshot = snap;
     }
 
     // m_source_points 始终保持原始坐标（用户拾取位置），不随变换修改

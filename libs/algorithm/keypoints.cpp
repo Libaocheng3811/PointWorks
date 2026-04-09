@@ -86,8 +86,10 @@ namespace ct
         est.setInputCloud(pcl_cloud);
         est.setNormals(pcl_cloud);
         est.setSearchMethod(tree);
-        if (k > 0) est.setKSearch(k);
+        // Harris3D 内部使用 radiusSearch，不能同时设置 k 和 radius。
+        // 使用 resolution 作为搜索半径。
         if (radius > 0) est.setRadiusSearch(radius);
+        else est.setRadiusSearch(0.01); // 默认兜底
         est.setMethod(pcl::HarrisKeypoint3D<PointXYZRGBN, PointXYZI, PointXYZRGBN>::ResponseMethod(response_method));
         est.setThreshold(threshold);
         est.setNonMaxSupression(non_maxima);
@@ -138,8 +140,10 @@ namespace ct
         est.setInputCloud(pcl_cloud);
         est.setNormals(pcl_cloud);
         est.setSearchMethod(tree);
-        if (k > 0) est.setKSearch(k);
-        if (radius > 0) est.setRadiusSearch(radius);
+        // ISS 使用自己的 salientRadius/nonMaxRadius 控制搜索范围。
+        // 基类 Keypoint::initCompute() 要求 k 或 radius 至少一个非零，
+        // 这里设一个极小的 radius 满足基类检查（具体值不影响 ISS 内部行为）。
+        est.setRadiusSearch(0.001);
         est.setSalientRadius(6 * resolution);
         est.setNonMaxRadius(4 * resolution);
         est.setNormalRadius(4 * resolution);
@@ -192,8 +196,8 @@ namespace ct
         pcl::SIFTKeypoint<PointXYZRGB, PointWithScale> est;
         est.setInputCloud(pcl_cloud_xyzrgb);
         est.setSearchMethod(tree);
-        if (k > 0) est.setKSearch(k);
-        if (radius > 0) est.setRadiusSearch(radius);
+        // SIFT 重写了 initCompute()，内部自管理搜索参数，
+        // 不应设置 setKSearch 或 setRadiusSearch
         est.setScales(min_scale, nr_octaves, nr_scales_per_octave);
         est.setMinimumContrast(min_contrast);
         est.compute(*result_temp);
@@ -240,8 +244,8 @@ namespace ct
         est.setInputCloud(pcl_cloud);
         est.setNormals(pcl_cloud);
         est.setSearchMethod(tree);
-        if (k > 0) est.setKSearch(k);
-        if (radius > 0) est.setRadiusSearch(radius);
+        // Trajkovic 重写了 initCompute()，使用 setWindowSize 和像素偏移访问，
+        // 不应设置 setKSearch 或 setRadiusSearch
         est.setMethod(pcl::TrajkovicKeypoint3D<PointXYZRGBN, PointXYZI, PointXYZRGBN>::ComputationMethod(compute_method));
         est.setWindowSize(window_size);
         est.setFirstThreshold(first_threshold);

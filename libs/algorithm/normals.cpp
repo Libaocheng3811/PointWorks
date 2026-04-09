@@ -54,8 +54,9 @@ namespace ct
             ne.setSearchMethod(tree);
             ne.setViewPoint(vpx, vpy, vpz);
 
-            if (k_search > 0) ne.setKSearch(k_search);
+            // NormalEstimation 同样不能同时设置 k 和 radius
             if (radius_search > 0) ne.setRadiusSearch(radius_search);
+            else if (k_search > 0) ne.setKSearch(k_search);
 
             reportProgress(on_progress, 10);
 

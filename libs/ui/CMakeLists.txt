@@ -23,6 +23,7 @@ set(Base_Hdrs
     base/cloudtree.h
     base/customdock.h
     base/customdialog.h
+    base/paramsnapshot.h
 )
 
 add_library(ct_ui_base STATIC ${Base_Srcs} ${Base_Hdrs})
