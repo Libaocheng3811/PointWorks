@@ -505,7 +505,7 @@ namespace ct
         shot.setSearchMethod(tree);
         shot.setSearchSurface(pcl_surface);
         shot.setRadiusSearch(radius);
-        shot.setNumberOfThreads(12);
+        shot.setNumberOfThreads(1);
         shot.setLRFRadius(radius);
         shot.setInputReferenceFrames(lrf);
 
@@ -543,7 +543,7 @@ namespace ct
         shot.setInputCloud(pcl_cloud);
         shot.setInputNormals(pcl_cloud);
         shot.setRadiusSearch(radius);
-        shot.setNumberOfThreads(12);
+        shot.setNumberOfThreads(1);
         shot.setLRFRadius(radius);
         shot.setInputReferenceFrames(lrf);
 
@@ -683,7 +683,7 @@ namespace ct
         pcl::SHOTLocalReferenceFrameEstimationOMP<PointXYZRGBN, pcl::ReferenceFrame> est;
         est.setInputCloud(pcl_cloud);
         est.setSearchMethod(tree);
-        est.setNumberOfThreads(12);
+        est.setNumberOfThreads(1);
 
         _progress(40);
 

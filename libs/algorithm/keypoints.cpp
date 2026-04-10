@@ -94,22 +94,22 @@ namespace ct
         est.setThreshold(threshold);
         est.setNonMaxSupression(non_maxima);
         est.setRefine(do_refine);
-        est.setNumberOfThreads(12);
+        est.setNumberOfThreads(1);
         est.compute(*keypoints_temp);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);
 
-        pcl::PointCloud<PointXYZRGB>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGB>);
+        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGBN>);
         pcl_result->reserve(keypoints_temp->size());
         for (const auto& pt : keypoints_temp->points) {
-            PointXYZRGB p;
+            PointXYZRGBN p;
             p.x = pt.x; p.y = pt.y; p.z = pt.z;
             p.r = 0; p.g = 255; p.b = 0;
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGB(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -152,22 +152,23 @@ namespace ct
         est.setThreshold32(gamma_32);
         est.setMinNeighbors(min_neighbors);
         est.setAngleThreshold(pcl::deg2rad(angle));
-        est.setNumberOfThreads(12);
+        est.setNumberOfThreads(1);
         est.compute(*keypoints_temp);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);
 
-        pcl::PointCloud<PointXYZRGB>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGB>);
+        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGBN>);
         pcl_result->reserve(keypoints_temp->size());
         for (const auto& pt : keypoints_temp->points) {
-            PointXYZRGB p;
+            PointXYZRGBN p;
             p.x = pt.x; p.y = pt.y; p.z = pt.z;
+            p.normal_x = pt.normal_x; p.normal_y = pt.normal_y; p.normal_z = pt.normal_z;
             p.r = 0; p.g = 255; p.b = 0;
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGB(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -205,16 +206,16 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);
 
-        pcl::PointCloud<PointXYZRGB>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGB>);
+        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGBN>);
         pcl_result->reserve(result_temp->size());
         for (const auto& pt : result_temp->points) {
-            PointXYZRGB p;
+            PointXYZRGBN p;
             p.x = pt.x; p.y = pt.y; p.z = pt.z;
             p.r = 0; p.g = 255; p.b = 0;
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGB(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -250,22 +251,22 @@ namespace ct
         est.setWindowSize(window_size);
         est.setFirstThreshold(first_threshold);
         est.setSecondThreshold(second_threshold);
-        est.setNumberOfThreads(12);
+        est.setNumberOfThreads(1);
         est.compute(*keypoints_temp);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);
 
-        pcl::PointCloud<PointXYZRGB>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGB>);
+        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<PointXYZRGBN>);
         pcl_result->reserve(keypoints_temp->size());
         for (const auto& pt : keypoints_temp->points) {
-            PointXYZRGB p;
+            PointXYZRGBN p;
             p.x = pt.x; p.y = pt.y; p.z = pt.z;
             p.r = 0; p.g = 255; p.b = 0;
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGB(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 

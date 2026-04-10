@@ -697,6 +697,14 @@ void GlobalRegistrationDialog::onCompute()
         m_kp_source = result.kp_source;
         m_kp_target = result.kp_target;
 
+        // 将源关键点也做变换，用于连线显示（源点云已隐藏，连线应连到变换后的关键点）
+        if (m_kp_source) {
+            auto kp_pcl = m_kp_source->toPCL_XYZRGBN();
+            auto kp_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*kp_pcl);
+            pcl::transformPointCloud(*kp_copy, *kp_copy, m_result_matrix);
+            m_kp_source = ct::Cloud::fromPCL_XYZRGBN(*kp_copy);
+        }
+
         // 用变换矩阵对原始源点云做变换，生成完整预览点云
         // （算法返回的 aligned_cloud 只是变换后的关键点，不能直接用于预览）
         {
