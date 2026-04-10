@@ -2,6 +2,7 @@
 
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
+#include "ui/dialog/processingdialog.h"
 #include "viz/console.h"
 
 #include <QVBoxLayout>
@@ -79,10 +80,12 @@ void FineRegistrationDialog::setupUi()
     // --- Buttons ---
     auto* btn_row = new QHBoxLayout();
     btn_compute_ = new QPushButton("Compute", this);
+    btn_reset_ = new QPushButton("Reset", this);
     btn_apply_ = new QPushButton("Apply", this);
     btn_apply_->setEnabled(false);
     btn_cancel_ = new QPushButton("Cancel", this);
     btn_row->addWidget(btn_compute_);
+    btn_row->addWidget(btn_reset_);
     btn_row->addWidget(btn_apply_);
     btn_row->addWidget(btn_cancel_);
     main_layout->addLayout(btn_row);
@@ -91,6 +94,7 @@ void FineRegistrationDialog::setupUi()
     connect(cbox_algorithm_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &FineRegistrationDialog::onAlgorithmChanged);
     connect(btn_compute_, &QPushButton::clicked, this, &FineRegistrationDialog::onCompute);
+    connect(btn_reset_, &QPushButton::clicked, this, &FineRegistrationDialog::onReset);
     connect(btn_apply_, &QPushButton::clicked, this, &FineRegistrationDialog::onApply);
     connect(btn_cancel_, &QPushButton::clicked, this, &FineRegistrationDialog::onCancel);
 }
@@ -225,6 +229,7 @@ void FineRegistrationDialog::reset()
 
 void FineRegistrationDialog::deinit()
 {
+    m_cloudtree->closeProgress();
     // 防御性清理预览云
     m_cloudview->removePointCloud(PREVIEW_ID);
     if (!m_source_id.isEmpty())
@@ -348,6 +353,23 @@ void FineRegistrationDialog::onCompute()
     txt_result_->setPlainText("Computing...");
     m_canceled.store(false);
 
+    // 显示模态进度条
+    m_cloudtree->showProgress("Fine Registration...");
+    if (m_cloudtree->m_processing_dialog) {
+        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+                this, [this]() {
+                    m_canceled.store(true);
+                    if (m_cloudtree->m_processing_dialog)
+                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                });
+    }
+
+    // 跨线程进度更新回调
+    auto on_progress = [this](int pct) {
+        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+                                  Qt::QueuedConnection, Q_ARG(int, pct));
+    };
+
     // 5. 异步执行
     auto source = m_source;
     auto target = m_target;
@@ -363,18 +385,18 @@ void FineRegistrationDialog::onCompute()
 
         switch (algo) {
         case 0:
-            return ct::Registration::IterativeClosestPoint(ctx, reciprocal, cancel);
+            return ct::Registration::IterativeClosestPoint(ctx, reciprocal, cancel, on_progress);
         case 1:
             return ct::Registration::IterativeClosestPointWithNormals(
-                ctx, reciprocal, icpn_symmetric, icpn_enforce, cancel);
+                ctx, reciprocal, icpn_symmetric, icpn_enforce, cancel, on_progress);
         case 2:
-            return ct::Registration::IterativeClosestPointNonLinear(ctx, reciprocal, cancel);
+            return ct::Registration::IterativeClosestPointNonLinear(ctx, reciprocal, cancel, on_progress);
         case 3:
             return ct::Registration::GeneralizedIterativeClosestPoint(
-                ctx, gicp_k, max_iter, 0.0, gicp_rol, false, cancel);
+                ctx, gicp_k, max_iter, 0.0, gicp_rol, false, cancel, on_progress);
         case 4:
             return ct::Registration::NormalDistributionsTransform(
-                ctx, ndt_res, ndt_step, ndt_outlier, cancel);
+                ctx, ndt_res, ndt_step, ndt_outlier, cancel, on_progress);
         }
         return {false, nullptr, 0, Eigen::Matrix4f::Identity(), 0};
     });
@@ -382,6 +404,7 @@ void FineRegistrationDialog::onCompute()
     auto* watcher = new QFutureWatcher<ct::RegistrationResult>(this);
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ct::RegistrationResult>::finished, this, [=]() {
+        m_cloudtree->closeProgress();
         auto result = watcher->result();
         watcher->deleteLater();
 
@@ -458,8 +481,30 @@ void FineRegistrationDialog::onApply()
     btn_cancel_->setEnabled(false);
 }
 
+void FineRegistrationDialog::onReset()
+{
+    m_cloudtree->closeProgress();
+    m_canceled.store(true);
+
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    if (!m_source_id.isEmpty())
+        m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->refresh();
+
+    m_aligned_cloud.reset();
+    m_result_matrix = Eigen::Matrix4f::Identity();
+    m_last_compute_snapshot.clear();
+    txt_result_->clear();
+    btn_apply_->setEnabled(false);
+    btn_cancel_->setEnabled(false);
+    btn_compute_->setEnabled(true);
+
+    printI("Fine registration reset.");
+}
+
 void FineRegistrationDialog::onCancel()
 {
+    m_cloudtree->closeProgress();
     m_canceled.store(true);
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）

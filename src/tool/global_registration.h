@@ -17,6 +17,7 @@
 
 #include <QFutureWatcher>
 #include <atomic>
+#include <memory>
 
 class GlobalRegistrationDialog : public ct::CustomDialog
 {
@@ -37,6 +38,7 @@ private slots:
     void onCompute();
     void onComputeDone();
     void onToggleLines(bool checked);
+    void onReset();
     void onApply();
     void onCancel();
 
@@ -94,6 +96,7 @@ private:
 
     QTextEdit* txt_result_;
     QPushButton* btn_compute_;
+    QPushButton* btn_reset_;
     QPushButton* btn_apply_;
     QPushButton* btn_cancel_;
 
@@ -113,7 +116,7 @@ private:
     ct::CorrespondencesPtr m_correspondences;
 
     QFutureWatcher<ct::RegistrationResult> m_watcher;
-    std::atomic<bool> m_canceled;
+    std::shared_ptr<std::atomic<bool>> m_cancel_flag;
     ct::ParamSnapshot m_last_compute_snapshot;
 
     static constexpr const char* PREVIEW_ID = "gr_preview";

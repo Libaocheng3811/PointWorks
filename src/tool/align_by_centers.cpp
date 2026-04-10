@@ -2,6 +2,7 @@
 
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
+#include "ui/dialog/processingdialog.h"
 #include "viz/console.h"
 
 #include <QVBoxLayout>
@@ -91,6 +92,7 @@ void AlignByCentersDialog::reset()
 
 void AlignByCentersDialog::deinit()
 {
+    m_cloudtree->closeProgress();
     // 防御性清理预览云
     m_cloudview->removePointCloud(PREVIEW_ID);
     if (!m_source_id.isEmpty())
@@ -139,6 +141,17 @@ void AlignByCentersDialog::onAlign()
     m_canceled.store(false);
     m_source_id = QString::fromStdString(source->id());
 
+    // 显示模态进度条
+    m_cloudtree->showProgress("Aligning...");
+    if (m_cloudtree->m_processing_dialog) {
+        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+                this, [this]() {
+                    m_canceled.store(true);
+                    if (m_cloudtree->m_processing_dialog)
+                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                });
+    }
+
     // 计算平移矩阵
     Eigen::Vector3f src_center = source->center();
     Eigen::Vector3f tgt_center = target->center();
@@ -168,6 +181,7 @@ void AlignByCentersDialog::onAlign()
 void AlignByCentersDialog::onAlignFinished()
 {
     auto* watcher = dynamic_cast<QFutureWatcher<ct::Cloud::Ptr>*>(sender());
+    m_cloudtree->closeProgress();
     auto result = watcher->result();
     watcher->deleteLater();
 
@@ -232,6 +246,7 @@ void AlignByCentersDialog::onApply()
 
 void AlignByCentersDialog::onCancel()
 {
+    m_cloudtree->closeProgress();
     m_canceled.store(true);
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）

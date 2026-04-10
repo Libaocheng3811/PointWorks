@@ -30,7 +30,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../resources/res.qrc">
-    <normaloff>:/res/logo/testlogo.svg</normaloff>:/res/logo/testlogo.svg</iconset>
+    <normaloff>:/res/logo/LogoV4.svg</normaloff>:/res/logo/LogoV4.svg</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">

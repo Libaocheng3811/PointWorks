@@ -2,6 +2,7 @@
 
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
+#include "ui/dialog/processingdialog.h"
 #include "viz/console.h"
 
 #include <QVBoxLayout>
@@ -13,6 +14,8 @@
 #include <QTimer>
 #include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
+
+#include <pcl/common/transforms.h>
 #include <cmath>
 
 // ======================== Constructor ========================
@@ -146,10 +149,12 @@ void GlobalRegistrationDialog::setupUi()
     // --- Buttons ---
     auto* btn_row = new QHBoxLayout();
     btn_compute_ = new QPushButton("Compute", this);
+    btn_reset_ = new QPushButton("Reset", this);
     btn_apply_ = new QPushButton("Apply", this);
     btn_apply_->setEnabled(false);
     btn_cancel_ = new QPushButton("Cancel", this);
     btn_row->addWidget(btn_compute_);
+    btn_row->addWidget(btn_reset_);
     btn_row->addWidget(btn_apply_);
     btn_row->addWidget(btn_cancel_);
     main_layout->addLayout(btn_row);
@@ -162,6 +167,7 @@ void GlobalRegistrationDialog::setupUi()
     connect(check_show_lines_, &QCheckBox::toggled,
             this, &GlobalRegistrationDialog::onToggleLines);
     connect(btn_compute_, &QPushButton::clicked, this, &GlobalRegistrationDialog::onCompute);
+    connect(btn_reset_, &QPushButton::clicked, this, &GlobalRegistrationDialog::onReset);
     connect(btn_apply_, &QPushButton::clicked, this, &GlobalRegistrationDialog::onApply);
     connect(btn_cancel_, &QPushButton::clicked, this, &GlobalRegistrationDialog::onCancel);
 }
@@ -361,6 +367,7 @@ void GlobalRegistrationDialog::reset()
 
 void GlobalRegistrationDialog::deinit()
 {
+    m_cloudtree->closeProgress();
     // 防御性清理预览云（Cancel/closeEvent 可能已处理）
     m_cloudview->removePointCloud(PREVIEW_ID);
     if (!m_source_id.isEmpty())
@@ -508,12 +515,33 @@ void GlobalRegistrationDialog::onCompute()
     // 5. UI 状态
     btn_compute_->setEnabled(false);
     txt_result_->setPlainText("Computing...");
-    m_canceled.store(false);
+
+    // 取消之前的计算，并为本次计算创建独立的取消标志
+    if (m_cancel_flag) m_cancel_flag->store(true);
+    auto cancel_flag = std::make_shared<std::atomic<bool>>(false);
+    m_cancel_flag = cancel_flag;
+
+    // 显示模态进度条
+    m_cloudtree->showProgress("Global Registration...");
+    if (m_cloudtree->m_processing_dialog) {
+        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+                this, [this]() {
+                    if (m_cancel_flag) m_cancel_flag->store(true);
+                    if (m_cloudtree->m_processing_dialog)
+                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                });
+    }
+
+    // 跨线程进度更新回调
+    auto setProgress = [this](int pct) {
+        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+                                  Qt::QueuedConnection, Q_ARG(int, pct));
+    };
 
     // 6. 异步执行
     auto source = m_source;
     auto target = m_target;
-    auto* cancel = &m_canceled;
+    auto* cancel = cancel_flag.get();
 
     // 结果结构体：同时携带配准结果和关键点
     struct PipelineResult {
@@ -524,40 +552,42 @@ void GlobalRegistrationDialog::onCompute()
     };
 
     auto future = QtConcurrent::run([=]() -> PipelineResult {
+        std::srand(42); // 固定随机种子，确保整个流水线可重复
         PipelineResult out;
         out.reg = {false, nullptr, 0, Eigen::Matrix4f::Identity(), 0};
 
-        auto on_progress = [cancel](int) {};
-
         // --- a. 提取关键点 ---
-        auto extractKp = [&](const ct::Cloud::Ptr& cloud, double res) -> ct::Cloud::Ptr {
+        auto extractKp = [&](const ct::Cloud::Ptr& cloud, double res,
+                              std::function<void(int)> on_prog) -> ct::Cloud::Ptr {
             ct::Cloud::Ptr kp;
             switch (kp_type) {
             case 0:
                 kp = ct::Keypoints::ISSKeypoint3D(cloud, res,
                     iss_gamma21, iss_gamma32, iss_min_neighbors, iss_angle,
-                    desc_k, desc_radius, cancel, on_progress).cloud;
+                    desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             case 1:
                 kp = ct::Keypoints::HarrisKeypoint3D(cloud,
                     harris_method, harris_threshold, true, false,
-                    desc_k, desc_radius, cancel, on_progress).cloud;
+                    desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             case 2:
                 kp = ct::Keypoints::SIFTKeypoint(cloud,
                     sift_min_scale, sift_octaves, sift_scales, sift_contrast,
-                    desc_k, desc_radius, cancel, on_progress).cloud;
+                    desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             case 3:
                 kp = ct::Keypoints::TrajkovicKeypoint3D(cloud,
                     traj_method, traj_window, traj_thr1, traj_thr2,
-                    desc_k, desc_radius, cancel, on_progress).cloud;
+                    desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             }
             return kp;
         };
 
-        out.kp_source = extractKp(source, src_resolution);
+        // Stage 1: 源关键点 (0-20%)
+        out.kp_source = extractKp(source, src_resolution,
+            [setProgress](int p) { setProgress(p / 5); });
         if (cancel->load()) return out;
         if (!out.kp_source || out.kp_source->empty()) {
             out.error_msg = "No keypoints extracted from source cloud.\n"
@@ -565,7 +595,9 @@ void GlobalRegistrationDialog::onCompute()
             return out;
         }
 
-        out.kp_target = extractKp(target, tgt_resolution);
+        // Stage 2: 目标关键点 (20-40%)
+        out.kp_target = extractKp(target, tgt_resolution,
+            [setProgress](int p) { setProgress(20 + p / 5); });
         if (cancel->load()) return out;
         if (!out.kp_target || out.kp_target->empty()) {
             out.error_msg = "No keypoints extracted from target cloud.\n"
@@ -574,24 +606,31 @@ void GlobalRegistrationDialog::onCompute()
         }
 
         // --- b. 计算描述子 ---
-        auto computeDesc = [&](const ct::Cloud::Ptr& cloud) -> ct::FeatureType::Ptr {
+        auto computeDesc = [&](const ct::Cloud::Ptr& cloud,
+                                std::function<void(int)> on_prog) -> ct::FeatureType::Ptr {
             ct::FeatureType::Ptr feat(new ct::FeatureType);
             ct::FeatureResult fr;
             fr = ct::Features::FPFHEstimation(cloud, desc_k, desc_radius,
-                nullptr, cancel, on_progress);
+                nullptr, cancel, on_prog);
             if (fr.feature) feat->fpfh = fr.feature->fpfh;
             return feat;
         };
 
-        auto src_feat = computeDesc(out.kp_source);
+        // Stage 3: 源 FPFH (40-60%)
+        auto src_feat = computeDesc(out.kp_source,
+            [setProgress](int p) { setProgress(40 + p / 5); });
         if (cancel->load()) return out;
         if (!src_feat) return out;
 
-        auto tgt_feat = computeDesc(out.kp_target);
+        // Stage 4: 目标 FPFH (60-80%)
+        auto tgt_feat = computeDesc(out.kp_target,
+            [setProgress](int p) { setProgress(60 + p / 5); });
         if (cancel->load()) return out;
         if (!tgt_feat) return out;
 
-        // --- c. 执行 SAC 配准 ---
+        // Stage 5: SAC 配准 (80-100%)
+        setProgress(80);
+
         // SAC-IA/SAC-Prerejective 要求 setInputSource 的点数与特征点数一一对应，
         // 因此必须传入关键点云而非原始点云
         ct::RegistrationContext ctx;
@@ -626,12 +665,20 @@ void GlobalRegistrationDialog::onCompute()
     auto* watcher = new QFutureWatcher<PipelineResult>(this);
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<PipelineResult>::finished, this, [=]() {
+        m_cloudtree->closeProgress();
+
+        // 忽略过期计算的结果（例如用户 Reset 后重新 Compute）
+        if (cancel_flag != m_cancel_flag) {
+            watcher->deleteLater();
+            return;
+        }
+
         auto result = watcher->result();
         watcher->deleteLater();
 
         btn_compute_->setEnabled(true);
 
-        if (m_canceled.load()) {
+        if (cancel_flag->load()) {
             txt_result_->setPlainText("Canceled.");
             return;
         }
@@ -647,9 +694,18 @@ void GlobalRegistrationDialog::onCompute()
 
         // 保存结果
         m_result_matrix = result.reg.matrix;
-        m_aligned_cloud = result.reg.aligned_cloud;
         m_kp_source = result.kp_source;
         m_kp_target = result.kp_target;
+
+        // 用变换矩阵对原始源点云做变换，生成完整预览点云
+        // （算法返回的 aligned_cloud 只是变换后的关键点，不能直接用于预览）
+        {
+            auto pcl_src = m_source->toPCL_XYZRGBN();
+            auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+            pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
+            m_aligned_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+            m_aligned_cloud->setId(PREVIEW_ID);
+        }
 
         // 构建对应关系（按索引配对，Top-N）
         if (m_kp_source && m_kp_target) {
@@ -739,9 +795,36 @@ void GlobalRegistrationDialog::onApply()
     btn_cancel_->setEnabled(false);
 }
 
+void GlobalRegistrationDialog::onReset()
+{
+    m_cloudtree->closeProgress();
+    if (m_cancel_flag) m_cancel_flag->store(true);
+
+    // 移除预览云，恢复源点云可见
+    m_cloudview->removePointCloud(PREVIEW_ID);
+    if (!m_source_id.isEmpty())
+        m_cloudview->setPointCloudVisibility(m_source_id, true);
+    m_cloudview->refresh();
+
+    clearCorrespondenceLines();
+    m_aligned_cloud.reset();
+    m_kp_source.reset();
+    m_kp_target.reset();
+    m_correspondences.reset();
+    m_result_matrix = Eigen::Matrix4f::Identity();
+    m_last_compute_snapshot.clear();
+    txt_result_->clear();
+    btn_apply_->setEnabled(false);
+    btn_cancel_->setEnabled(false);
+    btn_compute_->setEnabled(true);
+
+    printI("Global registration reset.");
+}
+
 void GlobalRegistrationDialog::onCancel()
 {
-    m_canceled.store(true);
+    m_cloudtree->closeProgress();
+    if (m_cancel_flag) m_cancel_flag->store(true);
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）
     m_cloudview->removePointCloud(PREVIEW_ID);
@@ -786,7 +869,7 @@ void GlobalRegistrationDialog::refreshCloudList()
 void GlobalRegistrationDialog::updateCorrespondenceLines()
 {
     if (!m_cloudview || !m_correspondences || !m_kp_source || !m_kp_target) return;
-    m_cloudview->addCorrespondences(m_kp_source, m_kp_target, m_correspondences, "correspondences");
+    m_cloudview->addCorrespondences(m_kp_source, m_kp_target, m_correspondences, "correspondences", 10);
 }
 
 void GlobalRegistrationDialog::clearCorrespondenceLines()

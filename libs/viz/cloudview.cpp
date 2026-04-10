@@ -16,6 +16,10 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 #include <vtkRenderWindowInteractor.h>
 #include <vtkCommand.h>
 
+#include <vtkActor.h>
+#include <vtkProperty.h>
+#include <vtkActorCollection.h>
+
 #include <QDropEvent>
 #include <QMimeData>
 #include <QUrl>
@@ -326,18 +330,37 @@ namespace ct
     }
 
     void CloudView::addCorrespondences(const Cloud::Ptr &source_points, const Cloud::Ptr &target_points,
-                                       const pcl::CorrespondencesPtr &correspondences, const QString &id)
+                                       const pcl::CorrespondencesPtr &correspondences, const QString &id,
+                                       int line_width)
     {
-        // TODO 为了兼容，只能暂时转换点云类型，会损耗性能
+        std::string std_id = id.toStdString();
+
+        // 清理旧的 shape
+        if (m_viewer->contains(std_id))
+            m_viewer->removeShape(std_id);
+
         auto srcPCL = source_points->toPCL_XYZRGB();
         auto tgtPCL = target_points->toPCL_XYZRGB();
-
-        std::string std_id = id.toStdString();
 
         if (!m_viewer->contains(std_id))
             m_viewer->addCorrespondences<pcl::PointXYZRGB>(srcPCL, tgtPCL, *correspondences, std_id);
         else
             m_viewer->updateCorrespondences<pcl::PointXYZRGB>(srcPCL, tgtPCL, *correspondences, std_id);
+
+        // 尝试设置线宽（部分 GPU 不支持 >1，但亮黄色细线也可辨识）
+        if (line_width > 1) {
+            auto shape_map = m_viewer->getShapeActorMap();
+            for (int i = 0; i < (int)correspondences->size(); i++) {
+                auto it = shape_map->find(std_id + "_line_" + std::to_string(i));
+                if (it != shape_map->end()) {
+                    auto* actor = vtkActor::SafeDownCast(it->second);
+                    if (actor && actor->GetProperty()) {
+                        actor->GetProperty()->SetLineWidth(line_width);
+                        actor->GetProperty()->SetColor(1.0, 0.9, 0.0); // 亮黄色
+                    }
+                }
+            }
+        }
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
@@ -452,7 +475,7 @@ namespace ct
     }
 
     void CloudView::add3DBadge(const PointXYZRGBN& pos, const QString& text,
-                                 const QString& id, double scale,
+                                 const QString& id, int font_size,
                                  double textR, double textG, double textB,
                                  double bgR, double bgG, double bgB, double bgOpacity)
     {
@@ -465,20 +488,35 @@ namespace ct
         vtkSmartPointer<vtkBillboardTextActor3D> actor = vtkSmartPointer<vtkBillboardTextActor3D>::New();
         actor->SetInput(text.toStdString().c_str());
         actor->SetPosition(pos.x, pos.y, pos.z);
-        actor->SetScale(scale);
 
         vtkTextProperty* prop = actor->GetTextProperty();
+        prop->SetFontSize(font_size);
+        prop->SetBold(true);
         prop->SetColor(textR, textG, textB);
         prop->SetBackgroundColor(bgR, bgG, bgB);
         prop->SetBackgroundOpacity(bgOpacity);
         prop->SetFrame(true);
         prop->SetFrameWidth(2);
         prop->SetFrameColor(textR * 0.5, textG * 0.5, textB * 0.5);
-        prop->SetBold(true);
         prop->SetJustificationToCentered();
         prop->SetFontFamilyToCourier();
 
         m_render->AddActor(actor);
+
+        // 禁用深度测试，确保标签始终显示在点云上层不被遮挡
+        // vtkBillboardTextActor3D 内部包含多个 vtkActor，需逐一设置
+        vtkActorCollection* actors = vtkActorCollection::New();
+        actor->GetActors(actors);
+        actors->InitTraversal();
+        while (vtkActor* a = actors->GetNextActor()) {
+            if (a->GetMapper()) {
+                a->GetMapper()->SetResolveCoincidentTopologyToPolygonOffset();
+                a->GetMapper()->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
+            }
+            a->SetForceOpaque(true);
+        }
+        actors->Delete();
+
         m_badge_actors[id] = actor;
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
@@ -735,7 +773,6 @@ namespace ct
     void CloudView::removeShape(const QString& id)
     {
         std::string std_id = id.toStdString();
-        // 移除包围盒模型
         if (m_viewer->contains(std_id)){
             m_viewer->removeShape(std_id);
             if (m_auto_render) m_viewer->getRenderWindow()->Render();

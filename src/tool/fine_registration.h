@@ -31,6 +31,7 @@ public:
 private slots:
     void onAlgorithmChanged(int index);
     void onCompute();
+    void onReset();
     void onApply();
     void onCancel();
 
@@ -73,6 +74,7 @@ private:
 
     QTextEdit* txt_result_;
     QPushButton* btn_compute_;
+    QPushButton* btn_reset_;
     QPushButton* btn_apply_;
     QPushButton* btn_cancel_;
 

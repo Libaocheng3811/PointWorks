@@ -80,7 +80,8 @@ namespace ct {
          * @brief 添加点对的对应关系
          */
         void addCorrespondences(const Cloud::Ptr& source_points, const Cloud::Ptr& target_points,
-                                const pcl::CorrespondencesPtr& correspondences, const QString& id = "correspondences");
+                                const pcl::CorrespondencesPtr& correspondences, const QString& id = "correspondences",
+                                int line_width = 1);
 
         /**
          * @brief 添加多边形
@@ -132,7 +133,7 @@ namespace ct {
          * @param bgOpacity 背景不透明度 (0-1.0)
          */
         void add3DBadge(const PointXYZRGBN& pos, const QString& text, const QString& id,
-                        double scale = 0.01,
+                        int font_size = 24,
                         double textR = 1.0, double textG = 0.0, double textB = 0.0,
                         double bgR = 1.0, double bgG = 1.0, double bgB = 1.0,
                         double bgOpacity = 0.8);

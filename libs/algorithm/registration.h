@@ -9,6 +9,8 @@
 #include "core/exports.h"
 #include "features.h"
 
+#include <cstdlib>
+
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/registration/correspondence_rejection.h>
 #include <pcl/registration/correspondence_rejection_features.h>
@@ -359,6 +361,9 @@ namespace ct {
             reg.setMinSampleDistance(min_sample_distance);
             reg.setNumberOfSamples(nr_samples);
 
+            // SAC-IA 内部用 std::rand() 做随机采样，紧邻 align() 前固定种子保证可重复
+            std::srand(42);
+
             pcl::PointCloud<PointXYZRGBN>::Ptr pcl_aligned(new pcl::PointCloud<PointXYZRGBN>);
             reg.align(*pcl_aligned);
 
@@ -402,6 +407,9 @@ namespace ct {
             reg.setSimilarityThreshold(similarity_threshold);
             reg.setNumberOfSamples(nr_samples);
             reg.setInlierFraction(inlier_fraction);
+
+            // SAC-Prerejective 内部也用 std::rand()，紧邻 align() 前固定种子
+            std::srand(42);
 
             pcl::PointCloud<PointXYZRGBN>::Ptr pcl_aligned(new pcl::PointCloud<PointXYZRGBN>);
             reg.align(*pcl_aligned);

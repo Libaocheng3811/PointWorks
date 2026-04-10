@@ -65,6 +65,7 @@ private:
     void deleteSourcePoint(int index);
     void deleteTargetPoint(int index);
     void rebuildMarkers();
+    void clearLabels();
     void rebuildLabels();
     QVector<Eigen::Vector3d> displaySourcePoints() const;
     double calcLabelScale() const;

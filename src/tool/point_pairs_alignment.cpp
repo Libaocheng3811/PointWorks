@@ -2,6 +2,7 @@
 
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
+#include "ui/dialog/processingdialog.h"
 #include "viz/console.h"
 
 #include <QVBoxLayout>
@@ -281,6 +282,13 @@ void PointPairsAlignment::init()
 void PointPairsAlignment::reset()
 {
     stopPicking();
+
+    // 保存 source_id 用于恢复可见性（必须在 clear 之前）
+    QString saved_source_id = m_source_id;
+
+    // 清除 3D 号码牌（必须在 points 清空之前）
+    clearLabels();
+
     m_source_points.clear();
     m_target_points.clear();
     m_last_result = {};
@@ -288,9 +296,17 @@ void PointPairsAlignment::reset()
     m_original_source_cloud.reset();
     m_source_id.clear();
     m_last_align_snapshot.clear();
+
     clearAllLines();
+    m_cloudview->removePointCloud(PREVIEW_ID);
     m_cloudview->removePointCloud(MARKER_SRC_ID);
     m_cloudview->removePointCloud(MARKER_TGT_ID);
+
+    // 恢复源点云可见
+    if (!saved_source_id.isEmpty())
+        m_cloudview->setPointCloudVisibility(saved_source_id, true);
+
+    m_cloudview->refresh();
     updateTables();
     label_status_->setText("Select source and target clouds, then click Start.");
     label_rms_->setText("RMS: --");
@@ -315,10 +331,7 @@ void PointPairsAlignment::deinit()
         check_show_target_->setChecked(true);
 
     // 清理 3D 号码牌
-    for (int i = 0; i < 100; i++) {
-        m_cloudview->remove3DBadge(QString("ppa_badge_s%1").arg(i));
-        m_cloudview->remove3DBadge(QString("ppa_badge_t%1").arg(i));
-    }
+    clearLabels();
 
     reset();
 }
@@ -392,6 +405,7 @@ void PointPairsAlignment::stopPicking()
 
 void PointPairsAlignment::onReset()
 {
+    m_cloudtree->closeProgress();
     reset();
 }
 
@@ -441,6 +455,17 @@ void PointPairsAlignment::onAlign()
     m_canceled.store(false);
     label_status_->setText("Computing...");
 
+    // 显示模态进度条
+    m_cloudtree->showProgress("Computing...");
+    if (m_cloudtree->m_processing_dialog) {
+        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+                this, [this]() {
+                    m_canceled.store(true);
+                    if (m_cloudtree->m_processing_dialog)
+                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                });
+    }
+
     auto params = currentConstraintParams();
     auto result_ptr = std::make_shared<ct::PointPairErrorResult>();
 
@@ -486,6 +511,7 @@ void PointPairsAlignment::onAlign()
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this,
         [this, watcher, result_ptr]() mutable {
+        m_cloudtree->closeProgress();
         auto transformed = watcher->result();
         watcher->deleteLater();
 
@@ -587,6 +613,7 @@ void PointPairsAlignment::onApply()
 
 void PointPairsAlignment::onCancel()
 {
+    m_cloudtree->closeProgress();
     if (!m_has_preview) return;
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）
@@ -782,29 +809,32 @@ void PointPairsAlignment::rebuildMarkers()
     }
 }
 
-void PointPairsAlignment::rebuildLabels()
+void PointPairsAlignment::clearLabels()
 {
-    // 清除旧号码牌
-    for (int i = 0; i < 100; i++) {
+    int count = qMax(m_source_points.size(), m_target_points.size());
+    for (int i = 0; i < count; i++) {
         m_cloudview->remove3DBadge(QString("ppa_badge_s%1").arg(i));
         m_cloudview->remove3DBadge(QString("ppa_badge_t%1").arg(i));
     }
+}
 
-    double scale = calcLabelScale();
+void PointPairsAlignment::rebuildLabels()
+{
+    clearLabels();
 
     // Source 标签（红色号码牌）
     auto src_disp = displaySourcePoints();
     if (check_show_source_->isChecked()) {
         for (int i = 0; i < src_disp.size(); i++) {
             ct::PointXYZRGBN pos;
-            pos.x = static_cast<float>(src_disp[i][0] + scale * 0.8);
-            pos.y = static_cast<float>(src_disp[i][1] + scale * 0.8);
-            pos.z = static_cast<float>(src_disp[i][2] + scale * 0.8);
+            pos.x = static_cast<float>(src_disp[i][0]);
+            pos.y = static_cast<float>(src_disp[i][1]);
+            pos.z = static_cast<float>(src_disp[i][2]);
             m_cloudview->add3DBadge(pos, QString::number(i + 1),
-                                    QString("ppa_badge_s%1").arg(i), scale * 1.2,
+                                    QString("ppa_badge_s%1").arg(i), 28,
                                     1.0, 0.15, 0.15,   // 红色文字
                                     1.0, 1.0, 1.0,     // 白色背景
-                                    0.9);                // 高不透明度
+                                    0.9);
         }
     }
 
@@ -812,11 +842,11 @@ void PointPairsAlignment::rebuildLabels()
     if (check_show_target_->isChecked()) {
         for (int i = 0; i < m_target_points.size(); i++) {
             ct::PointXYZRGBN pos;
-            pos.x = static_cast<float>(m_target_points[i][0] + scale * 0.8);
-            pos.y = static_cast<float>(m_target_points[i][1] + scale * 0.8);
-            pos.z = static_cast<float>(m_target_points[i][2] + scale * 0.8);
+            pos.x = static_cast<float>(m_target_points[i][0]);
+            pos.y = static_cast<float>(m_target_points[i][1]);
+            pos.z = static_cast<float>(m_target_points[i][2]);
             m_cloudview->add3DBadge(pos, QString::number(i + 1),
-                                    QString("ppa_badge_t%1").arg(i), scale * 1.2,
+                                    QString("ppa_badge_t%1").arg(i), 28,
                                     0.15, 0.35, 1.0,    // 蓝色文字
                                     1.0, 1.0, 1.0,     // 白色背景
                                     0.9);
@@ -957,7 +987,7 @@ void PointPairsAlignment::updateAllLines()
     for (int i = 0; i < pair_count; i++)
         corrs->push_back(pcl::Correspondence(i, i, 0));
 
-    m_cloudview->addCorrespondences(src_cloud, tgt_cloud, corrs, LINES_ID);
+    m_cloudview->addCorrespondences(src_cloud, tgt_cloud, corrs, LINES_ID, 10);
     m_cloudview->refresh();
 }
 
