@@ -147,7 +147,18 @@
     </widget>
     <addaction name="actionFilters"/>
     <addaction name="menuRegistration"/>
-    <addaction name="actionSegmentation"/>
+    <widget class="QMenu" name="menuSegmentation">
+     <property name="title">
+      <string>Segmentation</string>
+     </property>
+     <addaction name="actionClustering"/>
+     <addaction name="actionRegionGrowing"/>
+     <addaction name="actionSupervoxel"/>
+     <addaction name="actionShapeDetection"/>
+     <addaction name="separator"/>
+     <addaction name="actionMorphologicalFilter"/>
+    </widget>
+    <addaction name="menuSegmentation"/>
     <addaction name="actionRecognition"/>
     <addaction name="actionPickPoints"/>
     <addaction name="actionSurface"/>
@@ -710,7 +721,6 @@ QScrollBar::sub-line:horizontal {
    <addaction name="actionGlobalRegistration"/>
    <addaction name="actionFilters"/>
    <addaction name="actionSampling"/>
-   <addaction name="actionSegmentation"/>
    <addaction name="actionFineRegistration"/>
    <addaction name="actionSurface"/>
    <addaction name="actionPointPairsAlignment"/>
@@ -1170,13 +1180,53 @@ QScrollBar::sub-line:horizontal {
     </font>
    </property>
   </action>
-  <action name="actionSegmentation">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/view-grid-symbolic.svg</normaloff>:/res/icon/view-grid-symbolic.svg</iconset>
-   </property>
+  <action name="actionClustering">
    <property name="text">
-    <string>Segmentation</string>
+    <string>Clustering</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionRegionGrowing">
+   <property name="text">
+    <string>Region Growing</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionSupervoxel">
+   <property name="text">
+    <string>Supervoxel</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShapeDetection">
+   <property name="text">
+    <string>Shape Detection / RANSAC</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMorphologicalFilter">
+   <property name="text">
+    <string>Morphological Filter</string>
    </property>
    <property name="font">
     <font>

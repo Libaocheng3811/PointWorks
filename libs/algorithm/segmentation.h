@@ -90,6 +90,40 @@ namespace ct
                                                               std::function<void(int)> on_progress = nullptr);
 
         /**
+         * @brief DBSCAN 聚类
+         * @param cloud 输入点云
+         * @param negative 设置是否反转
+         * @param eps 邻域半径
+         * @param min_pts 核心点最小邻居数
+         * @param min_cluster_size 最小聚类大小
+         * @param max_cluster_size 最大聚类大小
+         * @param normal_weight 法线距离权重
+         * @param color_weight 颜色距离权重
+         */
+        static SegmentationResult DBSCANClusterExtraction(const Cloud::Ptr& cloud, bool negative,
+                                                           double eps, int min_pts,
+                                                           int min_cluster_size, int max_cluster_size,
+                                                           double normal_weight = 0.0,
+                                                           double color_weight = 0.0,
+                                                           std::atomic<bool>* cancel = nullptr,
+                                                           std::function<void(int)> on_progress = nullptr);
+
+        /**
+         * @brief K-Means 聚类
+         * @param cloud 输入点云
+         * @param k 聚类数
+         * @param max_iterations 最大迭代次数
+         * @param normal_weight 法线距离权重
+         * @param color_weight 颜色距离权重
+         */
+        static SegmentationResult KMeansClusterExtraction(const Cloud::Ptr& cloud,
+                                                          int k, int max_iterations,
+                                                          double normal_weight = 0.0,
+                                                          double color_weight = 0.0,
+                                                          std::atomic<bool>* cancel = nullptr,
+                                                          std::function<void(int)> on_progress = nullptr);
+
+        /**
          * @brief 实现用于分割的众所周知的区域增长算法
          * @param cloud 输入点云
          * @param negative 设置是应用点过滤的常规条件，还是应用倒置条件
@@ -110,6 +144,30 @@ namespace ct
                                                  float curvature_threshold, int neighbours,
                                                  std::atomic<bool>* cancel = nullptr,
                                                  std::function<void(int)> on_progress = nullptr);
+
+        /**
+         * @brief 从指定种子点进行区域生长
+         * @param cloud 输入点云
+         * @param negative 设置是否反转
+         * @param seed_index 种子点索引
+         * @param min_cluster_size 最小聚类大小
+         * @param max_cluster_size 最大聚类大小
+         * @param smooth_mode 允许打开/关闭平滑约束
+         * @param curvature_test 允许打开/关闭曲率测试
+         * @param residual_test 允许打开/关闭剩余测试
+         * @param smoothness_threshold 平滑度阈值
+         * @param residual_threshold 残差阈值
+         * @param curvature_threshold 曲率阈值
+         * @param neighbours 邻居数
+         */
+        static SegmentationResult RegionGrowingFromSeed(const Cloud::Ptr& cloud, bool negative,
+                                                         int seed_index,
+                                                         int min_cluster_size, int max_cluster_size,
+                                                         bool smooth_mode, bool curvature_test, bool residual_test,
+                                                         float smoothness_threshold, float residual_threshold,
+                                                         float curvature_threshold, int neighbours,
+                                                         std::atomic<bool>* cancel = nullptr,
+                                                         std::function<void(int)> on_progress = nullptr);
 
         /**
          * @brief 实现用于基于点颜色进行分割的众所周知的区域增长算法

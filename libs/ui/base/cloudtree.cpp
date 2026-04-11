@@ -984,6 +984,35 @@ namespace ct
         }
 
         QTreeWidgetItem* parentFolder = originItem->parent();
+
+        // 清除同名的旧结果组（避免重复运行时产生冲突）
+        const bool wasBlockedCleanup = this->blockSignals(true);
+        for (int i = 0; i < (parentFolder ? parentFolder->childCount() : topLevelItemCount()); i++) {
+            QTreeWidgetItem* child = parentFolder ? parentFolder->child(i) : topLevelItem(i);
+            if (child && child->text(0) == groupName) {
+                // 从 VTK 视图中移除所有子点云
+                QList<QTreeWidgetItem*> children;
+                getAllChildItems(child, children);
+                for (QTreeWidgetItem* ch : children) {
+                    Cloud::Ptr c = getCloud(ch);
+                    if (c) {
+                        m_cloudview->removePointCloud(QString::fromStdString(c->id()));
+                        m_cloudview->removeShape(QString::fromStdString(c->id()));
+                    }
+                    m_cloud_map.remove(ch);
+                    m_item_by_id.remove(ch->text(0));
+                }
+                if (parentFolder) {
+                    parentFolder->removeChild(child);
+                } else {
+                    takeTopLevelItem(i);
+                }
+                delete child;
+                break;
+            }
+        }
+        this->blockSignals(wasBlockedCleanup);
+
         // 创建结果组文件夹（策略二：新建 GroupNode）
         QTreeWidgetItem* groupItem = addItem(parentFolder, groupName, NodeGroup);
 

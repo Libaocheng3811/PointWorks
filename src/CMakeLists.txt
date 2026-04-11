@@ -18,6 +18,11 @@ set(Srcs
     tool/global_registration.cpp
     tool/fine_registration.cpp
     tool/point_pairs_alignment.cpp
+    tool/segmentation/shape_detection_dialog.cpp
+    tool/segmentation/morphological_filter_dialog.cpp
+    tool/segmentation/region_growing_dialog.cpp
+    tool/segmentation/clustering_dialog.cpp
+    tool/segmentation/supervoxel_dialog.cpp
     tool/sampling.cpp
     python/python_console.cpp
     python/python_editor.cpp
@@ -48,6 +53,11 @@ set(Hdrs
     tool/global_registration.h
     tool/fine_registration.h
     tool/point_pairs_alignment.h
+    tool/segmentation/shape_detection_dialog.h
+    tool/segmentation/morphological_filter_dialog.h
+    tool/segmentation/region_growing_dialog.h
+    tool/segmentation/clustering_dialog.h
+    tool/segmentation/supervoxel_dialog.h
     tool/sampling.h
     python/python_console.h
     python/python_editor.h

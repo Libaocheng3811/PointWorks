@@ -1,6 +1,9 @@
 #ifndef CT_TOOL_SEGMENTATION_H
 #define CT_TOOL_SEGMENTATION_H
 
+// DEPRECATED: This file is deprecated.
+// Use src/tool/segmentation/*.h instead (ShapeDetectionDialog, ClusteringDialog, etc.)
+
 #include "ui/base/customdialog.h"
 #include "algorithm/segmentation.h"
 

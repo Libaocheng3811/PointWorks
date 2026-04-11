@@ -12,7 +12,11 @@
 #include "tool/filters.h"
 #include "tool/sampling.h"
 #include "tool/rangeimage.h"
-#include "tool/segmentation.h"
+#include "tool/segmentation/shape_detection_dialog.h"
+#include "tool/segmentation/morphological_filter_dialog.h"
+#include "tool/segmentation/region_growing_dialog.h"
+#include "tool/segmentation/clustering_dialog.h"
+#include "tool/segmentation/supervoxel_dialog.h"
 #include "tool/surface.h"
 #include "tool/boundary.h"
 #include "edit/transformation.h"
@@ -164,9 +168,20 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<Sampling>("Point Cloud Sampling");
     });
     connect(ui->actionRangeImage, &QAction::triggered, [=]{this->createDialog<RangeImage>("RangeImage");});
-    connect(ui->actionSegmentation, &QAction::triggered, [=]
-    {
-        this->createToolDialog<Segmentation>("Segmentation");
+    connect(ui->actionClustering, &QAction::triggered, [=] {
+        this->createModalDialog<ClusteringDialog>("Clustering");
+    });
+    connect(ui->actionRegionGrowing, &QAction::triggered, [=] {
+        this->createModalDialog<RegionGrowingDialog>("Region Growing");
+    });
+    connect(ui->actionSupervoxel, &QAction::triggered, [=] {
+        this->createModalDialog<SupervoxelDialog>("Supervoxel");
+    });
+    connect(ui->actionShapeDetection, &QAction::triggered, [=] {
+        this->createModalDialog<ShapeDetectionDialog>("Shape Detection");
+    });
+    connect(ui->actionMorphologicalFilter, &QAction::triggered, [=] {
+        this->createToolDialog<MorphologicalFilterDialog>("Morphological Filter");
     });
     connect(ui->actionSurface, &QAction::triggered, [=]
     {
