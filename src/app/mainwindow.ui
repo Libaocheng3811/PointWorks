@@ -159,9 +159,18 @@
      <addaction name="actionMorphologicalFilter"/>
     </widget>
     <addaction name="menuSegmentation"/>
+    <widget class="QMenu" name="menuMesh">
+     <property name="title">
+      <string>Mesh</string>
+     </property>
+     <addaction name="actionMeshReconstructSurface"/>
+     <addaction name="actionMeshComputeHull"/>
+     <addaction name="separator"/>
+     <addaction name="actionMeshExtractBoundary"/>
+    </widget>
+    <addaction name="menuMesh"/>
     <addaction name="actionRecognition"/>
     <addaction name="actionPickPoints"/>
-    <addaction name="actionSurface"/>
     <addaction name="actionCutting"/>
     <addaction name="actionSampling"/>
     <addaction name="actionCorrespondence"/>
@@ -172,7 +181,6 @@
     <addaction name="actionRangeImage"/>
     <addaction name="separator"/>
     <addaction name="actionScreenShot"/>
-    <addaction name="actionBoundary"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
     <property name="font">
@@ -722,11 +730,10 @@ QScrollBar::sub-line:horizontal {
    <addaction name="actionFilters"/>
    <addaction name="actionSampling"/>
    <addaction name="actionFineRegistration"/>
-   <addaction name="actionSurface"/>
+   <addaction name="actionMeshComputeHull"/>
    <addaction name="actionPointPairsAlignment"/>
    <addaction name="actionPickPoints"/>
    <addaction name="actionCutting"/>
-   <addaction name="actionBoundary"/>
    <addaction name="actionRangeImage"/>
   </widget>
   <widget class="QToolBar" name="ViewBar">
@@ -1280,13 +1287,35 @@ QScrollBar::sub-line:horizontal {
     </font>
    </property>
   </action>
-  <action name="actionSurface">
+  <action name="actionMeshReconstructSurface">
+   <property name="text">
+    <string>Reconstruct Surface</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMeshComputeHull">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
      <normaloff>:/res/icon2/surface.svg</normaloff>:/res/icon2/surface.svg</iconset>
    </property>
    <property name="text">
-    <string>Surface</string>
+    <string>Compute Hull</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMeshExtractBoundary">
+   <property name="text">
+    <string>Extract Boundary</string>
    </property>
    <property name="font">
     <font>
@@ -1422,21 +1451,6 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>ScreenShot</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionBoundary">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/tool_elliptical_selection.svg</normaloff>:/res/icon/tool_elliptical_selection.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Boundary</string>
    </property>
    <property name="font">
     <font>

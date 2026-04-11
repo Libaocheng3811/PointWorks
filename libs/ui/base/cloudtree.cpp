@@ -303,12 +303,17 @@ namespace ct
         for (QTreeWidgetItem* c : allChildren){
             Cloud::Ptr cloud = getCloud(c);
             if (cloud) {
-                emit removedCloudId(QString::fromStdString(cloud->id()));
-                m_cloudview->removePointCloud(QString::fromStdString(cloud->id()));
+                QString cid = QString::fromStdString(cloud->id());
+                emit removedCloudId(cid);
+                m_cloudview->removePointCloud(cid);
                 m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
                 m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
                 m_cloud_map.remove(c);
-                m_item_by_id.remove(QString::fromStdString(cloud->id()));
+                m_item_by_id.remove(cid);
+                // 清理关联的 PolygonMesh
+                if (m_mesh_map.contains(cid)) {
+                    unregisterMesh(cid);
+                }
             }
         }
 
@@ -756,7 +761,23 @@ namespace ct
                     m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), false);
                 }
             }
+
+            // --- PolygonMesh 可见性联动 ---
+            QString mesh_id = it->data(0, NodeMeshIdRole).toString();
+            if (!mesh_id.isEmpty()) {
+                bool shouldShow = (it->checkState(0) != Qt::Unchecked);
+                if (shouldShow) {
+                    auto mesh_it = m_mesh_map.find(mesh_id);
+                    if (mesh_it != m_mesh_map.end()) {
+                        m_cloudview->addPolygonMesh(mesh_it.value(), mesh_id);
+                    }
+                } else {
+                    m_cloudview->removePolygonMesh(mesh_id);
+                    m_cloudview->removeShape(mesh_id);
+                }
+            }
         }
+
         m_cloudview->setAutoRender(true);
         m_cloudview->refresh();
         this->blockSignals(wasBlocked);
@@ -1042,6 +1063,29 @@ namespace ct
         m_cloudview->refresh();
 
         printI(QString("Add results to group [%1] done.").arg(groupName));
+    }
+
+    void CloudTree::registerMesh(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh)
+    {
+        m_mesh_map[cloudId] = mesh;
+
+        QTreeWidgetItem* item = getItemById(cloudId);
+        if (item) {
+            item->setData(0, NodeMeshIdRole, cloudId);
+        }
+        m_cloudview->addPolygonMesh(mesh, cloudId);
+    }
+
+    void CloudTree::unregisterMesh(const QString& cloudId)
+    {
+        m_mesh_map.remove(cloudId);
+        m_cloudview->removePolygonMesh(cloudId);
+        m_cloudview->removeShape(cloudId);
+
+        QTreeWidgetItem* item = getItemById(cloudId);
+        if (item) {
+            item->setData(0, NodeMeshIdRole, QVariant());
+        }
     }
 
     void CloudTree::zoomToSelected() {

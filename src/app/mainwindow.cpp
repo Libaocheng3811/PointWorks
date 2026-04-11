@@ -17,8 +17,9 @@
 #include "tool/segmentation/region_growing_dialog.h"
 #include "tool/segmentation/clustering_dialog.h"
 #include "tool/segmentation/supervoxel_dialog.h"
-#include "tool/surface.h"
-#include "tool/boundary.h"
+#include "tool/mesh/compute_hull_dialog.h"
+#include "tool/mesh/extract_boundary_dialog.h"
+#include "tool/mesh/reconstruct_surface_dialog.h"
 #include "edit/transformation.h"
 #include "edit/normals.h"
 #include "edit/scale.h"
@@ -183,13 +184,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionMorphologicalFilter, &QAction::triggered, [=] {
         this->createToolDialog<MorphologicalFilterDialog>("Morphological Filter");
     });
-    connect(ui->actionSurface, &QAction::triggered, [=]
-    {
-        this->createToolDialog<Surface>("Surface");
+    connect(ui->actionMeshComputeHull, &QAction::triggered, [=] {
+        this->createModalDialog<ComputeHullDialog>("Compute Hull");
     });
-    connect(ui->actionBoundary, &QAction::triggered, [=]
-    {
-        this->createDialog<Boundary>("Boundary");
+    connect(ui->actionMeshReconstructSurface, &QAction::triggered, [=] {
+        this->createModalDialog<ReconstructSurfaceDialog>("Reconstruct Surface");
+    });
+    connect(ui->actionMeshExtractBoundary, &QAction::triggered, [=] {
+        this->createModalDialog<ExtractBoundaryDialog>("Extract Boundary");
     });
 
     // registration submenu

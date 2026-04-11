@@ -12,6 +12,8 @@
 #include <QInputDialog>
 #include <QThread>
 
+#include <pcl/PolygonMesh.h>
+
 #define CLONE_ADD_FLAG "clone-"
 #define MERGE_ADD_FLAG "merge-"
 
@@ -169,6 +171,18 @@ namespace ct
         void addResultGroup(const Cloud::Ptr& originCloud, const std::vector<Cloud::Ptr>& results, const QString& groupName);
 
         /**
+         * @brief 注册 PolygonMesh 到树节点（与节点可见性联动）
+         * @param cloudId 关联的 Cloud UUID（已通过 insertCloud 添加的节点）
+         * @param mesh PolygonMesh 数据
+         */
+        void registerMesh(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh);
+
+        /**
+         * @brief 移除已注册的 PolygonMesh
+         */
+        void unregisterMesh(const QString& cloudId);
+
+        /**
          * @brief 聚焦视图到选中点云
          * 如果有选中项 -> 聚焦选中项的并集
          * 如果无选中项 -> 聚焦所有可见点云
@@ -270,6 +284,7 @@ namespace ct
     private:
         QMap<QTreeWidgetItem*, Cloud::Ptr> m_cloud_map;
         QMap<QString, QTreeWidgetItem*> m_item_by_id;  // uuid -> item 反向索引
+        QMap<QString, pcl::PolygonMesh::Ptr> m_mesh_map; // cloudId -> PolygonMesh
         QString m_path;
         QThread m_thread;
         FileIO* m_fileio;

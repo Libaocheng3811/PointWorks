@@ -1,6 +1,9 @@
 #ifndef CT_TOOL_SURFACE_H
 #define CT_TOOL_SURFACE_H
 
+// DEPRECATED: This file is deprecated.
+// Use src/tool/mesh/*.h instead (ReconstructSurfaceDialog, ComputeHullDialog, ExtractBoundaryDialog)
+
 #include "ui/base/customdialog.h"
 #include "algorithm/surface.h"
 

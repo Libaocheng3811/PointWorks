@@ -1,6 +1,9 @@
 #ifndef CT_TOOL_BOUNDARY_H
 #define CT_TOOL_BOUNDARY_H
 
+// DEPRECATED: This file is deprecated.
+// Use src/tool/mesh/extract_boundary_dialog.h instead.
+
 #include "ui/base/customdialog.h"
 #include "algorithm/features.h"
 

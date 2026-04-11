@@ -21,6 +21,8 @@ constexpr int NodeTypeRole      = Qt::UserRole + 1;
 constexpr int NodeUuidRole      = Qt::UserRole + 2;
 /// QTreeWidgetItem 数据角色 — 存储原始文件路径（仅 NodeFile）
 constexpr int NodeFilePathRole  = Qt::UserRole + 3;
+/// QTreeWidgetItem 数据角色 — 存储关联的 PolygonMesh visual ID
+constexpr int NodeMeshIdRole    = Qt::UserRole + 4;
 
 } // namespace ct
 

@@ -11,8 +11,6 @@ set(Srcs
     tool/pickpoints.cpp
     tool/filters.cpp
     tool/segmentation.cpp
-    tool/surface.cpp
-    tool/boundary.cpp
     tool/rangeimage.cpp
     tool/align_by_centers.cpp
     tool/global_registration.cpp
@@ -23,6 +21,9 @@ set(Srcs
     tool/segmentation/region_growing_dialog.cpp
     tool/segmentation/clustering_dialog.cpp
     tool/segmentation/supervoxel_dialog.cpp
+    tool/mesh/compute_hull_dialog.cpp
+    tool/mesh/extract_boundary_dialog.cpp
+    tool/mesh/reconstruct_surface_dialog.cpp
     tool/sampling.cpp
     python/python_console.cpp
     python/python_editor.cpp
@@ -46,8 +47,6 @@ set(Hdrs
     tool/pickpoints.h
     tool/filters.h
     tool/segmentation.h
-    tool/surface.h
-    tool/boundary.h
     tool/rangeimage.h
     tool/align_by_centers.h
     tool/global_registration.h
@@ -58,6 +57,9 @@ set(Hdrs
     tool/segmentation/region_growing_dialog.h
     tool/segmentation/clustering_dialog.h
     tool/segmentation/supervoxel_dialog.h
+    tool/mesh/compute_hull_dialog.h
+    tool/mesh/extract_boundary_dialog.h
+    tool/mesh/reconstruct_surface_dialog.h
     tool/sampling.h
     python/python_console.h
     python/python_editor.h
@@ -69,8 +71,6 @@ set(Hdrs
 set(UIS
     tool/filters.ui
     tool/segmentation.ui
-    tool/surface.ui
-    tool/boundary.ui
     edit/color.ui
     edit/boundingbox.ui
     edit/transformation.ui
