@@ -11,6 +11,7 @@
 #include "tool/pickpoints.h"
 #include "tool/filters.h"
 #include "tool/sampling.h"
+#include "tool/measure.h"
 #include "tool/rangeimage.h"
 #include "tool/segmentation/shape_detection_dialog.h"
 #include "tool/segmentation/morphological_filter_dialog.h"
@@ -172,6 +173,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionFilters, &QAction::triggered, [=] {this->createToolDialog<Filters>("Filters"); });
     connect(ui->actionSampling, &QAction::triggered, [=] {
         this->createModalDialog<Sampling>("Point Cloud Sampling");
+    });
+    connect(ui->actionMeasure, &QAction::triggered, [=] {
+        this->createDialog<Measure>("Measure");
     });
     connect(ui->actionRangeImage, &QAction::triggered, [=]{this->createDialog<RangeImage>("RangeImage");});
     connect(ui->actionClustering, &QAction::triggered, [=] {

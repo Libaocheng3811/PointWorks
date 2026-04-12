@@ -28,6 +28,7 @@ set(Srcs
     tool/distance/cloud_primitive_dist_dialog.cpp
     tool/distance/closest_point_set_dialog.cpp
     tool/sampling.cpp
+    tool/measure.cpp
     python/python_console.cpp
     python/python_editor.cpp
     plugins/csfplugin.cpp
@@ -67,6 +68,7 @@ set(Hdrs
     tool/distance/cloud_primitive_dist_dialog.h
     tool/distance/closest_point_set_dialog.h
     tool/sampling.h
+    tool/measure.h
     python/python_console.h
     python/python_editor.h
     plugins/csfplugin.h
@@ -76,6 +78,7 @@ set(Hdrs
 
 set(UIS
     tool/filters.ui
+    tool/measure.ui
     edit/color.ui
     edit/boundingbox.ui
     edit/transformation.ui
