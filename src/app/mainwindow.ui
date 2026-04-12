@@ -169,6 +169,17 @@
      <addaction name="actionMeshExtractBoundary"/>
     </widget>
     <addaction name="menuMesh"/>
+    <widget class="QMenu" name="menuDistance">
+     <property name="title">
+      <string>Distance</string>
+     </property>
+     <addaction name="actionDistanceC2C"/>
+     <addaction name="actionDistanceC2M"/>
+     <addaction name="actionDistanceC2P"/>
+     <addaction name="separator"/>
+     <addaction name="actionDistanceCPS"/>
+    </widget>
+    <addaction name="menuDistance"/>
     <addaction name="actionRecognition"/>
     <addaction name="actionPickPoints"/>
     <addaction name="actionCutting"/>
@@ -1626,6 +1637,50 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>Change Detection</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceC2C">
+   <property name="text">
+    <string>Cloud/Cloud Dist</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceC2M">
+   <property name="text">
+    <string>Cloud/Mesh Dist</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceC2P">
+   <property name="text">
+    <string>Cloud/Primitive Dist</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceCPS">
+   <property name="text">
+    <string>Closest Point Set</string>
    </property>
    <property name="font">
     <font>

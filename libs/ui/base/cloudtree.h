@@ -183,6 +183,12 @@ namespace ct
         void unregisterMesh(const QString& cloudId);
 
         /**
+         * @brief 获取所有已注册的 PolygonMesh 列表
+         * @return QList of (cloudId, mesh) pairs
+         */
+        QList<QPair<QString, pcl::PolygonMesh::Ptr>> getLoadedMeshes() const;
+
+        /**
          * @brief 聚焦视图到选中点云
          * 如果有选中项 -> 聚焦选中项的并集
          * 如果无选中项 -> 聚焦所有可见点云

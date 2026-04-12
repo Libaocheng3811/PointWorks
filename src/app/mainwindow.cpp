@@ -33,6 +33,11 @@
 #include "plugins/vegplugin.h"
 #include "plugins/changedetectplugin.h"
 
+#include "tool/distance/cloud_cloud_dist_dialog.h"
+#include "tool/distance/cloud_mesh_dist_dialog.h"
+#include "tool/distance/cloud_primitive_dist_dialog.h"
+#include "tool/distance/closest_point_set_dialog.h"
+
 #include "python/python_manager.h"
 #include "python/python_bridge.h"
 
@@ -235,6 +240,20 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<VegPlugin>("Vegetation Filters");});
     connect(ui->actionChange_Detection, &QAction::triggered, [=] {
         this->createModalDialog<ChangeDetectPlugin>("Change Detection");});
+
+    // distance submenu
+    connect(ui->actionDistanceC2C, &QAction::triggered, [=] {
+        this->createModalDialog<CloudCloudDistDialog>("Cloud / Cloud Distance");
+    });
+    connect(ui->actionDistanceC2M, &QAction::triggered, [=] {
+        this->createModalDialog<CloudMeshDistDialog>("Cloud / Mesh Distance");
+    });
+    connect(ui->actionDistanceC2P, &QAction::triggered, [=] {
+        this->createModalDialog<CloudPrimitiveDistDialog>("Cloud / Primitive Distance");
+    });
+    connect(ui->actionDistanceCPS, &QAction::triggered, [=] {
+        this->createModalDialog<ClosestPointSetDialog>("Closest Point Set");
+    });
 
     // === Python Console（View 菜单，可勾选，默认不打开）===
     connect(ui->actionPythonConsole, &QAction::toggled, this, [this, python_console](bool checked) {

@@ -24,6 +24,10 @@ set(Srcs
     tool/mesh/compute_hull_dialog.cpp
     tool/mesh/extract_boundary_dialog.cpp
     tool/mesh/reconstruct_surface_dialog.cpp
+    tool/distance/cloud_cloud_dist_dialog.cpp
+    tool/distance/cloud_mesh_dist_dialog.cpp
+    tool/distance/cloud_primitive_dist_dialog.cpp
+    tool/distance/closest_point_set_dialog.cpp
     tool/sampling.cpp
     python/python_console.cpp
     python/python_editor.cpp
@@ -60,6 +64,10 @@ set(Hdrs
     tool/mesh/compute_hull_dialog.h
     tool/mesh/extract_boundary_dialog.h
     tool/mesh/reconstruct_surface_dialog.h
+    tool/distance/cloud_cloud_dist_dialog.h
+    tool/distance/cloud_mesh_dist_dialog.h
+    tool/distance/cloud_primitive_dist_dialog.h
+    tool/distance/closest_point_set_dialog.h
     tool/sampling.h
     python/python_console.h
     python/python_editor.h

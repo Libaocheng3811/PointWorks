@@ -1088,6 +1088,15 @@ namespace ct
         }
     }
 
+    QList<QPair<QString, pcl::PolygonMesh::Ptr>> CloudTree::getLoadedMeshes() const
+    {
+        QList<QPair<QString, pcl::PolygonMesh::Ptr>> result;
+        for (auto it = m_mesh_map.constBegin(); it != m_mesh_map.constEnd(); ++it) {
+            result.append(qMakePair(it.key(), it.value()));
+        }
+        return result;
+    }
+
     void CloudTree::zoomToSelected() {
         std::vector<Cloud::Ptr> targets;
         std::vector<Cloud::Ptr> selected = getSelectedClouds();
