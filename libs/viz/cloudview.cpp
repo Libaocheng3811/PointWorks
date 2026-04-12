@@ -1225,6 +1225,12 @@ namespace ct
         return p;
     }
 
+    Eigen::Affine3f CloudView::getViewerPose() const
+    {
+        if (!m_viewer) return Eigen::Affine3f::Identity();
+        return m_viewer->getViewerPose();
+    }
+
     void CloudView::setCameraParams(const CameraParams& params)
     {
         vtkCamera* cam = m_render->GetActiveCamera();

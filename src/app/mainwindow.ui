@@ -145,8 +145,6 @@
      <addaction name="separator"/>
      <addaction name="actionFineRegistration"/>
     </widget>
-    <addaction name="actionFilters"/>
-    <addaction name="menuRegistration"/>
     <widget class="QMenu" name="menuSegmentation">
      <property name="title">
       <string>Segmentation</string>
@@ -158,7 +156,6 @@
      <addaction name="separator"/>
      <addaction name="actionMorphologicalFilter"/>
     </widget>
-    <addaction name="menuSegmentation"/>
     <widget class="QMenu" name="menuMesh">
      <property name="title">
       <string>Mesh</string>
@@ -168,7 +165,6 @@
      <addaction name="separator"/>
      <addaction name="actionMeshExtractBoundary"/>
     </widget>
-    <addaction name="menuMesh"/>
     <widget class="QMenu" name="menuDistance">
      <property name="title">
       <string>Distance</string>
@@ -179,19 +175,19 @@
      <addaction name="separator"/>
      <addaction name="actionDistanceCPS"/>
     </widget>
+    <addaction name="actionFilters"/>
+    <addaction name="menuRegistration"/>
+    <addaction name="menuSegmentation"/>
+    <addaction name="menuMesh"/>
     <addaction name="menuDistance"/>
-    <addaction name="actionRecognition"/>
     <addaction name="actionPickPoints"/>
     <addaction name="actionCutting"/>
     <addaction name="actionSampling"/>
-    <addaction name="actionCorrespondence"/>
     <addaction name="actionMeasure"/>
-    <addaction name="actionSelection"/>
-    <addaction name="actionConnection"/>
     <addaction name="actionPathPlan"/>
     <addaction name="actionRangeImage"/>
+    <addaction name="actionRecognition"/>
     <addaction name="separator"/>
-    <addaction name="actionScreenShot"/>
    </widget>
    <widget class="QMenu" name="menuDevices">
     <property name="font">
@@ -770,7 +766,6 @@ QScrollBar::sub-line:horizontal {
    <addaction name="actionRightSideView"/>
    <addaction name="actionBottomView"/>
    <addaction name="actionResetcamera"/>
-   <addaction name="actionScreenShot"/>
   </widget>
   <widget class="QToolBar" name="PythonBar">
    <property name="windowTitle">
@@ -1365,21 +1360,6 @@ QScrollBar::sub-line:horizontal {
     </font>
    </property>
   </action>
-  <action name="actionCorrespondence">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/draw-connector.svg</normaloff>:/res/icon/draw-connector.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Correspondence</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
   <action name="actionMeasure">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
@@ -1387,36 +1367,6 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>Measure</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionSelection">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/node-transform.svg</normaloff>:/res/icon/node-transform.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Selection</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionConnection">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/kdenlive-select-all.svg</normaloff>:/res/icon/kdenlive-select-all.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Connection</string>
    </property>
    <property name="font">
     <font>
@@ -1447,21 +1397,6 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>RangeImage</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionScreenShot">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/screenshoot.svg</normaloff>:/res/icon/screenshoot.svg</iconset>
-   </property>
-   <property name="text">
-    <string>ScreenShot</string>
    </property>
    <property name="font">
     <font>

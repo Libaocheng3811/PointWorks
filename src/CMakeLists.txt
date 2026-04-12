@@ -10,7 +10,6 @@ set(Srcs
     tool/cutting.cpp
     tool/pickpoints.cpp
     tool/filters.cpp
-    tool/segmentation.cpp
     tool/rangeimage.cpp
     tool/align_by_centers.cpp
     tool/global_registration.cpp
@@ -50,7 +49,6 @@ set(Hdrs
     tool/cutting.h
     tool/pickpoints.h
     tool/filters.h
-    tool/segmentation.h
     tool/rangeimage.h
     tool/align_by_centers.h
     tool/global_registration.h
@@ -78,7 +76,6 @@ set(Hdrs
 
 set(UIS
     tool/filters.ui
-    tool/segmentation.ui
     edit/color.ui
     edit/boundingbox.ui
     edit/transformation.ui

@@ -338,6 +338,9 @@ namespace ct {
         /// 获取当前相机参数
         CameraParams getCameraParams() const;
 
+        /// 获取当前观察位姿 (Affine3f)
+        Eigen::Affine3f getViewerPose() const;
+
         /// 恢复相机参数
         void setCameraParams(const CameraParams& params);
 
