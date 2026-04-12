@@ -101,13 +101,12 @@ MainWindow::MainWindow(QWidget *parent) :
     // 设置属性表格列宽 - 第一列固定，第二列拉伸
     ui->cloudtable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
     ui->cloudtable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->cloudtable->setColumnWidth(0, 120);
+    ui->cloudtable->setColumnWidth(0, 140);
 
-    // 设置属性表格列宽自适应
-    // 第一列（属性名）固定宽度，第二列（值）可拉伸填充
-    ui->cloudtable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
-    ui->cloudtable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->cloudtable->setColumnWidth(0, 140);  // 第一列固定宽度，确保属性名显示完整
+    // 整行选中 + 交替行颜色
+    ui->cloudtable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->cloudtable->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->cloudtable->setAlternatingRowColors(true);
 
     // file
     connect(ui->actionOpen, &QAction::triggered, ui->cloudtree, &ct::CloudTree::addCloud);

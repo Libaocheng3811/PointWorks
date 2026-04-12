@@ -813,17 +813,25 @@ namespace ct
 
         // 更新属性表
         if (m_table) {
-            const int COLOR_MODE_ROW = 7;
-            m_table->removeCellWidget(4, 1); // point size
-            m_table->removeCellWidget(5, 1); // Opacity
-            m_table->removeCellWidget(6, 1); // Normal Checkbox
-            m_table->removeCellWidget(COLOR_MODE_ROW, 1); // Color Mode
+            const int POINT_SIZE_ROW = 6;
+            const int OPACITY_ROW = 7;
+            const int NORMALS_ROW = 8;
+            const int COLOR_MODE_ROW = 9;
+            const int TEXT_ROW_COUNT = 6; // 行 0-5 为纯文本行
 
-            // 清除文本内容
-            for(int i=0; i<4; ++i) {
+            m_table->removeCellWidget(POINT_SIZE_ROW, 1);
+            m_table->removeCellWidget(OPACITY_ROW, 1);
+            m_table->removeCellWidget(NORMALS_ROW, 1);
+            m_table->removeCellWidget(COLOR_MODE_ROW, 1);
+
+            // 清除文本内容 (行 0-5)
+            for(int i=0; i<TEXT_ROW_COUNT; ++i) {
                 if (m_table->item(i, 1)) m_table->item(i, 1)->setText("");
                 else m_table->setItem(i, 1, new QTableWidgetItem(""));
             }
+            // 重置 BBox/Center 行高
+            m_table->setRowHeight(4, m_table->rowHeight(0));
+            m_table->setRowHeight(5, m_table->rowHeight(0));
             m_cloudview->showCloudId(""); // 清空左下角 ID
 
             QList<QTreeWidgetItem*> selectedItems = getSelectedItems();
@@ -840,6 +848,34 @@ namespace ct
                     m_table->setItem(2, 1, new QTableWidgetItem(QString::number(update_cloud->size())));
                     m_table->setItem(3, 1, new QTableWidgetItem(QString::number(update_cloud->resolution())));
 
+                    // 2. BBox: 三行显示 X/Y/Z 的尺寸和范围
+                    {
+                        ct::Box box = update_cloud->box();
+                        ct::PointXYZ cmin = update_cloud->min();
+                        ct::PointXYZ cmax = update_cloud->max();
+                        QString bboxText = QString("X: %1 (%2 - %3)\nY: %4 (%5 - %6)\nZ: %7 (%8 - %9)")
+                            .arg(box.width, 0, 'f', 3).arg(cmin.x, 0, 'f', 3).arg(cmax.x, 0, 'f', 3)
+                            .arg(box.height, 0, 'f', 3).arg(cmin.y, 0, 'f', 3).arg(cmax.y, 0, 'f', 3)
+                            .arg(box.depth, 0, 'f', 3).arg(cmin.z, 0, 'f', 3).arg(cmax.z, 0, 'f', 3);
+                        QTableWidgetItem* bboxItem = new QTableWidgetItem(bboxText);
+                        bboxItem->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+                        m_table->setItem(4, 1, bboxItem);
+                        m_table->setRowHeight(4, 66);
+                    }
+
+                    // 3. Center: 三行显示 X/Y/Z 坐标
+                    {
+                        Eigen::Vector3f center = update_cloud->center();
+                        QString centerText = QString("X: %1\nY: %2\nZ: %3")
+                            .arg(center.x(), 0, 'f', 3)
+                            .arg(center.y(), 0, 'f', 3)
+                            .arg(center.z(), 0, 'f', 3);
+                        QTableWidgetItem* centerItem = new QTableWidgetItem(centerText);
+                        centerItem->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+                        m_table->setItem(5, 1, centerItem);
+                        m_table->setRowHeight(5, 66);
+                    }
+
                     // 2. 在视图左下角显示 ID
                     m_cloudview->showCloudId(QString::fromStdString(update_cloud->id()));
 
@@ -854,7 +890,7 @@ namespace ct
                                 m_cloudview->setPointCloudSize(QString::fromStdString(update_cloud->id()), value);
                                 m_cloudview->refresh();
                             });
-                    m_table->setCellWidget(4, 1, point_size);
+                    m_table->setCellWidget(POINT_SIZE_ROW, 1, point_size);
 
                     // 4. Opacity (DoubleSpinBox)
                     QDoubleSpinBox* opacity = new QDoubleSpinBox;
@@ -868,7 +904,7 @@ namespace ct
                                 m_cloudview->setPointCloudOpacity(QString::fromStdString(update_cloud->id()), value);
                                 m_cloudview->refresh();
                             });
-                    m_table->setCellWidget(5, 1, opacity);
+                    m_table->setCellWidget(OPACITY_ROW, 1, opacity);
 
                     // 5. Normals (Checkbox + Scale)
                     QWidget* normals_widget = new QWidget;
@@ -900,7 +936,7 @@ namespace ct
                     layout->addWidget(show_normals);
                     layout->addWidget(scale);
                     layout->addStretch();
-                    m_table->setCellWidget(6, 1, normals_widget);
+                    m_table->setCellWidget(NORMALS_ROW, 1, normals_widget);
 
                     // 6. Color Mode (ComboBox)
                     if (m_table->rowCount() <= COLOR_MODE_ROW) m_table->setRowCount(COLOR_MODE_ROW + 1);

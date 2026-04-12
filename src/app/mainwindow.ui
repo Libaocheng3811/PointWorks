@@ -407,21 +407,63 @@ QHeaderView {
       <widget class="QTableWidget" name="cloudtable">
        <property name="styleSheet">
         <string notr="true">QTableWidget{
-	border: 2px solid lightgray;
-	outline: 0px; 
-	border-radius: 8px;
-	background: white;
+	border: 1px solid #C0C4C8;
+	outline: 0px;
+	border-radius: 4px;
+	background: #FFFFFF;
+	alternate-background-color: #F5F7FA;
+}
+QTableWidget::item {
+	padding: 2px 4px;
+}
+QTableWidget::item:selected {
+	background-color: #EAF0F8;
+	color: #19232D;
+}
+/* SpinBox 美化 */
+QTableWidget QSpinBox,
+QTableWidget QDoubleSpinBox {
+	border: 1px solid #D0D4D8;
+	border-radius: 3px;
+	padding: 1px 4px;
+	background: transparent;
+	min-width: 60px;
+}
+QTableWidget QSpinBox::up-button,
+QTableWidget QDoubleSpinBox::up-button {
+	border: none;
+	width: 16px;
+}
+QTableWidget QSpinBox::down-button,
+QTableWidget QDoubleSpinBox::down-button {
+	border: none;
+	width: 16px;
+}
+QTableWidget QSpinBox::up-arrow,
+QTableWidget QDoubleSpinBox::up-arrow,
+QTableWidget QSpinBox::down-arrow,
+QTableWidget QDoubleSpinBox::down-arrow {
+	width: 8px;
+	height: 8px;
+}
+/* ComboBox 美化 */
+QTableWidget QComboBox {
+	border: 1px solid #D0D4D8;
+	border-radius: 3px;
+	padding: 1px 4px;
+	background: transparent;
+	min-width: 60px;
 }
 /* 垂直滚动条 */
 QScrollBar:vertical {
     background: transparent;
-    width: 8px;                     /* 设置滚动条宽度 */
+    width: 8px;
     margin: 0px;
 }
 
 QScrollBar::handle:vertical {
     background: #a6a6a6;
-    border-radius: 4px;             /* 圆角滑块 */
+    border-radius: 4px;
     min-height: 20px;
 }
 
@@ -437,7 +479,7 @@ QScrollBar::sub-line:vertical {
 /* 水平滚动条 */
 QScrollBar:horizontal {
     background: transparent;
-    height: 8px;                    /* 设置滚动条高度 */
+    height: 8px;
     margin: 0px;
 }
 
@@ -473,7 +515,7 @@ QScrollBar::sub-line:horizontal {
         <enum>Qt::CustomDashLine</enum>
        </property>
        <property name="rowCount">
-        <number>8</number>
+        <number>10</number>
        </property>
        <attribute name="horizontalHeaderVisible">
         <bool>true</bool>
@@ -481,6 +523,8 @@ QScrollBar::sub-line:horizontal {
        <attribute name="verticalHeaderVisible">
         <bool>false</bool>
        </attribute>
+       <row/>
+       <row/>
        <row/>
        <row/>
        <row/>
@@ -570,6 +614,26 @@ QScrollBar::sub-line:horizontal {
        </item>
        <item row="4" column="0">
         <property name="text">
+         <string>BBox</string>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+       </item>
+       <item row="5" column="0">
+        <property name="text">
+         <string>Center</string>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+       </item>
+       <item row="6" column="0">
+        <property name="text">
          <string>PointSize</string>
         </property>
         <property name="font">
@@ -582,7 +646,7 @@ QScrollBar::sub-line:horizontal {
           <normaloff>:/res/icon/view-app-grid-symbolic.svg</normaloff>:/res/icon/view-app-grid-symbolic.svg</iconset>
         </property>
        </item>
-       <item row="5" column="0">
+       <item row="7" column="0">
         <property name="text">
          <string>Opacity</string>
         </property>
@@ -596,7 +660,7 @@ QScrollBar::sub-line:horizontal {
           <normaloff>:/res/icon/view-reveal-symbolic.svg</normaloff>:/res/icon/view-reveal-symbolic.svg</iconset>
         </property>
        </item>
-       <item row="6" column="0">
+       <item row="8" column="0">
         <property name="text">
          <string>Normals</string>
         </property>
@@ -610,7 +674,7 @@ QScrollBar::sub-line:horizontal {
           <normaloff>:/res/icon/normal.svg</normaloff>:/res/icon/normal.svg</iconset>
         </property>
        </item>
-       <item row="7" column="0">
+       <item row="9" column="0">
         <property name="text">
          <string>Color</string>
         </property>
