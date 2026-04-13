@@ -1,6 +1,7 @@
 set(Srcs
     app/main.cpp
     app/mainwindow.cpp
+    app/python_connections.cpp
     edit/color.cpp
     edit/boundingbox.cpp
     edit/transformation.cpp
@@ -39,6 +40,7 @@ set(Srcs
 
 set(Hdrs
     app/mainwindow.h
+    app/python_connections.h
     app/projectmanager.h
     app/recentprojects.h
     edit/color.h
