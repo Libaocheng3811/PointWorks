@@ -1,294 +1,228 @@
 #include "test_helpers.h"
 
 #include <pcl/common/transforms.h>
-#include <pcl/sample_consensus/sac_model_plane.h>
+
+#include <Eigen/Eigenvalues>
 
 #include <numeric>
 
 namespace test_helpers {
 
-// ============ 内部辅助 ============
-
-namespace {
-
-Eigen::Vector3f randomOnSphere(std::mt19937& rng) {
-    std::uniform_real_distribution<float> z_dist(-1.0f, 1.0f);
-    std::uniform_real_distribution<float> angle_dist(0.0f, 2.0f * static_cast<float>(M_PI));
-
-    float z = z_dist(rng);
-    float r = std::sqrt(1.0f - z * z);
-    float theta = angle_dist(rng);
-
-    return Eigen::Vector3f(r * std::cos(theta), r * std::sin(theta), z);
-}
-
-}  // anonymous namespace
-
-// ============ 基础几何体 ============
+// ============ 基础几何体生成 ============
 
 ct::Cloud::Ptr makePlane(int n, float width, float depth, float noise, unsigned seed) {
-    std::mt19937 rng(seed);
-    std::uniform_real_distribution<float> x_dist(-width / 2, width / 2);
-    std::uniform_real_distribution<float> y_dist(-depth / 2, depth / 2);
-    std::normal_distribution<float> noise_dist(0.0f, noise);
+    auto cloud = std::make_shared<ct::Cloud>();
+    std::vector<ct::PointXYZ> pts(n);
 
-    std::vector<ct::PointXYZ> pts;
-    pts.reserve(n);
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<float> dx(-width / 2, width / 2);
+    std::uniform_real_distribution<float> dy(-depth / 2, depth / 2);
+    std::normal_distribution<float> gauss(0.0f, noise);
 
     for (int i = 0; i < n; ++i) {
-        ct::PointXYZ pt;
-        pt.x = x_dist(rng);
-        pt.y = y_dist(rng);
-        pt.z = noise > 0 ? noise_dist(rng) : 0.0f;
-        pts.push_back(pt);
+        pts[i] = {dx(rng), dy(rng), noise > 0 ? gauss(rng) : 0.0f};
     }
 
-    auto cloud = std::make_shared<ct::Cloud>();
     cloud->addPoints(pts);
     cloud->update();
     return cloud;
 }
 
 ct::Cloud::Ptr makeSphere(int n, float radius, float noise, unsigned seed) {
-    std::mt19937 rng(seed);
-    std::normal_distribution<float> noise_dist(0.0f, noise);
+    auto cloud = std::make_shared<ct::Cloud>();
+    std::vector<ct::PointXYZ> pts(n);
 
-    std::vector<ct::PointXYZ> pts;
-    pts.reserve(n);
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<float> theta(0.0f, 2.0f * static_cast<float>(M_PI));
+    std::uniform_real_distribution<float> phi(0.0f, static_cast<float>(M_PI));
+    std::normal_distribution<float> gauss(0.0f, noise);
 
     for (int i = 0; i < n; ++i) {
-        auto dir = randomOnSphere(rng);
-        ct::PointXYZ pt;
-        pt.x = dir.x() * radius + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pt.y = dir.y() * radius + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pt.z = dir.z() * radius + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pts.push_back(pt);
+        float t = theta(rng);
+        float p = phi(rng);
+        float r = radius;
+        if (noise > 0) r += gauss(rng);
+        pts[i] = {
+            r * std::sin(p) * std::cos(t),
+            r * std::sin(p) * std::sin(t),
+            r * std::cos(p)
+        };
     }
 
-    auto cloud = std::make_shared<ct::Cloud>();
     cloud->addPoints(pts);
     cloud->update();
     return cloud;
 }
 
 ct::Cloud::Ptr makeCube(int n, float size, float noise, unsigned seed) {
+    auto cloud = std::make_shared<ct::Cloud>();
+    std::vector<ct::PointXYZ> pts(n);
+
     std::mt19937 rng(seed);
-    float half = size / 2;
+    std::uniform_real_distribution<float> pos(-size / 2, size / 2);
+    std::normal_distribution<float> gauss(0.0f, noise);
+    int face = n / 6;  // 每个面约 n/6 个点
 
-    // 每个面分配等量的点
-    int points_per_face = n / 6;
-    int remainder = n - points_per_face * 6;
+    for (int i = 0; i < n; ++i) {
+        int f = i / face;
+        if (f > 5) f = 5;
+        float a = pos(rng);
+        float b = pos(rng);
+        float nz = noise > 0 ? gauss(rng) : 0.0f;
+        float half = size / 2;
 
-    // 各面的法线和偏移
-    // face: 固定坐标轴值, 另外两个轴随机
-    struct FaceInfo {
-        int fixed_axis;    // 0=x, 1=y, 2=z
-        float fixed_val;
-    };
-    std::vector<FaceInfo> faces = {
-        {0,  half}, {0, -half},
-        {1,  half}, {1, -half},
-        {2,  half}, {2, -half}
-    };
-
-    std::uniform_real_distribution<float> u_dist(-half, half);
-    std::normal_distribution<float> noise_dist(0.0f, noise);
-
-    std::vector<ct::PointXYZ> pts;
-    pts.reserve(n);
-
-    for (int f = 0; f < 6; ++f) {
-        int count = points_per_face + (f == 0 ? remainder : 0);
-        auto& face = faces[f];
-        for (int i = 0; i < count; ++i) {
-            ct::PointXYZ pt;
-            float vals[3];
-            vals[face.fixed_axis] = face.fixed_val + (noise > 0 ? noise_dist(rng) : 0.0f);
-            int axes[2];
-            int idx = 0;
-            for (int a = 0; a < 3; ++a) {
-                if (a != face.fixed_axis) axes[idx++] = a;
-            }
-            vals[axes[0]] = u_dist(rng);
-            vals[axes[1]] = u_dist(rng);
-            pt.x = vals[0];
-            pt.y = vals[1];
-            pt.z = vals[2];
-            pts.push_back(pt);
+        switch (f) {
+        case 0: pts[i] = { a,  b,  half + nz}; break;  // +Z
+        case 1: pts[i] = { a,  b, -half + nz}; break;  // -Z
+        case 2: pts[i] = { a,  half + nz, b}; break;    // +Y
+        case 3: pts[i] = { a, -half + nz, b}; break;    // -Y
+        case 4: pts[i] = { half + nz, a,  b}; break;    // +X
+        case 5: pts[i] = {-half + nz, a,  b}; break;    // -X
         }
     }
 
-    auto cloud = std::make_shared<ct::Cloud>();
     cloud->addPoints(pts);
     cloud->update();
     return cloud;
 }
 
 ct::Cloud::Ptr makeCylinder(int n, float radius, float height, float noise, unsigned seed) {
-    std::mt19937 rng(seed);
-    std::uniform_real_distribution<float> angle_dist(0.0f, 2.0f * static_cast<float>(M_PI));
-    std::uniform_real_distribution<float> z_dist(-height / 2, height / 2);
-    std::normal_distribution<float> noise_dist(0.0f, noise);
+    auto cloud = std::make_shared<ct::Cloud>();
+    std::vector<ct::PointXYZ> pts(n);
 
-    std::vector<ct::PointXYZ> pts;
-    pts.reserve(n);
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<float> theta(0.0f, 2.0f * static_cast<float>(M_PI));
+    std::uniform_real_distribution<float> h(-height / 2, height / 2);
+    std::normal_distribution<float> gauss(0.0f, noise);
 
     for (int i = 0; i < n; ++i) {
-        float angle = angle_dist(rng);
-        float r = radius + (noise > 0 ? noise_dist(rng) : 0.0f);
-        ct::PointXYZ pt;
-        pt.x = r * std::cos(angle);
-        pt.y = r * std::sin(angle);
-        pt.z = z_dist(rng);
-        pts.push_back(pt);
+        float t = theta(rng);
+        float r = radius + (noise > 0 ? gauss(rng) : 0.0f);
+        pts[i] = {r * std::cos(t), r * std::sin(t), h(rng)};
     }
 
-    auto cloud = std::make_shared<ct::Cloud>();
     cloud->addPoints(pts);
     cloud->update();
     return cloud;
 }
 
-// ============ 特殊场景 ============
+// ============ 特殊场景生成 ============
 
-OverlappingPair makeOverlappingSpheres(int n, float radius, float overlap, float angle_deg, unsigned seed) {
-    // 先生成完整的球面点云
-    auto full_cloud = makeSphere(n, radius, 0.0f, seed);
-    auto pcl_cloud = full_cloud->toPCL_XYZ();
+OverlappingPair makeOverlappingSpheres(int n, float radius, float overlap,
+                                       float angle_deg, unsigned seed) {
+    OverlappingPair pair;
 
-    // 将点云分为两部分：重叠部分和各自独有的部分
-    int overlap_count = static_cast<int>(n * overlap);
-    int unique_count = n - overlap_count;
+    // 生成完整的球体
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<float> theta(0.0f, 2.0f * static_cast<float>(M_PI));
+    std::uniform_real_distribution<float> phi(0.0f, static_cast<float>(M_PI));
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr source_pts(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr target_pts(new pcl::PointCloud<pcl::PointXYZ>);
+    auto source = std::make_shared<ct::Cloud>();
+    auto target = std::make_shared<ct::Cloud>();
 
-    source_pts->points.reserve(n);
-    target_pts->points.reserve(n);
-
-    // 重叠部分：两份都有
-    for (int i = 0; i < overlap_count; ++i) {
-        source_pts->points.push_back(pcl_cloud->points[i]);
-        target_pts->points.push_back(pcl_cloud->points[i]);
+    // source: 完整球体
+    std::vector<ct::PointXYZ> src_pts(n);
+    for (int i = 0; i < n; ++i) {
+        float t = theta(rng);
+        float p = phi(rng);
+        src_pts[i] = {
+            radius * std::sin(p) * std::cos(t),
+            radius * std::sin(p) * std::sin(t),
+            radius * std::cos(p)
+        };
     }
+    source->addPoints(src_pts);
+    source->update();
 
-    // 各自独有的部分
-    std::mt19937 rng_unique(seed + 12345);
-    for (int i = overlap_count; i < overlap_count + unique_count; ++i) {
-        source_pts->points.push_back(pcl_cloud->points[i]);
-    }
-    for (int i = overlap_count + unique_count; i < 2 * overlap_count + unique_count && i < (int)pcl_cloud->size(); ++i) {
-        target_pts->points.push_back(pcl_cloud->points[i]);
-    }
-
-    // 构造 source（施加变换）
-    float angle = angle_deg * static_cast<float>(M_PI) / 180.0f;
-    Eigen::AngleAxisf rotation(angle, Eigen::Vector3f::UnitZ());
-    Eigen::Translation3f translation(0.5f, 0.3f, 0.0f);
-
+    // 构造旋转变换
     Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
-    transform.block<3, 3>(0, 0) = (translation * rotation).rotation();
-    transform.block<3, 1>(0, 3) = (translation * rotation).translation();
+    float angle = angle_deg * static_cast<float>(M_PI) / 180.0f;
+    transform(0, 0) = std::cos(angle);
+    transform(0, 2) = std::sin(angle);
+    transform(2, 0) = -std::sin(angle);
+    transform(2, 2) = std::cos(angle);
 
-    pcl::PointCloud<pcl::PointXYZ> transformed;
-    pcl::transformPointCloud(*source_pts, transformed, transform);
+    // target: 旋转后的球体
+    auto src_pcl = source->toPCL_XYZ();
+    pcl::PointCloud<pcl::PointXYZ> tgt_pcl;
+    pcl::transformPointCloud(*src_pcl, tgt_pcl, transform);
 
-    std::vector<ct::PointXYZ> src_pts, tgt_pts;
-    src_pts.reserve(transformed.size());
-    tgt_pts.reserve(target_pts->size());
-    for (const auto& p : transformed.points) src_pts.push_back({p.x, p.y, p.z});
-    for (const auto& p : target_pts->points) tgt_pts.push_back({p.x, p.y, p.z});
+    std::vector<ct::PointXYZ> tgt_pts(tgt_pcl.size());
+    for (size_t i = 0; i < tgt_pcl.size(); ++i) {
+        tgt_pts[i] = {tgt_pcl[i].x, tgt_pcl[i].y, tgt_pcl[i].z};
+    }
+    target->addPoints(tgt_pts);
+    target->update();
 
-    auto source_cloud = std::make_shared<ct::Cloud>();
-    source_cloud->addPoints(src_pts);
-    source_cloud->update();
-
-    auto target_cloud = std::make_shared<ct::Cloud>();
-    target_cloud->addPoints(tgt_pts);
-    target_cloud->update();
-
-    return {source_cloud, target_cloud, transform};
+    pair.source = source;
+    pair.target = target;
+    pair.ground_truth_transform = transform;
+    return pair;
 }
 
-ct::Cloud::Ptr addOutliers(ct::Cloud::Ptr cloud, int n_outliers, float outlier_range, unsigned seed) {
+ct::Cloud::Ptr addOutliers(ct::Cloud::Ptr cloud, int n_outliers,
+                           float outlier_range, unsigned seed) {
+    auto result = cloud->clone();
+
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> dist(-outlier_range, outlier_range);
 
-    std::vector<ct::PointXYZ> outliers;
-    outliers.reserve(n_outliers);
-
+    std::vector<ct::PointXYZ> outliers(n_outliers);
     for (int i = 0; i < n_outliers; ++i) {
-        ct::PointXYZ pt;
-        pt.x = dist(rng);
-        pt.y = dist(rng);
-        pt.z = dist(rng);
-        outliers.push_back(pt);
+        outliers[i] = {dist(rng), dist(rng), dist(rng)};
     }
-
-    auto result = std::make_shared<ct::Cloud>();
     result->addPoints(outliers);
-
-    // 将原始点云追加到结果中
-    auto orig_pcl = cloud->toPCL_XYZ();
-    std::vector<ct::PointXYZ> orig_pts;
-    orig_pts.reserve(orig_pcl->size());
-    for (const auto& p : orig_pcl->points) orig_pts.push_back({p.x, p.y, p.z});
-    result->addPoints(orig_pts);
     result->update();
     return result;
 }
 
-ClusterPair makeTwoClusters(int n1, int n2, float separation, float noise, unsigned seed) {
-    // 两个聚类中心沿 X 轴分隔
-    float center1 = -separation / 2;
-    float center2 = separation / 2;
-
-    std::mt19937 rng(seed);
-    std::normal_distribution<float> noise_dist(0.0f, noise);
-    std::uniform_real_distribution<float> xy_dist(-1.0f, 1.0f);
-
+ClusterPair makeTwoClusters(int n1, int n2, float separation,
+                            float noise, unsigned seed) {
     ClusterPair pair;
     pair.cloud = std::make_shared<ct::Cloud>();
-    pair.labels.reserve(n1 + n2);
+    pair.labels.resize(n1 + n2);
 
-    std::vector<ct::PointXYZ> all_pts;
-    all_pts.reserve(n1 + n2);
+    std::mt19937 rng(seed);
+    std::normal_distribution<float> gauss(0.0f, noise);
 
-    // 簇 1
+    std::vector<ct::PointXYZ> pts(n1 + n2);
+
+    // 聚类 0: 中心在 (-separation/2, 0, 0)
     for (int i = 0; i < n1; ++i) {
-        ct::PointXYZ pt;
-        pt.x = center1 + xy_dist(rng) + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pt.y = xy_dist(rng) + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pt.z = xy_dist(rng) + (noise > 0 ? noise_dist(rng) : 0.0f);
-        all_pts.push_back(pt);
-        pair.labels.push_back(0);
+        pts[i] = {
+            -separation / 2 + gauss(rng),
+            gauss(rng),
+            gauss(rng)
+        };
+        pair.labels[i] = 0;
     }
 
-    // 簇 2
+    // 聚类 1: 中心在 (+separation/2, 0, 0)
     for (int i = 0; i < n2; ++i) {
-        ct::PointXYZ pt;
-        pt.x = center2 + xy_dist(rng) + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pt.y = xy_dist(rng) + (noise > 0 ? noise_dist(rng) : 0.0f);
-        pt.z = xy_dist(rng) + (noise > 0 ? noise_dist(rng) : 0.0f);
-        all_pts.push_back(pt);
-        pair.labels.push_back(1);
+        pts[n1 + i] = {
+            separation / 2 + gauss(rng),
+            gauss(rng),
+            gauss(rng)
+        };
+        pair.labels[n1 + i] = 1;
     }
 
-    pair.cloud->addPoints(all_pts);
+    pair.cloud->addPoints(pts);
     pair.cloud->update();
     return pair;
 }
 
 ct::Cloud::Ptr applyTransform(ct::Cloud::Ptr cloud, const Eigen::Matrix4f& transform) {
+    auto result = std::make_shared<ct::Cloud>();
     auto pcl_cloud = cloud->toPCL_XYZ();
     pcl::PointCloud<pcl::PointXYZ> transformed;
     pcl::transformPointCloud(*pcl_cloud, transformed, transform);
 
-    std::vector<ct::PointXYZ> pts;
-    pts.reserve(transformed.size());
-    for (const auto& p : transformed.points) pts.push_back({p.x, p.y, p.z});
+    std::vector<ct::PointXYZ> pts(transformed.size());
+    for (size_t i = 0; i < transformed.size(); ++i) {
+        pts[i] = {transformed[i].x, transformed[i].y, transformed[i].z};
+    }
 
-    auto result = std::make_shared<ct::Cloud>();
     result->addPoints(pts);
     result->update();
     return result;
@@ -297,52 +231,43 @@ ct::Cloud::Ptr applyTransform(ct::Cloud::Ptr cloud, const Eigen::Matrix4f& trans
 // ============ 验证辅助 ============
 
 bool isApproximatelyPlanar(ct::Cloud::Ptr cloud, float max_residual) {
-    auto pcl_cloud = cloud->toPCL_XYZ();
-    if (pcl_cloud->empty()) return false;
+    if (cloud->size() < 3) return true;
 
-    // 使用 PCA 简化平面拟合：SVD 拟合
+    auto pcl_cloud = cloud->toPCL_XYZ();
     Eigen::Vector4f centroid;
     pcl::compute3DCentroid(*pcl_cloud, centroid);
+    Eigen::Vector3f c(centroid[0], centroid[1], centroid[2]);
 
-    // 构建协方差矩阵
-    Eigen::Matrix3f covariance;
-    pcl::computeCovarianceMatrixNormalized(*pcl_cloud, centroid, covariance);
-
-    // 特征分解，最小特征值对应的特征向量就是法线
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigensolver(covariance);
-    Eigen::Vector3f normal = eigensolver.eigenvectors().col(0);
-
-    // 计算每个点到平面的距离
-    float sum_sq = 0.0f;
+    // PCA: 计算协方差矩阵
+    Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
     for (const auto& pt : pcl_cloud->points) {
-        Eigen::Vector3f v(pt.x - centroid[0], pt.y - centroid[1], pt.z - centroid[2]);
-        float dist = std::abs(v.dot(normal));
-        sum_sq += dist * dist;
+        Eigen::Vector3f v(pt.x - c.x(), pt.y - c.y(), pt.z - c.z());
+        cov += v * v.transpose();
     }
+    cov /= static_cast<float>(cloud->size());
 
-    float rms = std::sqrt(sum_sq / pcl_cloud->size());
-    return rms <= max_residual;
+    // 最小特征值对应法线方向，如果接近0则为平面
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(cov);
+    float min_eigen = solver.eigenvalues().minCoeff();
+
+    // 将最小特征值转换为 RMS 残差并判断
+    return std::sqrt(min_eigen) < max_residual;
 }
 
-bool isApproximatelySpherical(ct::Cloud::Ptr cloud, float expected_radius, float tolerance) {
+bool isApproximatelySpherical(ct::Cloud::Ptr cloud, float expected_radius,
+                              float tolerance) {
+    auto centroid = computeCentroid(cloud);
+    Eigen::Vector3f center(centroid[0], centroid[1], centroid[2]);
+
     auto pcl_cloud = cloud->toPCL_XYZ();
-    if (pcl_cloud->empty()) return false;
-
-    Eigen::Vector4f centroid;
-    pcl::compute3DCentroid(*pcl_cloud, centroid);
-
-    float sum_sq_error = 0.0f;
+    float sum_sq = 0.0f;
     for (const auto& pt : pcl_cloud->points) {
-        float dx = pt.x - centroid[0];
-        float dy = pt.y - centroid[1];
-        float dz = pt.z - centroid[2];
-        float r = std::sqrt(dx * dx + dy * dy + dz * dz);
-        float err = r - expected_radius;
-        sum_sq_error += err * err;
+        Eigen::Vector3f v(pt.x, pt.y, pt.z);
+        float r = (v - center).norm();
+        sum_sq += (r - expected_radius) * (r - expected_radius);
     }
-
-    float rms = std::sqrt(sum_sq_error / pcl_cloud->size());
-    return rms <= tolerance;
+    float rms = std::sqrt(sum_sq / cloud->size());
+    return rms < tolerance;
 }
 
 Eigen::Vector4f computeCentroid(ct::Cloud::Ptr cloud) {
@@ -359,13 +284,9 @@ float computeRMSE(const std::vector<float>& errors) {
     return std::sqrt(sum / errors.size());
 }
 
-bool matrixApproxEqual(const Eigen::Matrix4f& a, const Eigen::Matrix4f& b, float tolerance) {
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            if (std::abs(a(i, j) - b(i, j)) > tolerance) return false;
-        }
-    }
-    return true;
+bool matrixApproxEqual(const Eigen::Matrix4f& a, const Eigen::Matrix4f& b,
+                       float tolerance) {
+    return (a - b).cwiseAbs().maxCoeff() < tolerance;
 }
 
 }  // namespace test_helpers

@@ -24,7 +24,7 @@ TEST(CloudTest, AddPoints_WithColor) {
     cloud->enableColors();
 
     std::vector<PointXYZ> pts(100);
-    std::vector<RGB> colors(100, {255, 0, 0});
+    std::vector<ColorRGB> colors(100, {255, 0, 0});
     cloud->addPoints(pts, &colors);
     cloud->update();
 
@@ -54,7 +54,7 @@ TEST(CloudTest, AddPoints_WithColorAndNormals) {
     cloud->enableNormals();
 
     std::vector<PointXYZ> pts(50);
-    std::vector<RGB> colors(50, {128, 64, 32});
+    std::vector<ColorRGB> colors(50, {128, 64, 32});
     std::vector<CompressedNormal> normals(50);
     Eigen::Vector3f n(0, 1, 0);
     for (auto& cn : normals) cn.set(n);
@@ -153,7 +153,7 @@ TEST(CloudTest, PCLInterop_XYZRGB) {
     auto cloud = std::make_shared<Cloud>();
     cloud->enableColors();
     std::vector<PointXYZ> pts(100);
-    std::vector<RGB> colors(100, {255, 128, 0});
+    std::vector<ColorRGB> colors(100, {255, 128, 0});
     cloud->addPoints(pts, &colors);
     cloud->update();
 
@@ -290,7 +290,7 @@ TEST(CloudTest, SetCloudColor_Solid) {
     auto cloud = test_helpers::makePlane(100);
     cloud->enableColors();
 
-    cloud->setCloudColor({255, 0, 0});
+    cloud->setCloudColor(ct::ColorRGB{255, 0, 0});
     EXPECT_TRUE(cloud->hasColors());
 }
 
@@ -298,12 +298,12 @@ TEST(CloudTest, ColorBackupRestore) {
     auto cloud = std::make_shared<Cloud>();
     cloud->enableColors();
     std::vector<PointXYZ> pts(10);
-    std::vector<RGB> colors(10, {255, 0, 0});
+    std::vector<ColorRGB> colors(10, {255, 0, 0});
     cloud->addPoints(pts, &colors);
     cloud->update();
 
     cloud->backupColors();
-    cloud->setCloudColor({0, 255, 0});
+    cloud->setCloudColor(ct::ColorRGB{0, 255, 0});
     EXPECT_TRUE(cloud->isColorModified());
 
     cloud->restoreColors();

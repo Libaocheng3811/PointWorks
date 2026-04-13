@@ -48,10 +48,10 @@ namespace ct {
             : id(id_), scale(scale_), pose(pose_) {}
     };
 
-    struct RGB {
-        RGB() = default;
+    struct ColorRGB {
+        ColorRGB() = default;
 
-        RGB(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
+        ColorRGB(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
 
         double rf() const { return (double) r / 255; }
 
@@ -114,14 +114,14 @@ namespace ct {
 
     // define color
     namespace Color {
-        const RGB White = {255, 255, 255};
-        const RGB Black = {0, 0, 0};
-        const RGB Red = {255, 0, 0};
-        const RGB Green = {0, 255, 0};
-        const RGB Blue = {0, 0, 255};
-        const RGB Yellow = {255, 255, 0};
-        const RGB Cyan = {0, 255, 255};
-        const RGB Purple = {255, 0, 255};
+        const ColorRGB White = {255, 255, 255};
+        const ColorRGB Black = {0, 0, 0};
+        const ColorRGB Red = {255, 0, 0};
+        const ColorRGB Green = {0, 255, 0};
+        const ColorRGB Blue = {0, 0, 255};
+        const ColorRGB Yellow = {255, 255, 0};
+        const ColorRGB Cyan = {0, 255, 255};
+        const ColorRGB Purple = {255, 0, 255};
     }
 
     /**

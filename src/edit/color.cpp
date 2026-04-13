@@ -162,7 +162,7 @@ void Color::apply()
                 // 为所有点云设置统一颜色
                 else
                 {
-                    cloud->setCloudColor(ct::RGB{static_cast<uint8_t>(m_rgb.red()),
+                    cloud->setCloudColor(ct::ColorRGB{static_cast<uint8_t>(m_rgb.red()),
                                              static_cast<uint8_t>(m_rgb.green()),
                                              static_cast<uint8_t>(m_rgb.blue())});
                     printI(QString("Apply cloud[id%1] point cloud[r:%2, g:%3, b:%4] done.")

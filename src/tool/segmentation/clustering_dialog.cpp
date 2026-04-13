@@ -562,7 +562,7 @@ void ClusteringDialog::onApply()
                 pcl::PointCloud<ct::PointXYZRGBN> merged_pcl;
 
                 // 为不同聚类分配颜色
-                std::vector<ct::RGB> palette = {
+                std::vector<ct::ColorRGB> palette = {
                     {255, 0, 0}, {0, 255, 0}, {0, 0, 255},
                     {255, 255, 0}, {255, 0, 255}, {0, 255, 255},
                     {128, 0, 0}, {0, 128, 0}, {0, 0, 128}, {128, 128, 0}

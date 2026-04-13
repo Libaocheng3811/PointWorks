@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <segmentation.h>
+#include <normals.h>
 #include "test_helpers.h"
 #include "macros.h"
 

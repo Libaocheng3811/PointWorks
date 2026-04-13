@@ -91,10 +91,10 @@ public:
             delete reinterpret_cast<ct::Cloud::Ptr*>(ptr);
         });
 
-        // ct::RGB 内存布局: {uint8_t r, g, b} = 3 bytes
+        // ct::ColorRGB 内存布局: {uint8_t r, g, b} = 3 bytes
         return py::array_t<uint8_t>(
             {static_cast<py::ssize_t>(colors.size()), static_cast<py::ssize_t>(3)},
-            {static_cast<py::ssize_t>(sizeof(ct::RGB)),
+            {static_cast<py::ssize_t>(sizeof(ct::ColorRGB)),
              static_cast<py::ssize_t>(sizeof(uint8_t))},
             reinterpret_cast<const uint8_t*>(colors.data()),
             capsule
@@ -115,7 +115,7 @@ public:
 
         auto& block = blocks[idx];
         if (!block->m_colors)
-            block->m_colors = std::make_unique<std::vector<ct::RGB>>();
+            block->m_colors = std::make_unique<std::vector<ct::ColorRGB>>();
 
         auto& colors = *block->m_colors;
         auto count = static_cast<size_t>(buf.shape[0]);
@@ -591,7 +591,7 @@ PYBIND11_EMBEDDED_MODULE(ct, m)
 
         // 5. Build color vectors (optional)
         bool has_colors = !colors_obj.is_none();
-        std::vector<ct::RGB> colors;
+        std::vector<ct::ColorRGB> colors;
         if (has_colors) {
             auto color_arr = py::cast<py::array_t<uint8_t>>(colors_obj);
             auto cbuf = color_arr.request();
@@ -1278,7 +1278,7 @@ PYBIND11_EMBEDDED_MODULE(ct, m)
         }
 
         bool has_colors = !colors_obj.is_none();
-        std::vector<ct::RGB> colors;
+        std::vector<ct::ColorRGB> colors;
         if (has_colors) {
             auto color_arr = py::cast<py::array_t<uint8_t>>(colors_obj);
             auto cbuf = color_arr.request();
@@ -1405,7 +1405,7 @@ PYBIND11_EMBEDDED_MODULE(ct, m)
         for (auto& c : clouds) {
             for (auto& block : c->getBlocks()) {
                 std::vector<ct::PointXYZ> pts = block->m_points;
-                std::vector<ct::RGB> colors;
+                std::vector<ct::ColorRGB> colors;
                 if (c->hasColors() && block->m_colors) {
                     colors = *block->m_colors;
                     merged->addPoints(pts, &colors);

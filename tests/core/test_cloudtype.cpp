@@ -71,24 +71,24 @@ TEST(CompressedNormalTest, NonZeroAfterSet) {
     EXPECT_FALSE(cn.isZero());
 }
 
-// ===== RGB =====
+// ===== ColorRGB =====
 
-TEST(RGBTest, DefaultWhite) {
-    RGB c;
+TEST(ColorRGBTest, DefaultWhite) {
+    ColorRGB c;
     EXPECT_EQ(c.r, 255);
     EXPECT_EQ(c.g, 255);
     EXPECT_EQ(c.b, 255);
 }
 
-TEST(RGBTest, ConstructFromValues) {
-    RGB c(128, 64, 32);
+TEST(ColorRGBTest, ConstructFromValues) {
+    ColorRGB c(128, 64, 32);
     EXPECT_EQ(c.r, 128);
     EXPECT_EQ(c.g, 64);
     EXPECT_EQ(c.b, 32);
 }
 
-TEST(RGBTest, FloatConversion) {
-    RGB c(255, 128, 0);
+TEST(ColorRGBTest, FloatConversion) {
+    ColorRGB c(255, 128, 0);
     EXPECT_DOUBLE_EQ(c.rf(), 1.0);
     EXPECT_NEAR(c.gf(), 128.0 / 255.0, 1e-6);
     EXPECT_DOUBLE_EQ(c.bf(), 0.0);

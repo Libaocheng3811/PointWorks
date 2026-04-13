@@ -23,8 +23,8 @@ namespace ct{
 
         // --- 核心数据存储 ---
         std::vector<pcl::PointXYZ> m_points;
-        std::unique_ptr<std::vector<ct::RGB>> m_colors;
-        std::unique_ptr<std::vector<ct::RGB>> m_backup_colors;
+        std::unique_ptr<std::vector<ct::ColorRGB>> m_colors;
+        std::unique_ptr<std::vector<ct::ColorRGB>> m_backup_colors;
         std::unique_ptr<std::vector<ct::CompressedNormal>> m_normals;
         std::map<std::string, std::vector<float>> m_scalar_fields;
 
@@ -56,14 +56,14 @@ namespace ct{
         }
 
         void addPoint(const pcl::PointXYZ& pt,
-                      const ct::RGB* color,
+                      const ct::ColorRGB* color,
                       const ct::CompressedNormal* normal,
                       const std::map<std::string, float>* scalars = nullptr)
         {
             m_points.push_back(pt);
 
             if (color && !m_colors) {
-                m_colors = std::make_unique<std::vector<RGB>>();
+                m_colors = std::make_unique<std::vector<ColorRGB>>();
                 if (!m_points.empty()) {
                     m_colors->resize(m_points.size() - 1, ct::Color::White);
                 }

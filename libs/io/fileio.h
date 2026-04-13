@@ -21,7 +21,7 @@ namespace ct
     */
     struct CloudBatch {
         std::vector<PointXYZ> points;
-        std::vector<RGB> colors;
+        std::vector<ColorRGB> colors;
         std::vector<CompressedNormal> normals;
         std::map<std::string, std::vector<float>> scalars;
 

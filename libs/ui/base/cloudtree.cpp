@@ -557,7 +557,7 @@ namespace ct
                     }
                 }
 
-                const std::vector<ct::RGB>* colors = (has_color && block->m_colors) ? block->m_colors.get() : nullptr;
+                const std::vector<ct::ColorRGB>* colors = (has_color && block->m_colors) ? block->m_colors.get() : nullptr;
                 const std::vector<ct::CompressedNormal>* normals = (has_normal && block->m_normals) ? block->m_normals.get() : nullptr;
                 const std::map<std::string, std::vector<float>>* scalars = (!block->m_scalar_fields.empty()) ? &block->m_scalar_fields : nullptr;
 

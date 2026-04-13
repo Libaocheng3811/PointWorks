@@ -403,7 +403,7 @@ MainWindow::MainWindow(QWidget *parent) :
             }, Qt::QueuedConnection);
     connect(bridge, &ct::PythonBridge::signalSetCloudColorRGB,
             ui->cloudview, [this](const QString &id, float r, float g, float b) {
-                ui->cloudview->setPointCloudColor(id, ct::RGB{
+                ui->cloudview->setPointCloudColor(id, ct::ColorRGB{
                         static_cast<uint8_t>(std::min(std::max(r * 255.f, 0.f), 255.f)),
                         static_cast<uint8_t>(std::min(std::max(g * 255.f, 0.f), 255.f)),
                         static_cast<uint8_t>(std::min(std::max(b * 255.f, 0.f), 255.f))});
@@ -426,7 +426,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // ---- 场景外观 → CloudView ----
     connect(bridge, &ct::PythonBridge::signalSetBackgroundColor,
             ui->cloudview, [this](float r, float g, float b) {
-                ui->cloudview->setBackgroundColor(ct::RGB{
+                ui->cloudview->setBackgroundColor(ct::ColorRGB{
                         static_cast<uint8_t>(std::min(std::max(r * 255.f, 0.f), 255.f)),
                         static_cast<uint8_t>(std::min(std::max(g * 255.f, 0.f), 255.f)),
                         static_cast<uint8_t>(std::min(std::max(b * 255.f, 0.f), 255.f))});
@@ -486,7 +486,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 pt2.x = x2;
                 pt2.y = y2;
                 pt2.z = z2;
-                ct::RGB rgb;
+                ct::ColorRGB rgb;
                 rgb.r = static_cast<uint8_t>(r * 255);
                 rgb.g = static_cast<uint8_t>(g * 255);
                 rgb.b = static_cast<uint8_t>(b * 255);
@@ -498,7 +498,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 if (item) {
                     auto cloud = ui->cloudtree->getCloud(item);
                     if (cloud) {
-                        ct::RGB rgb;
+                        ct::ColorRGB rgb;
                         rgb.r = static_cast<uint8_t>(r * 255);
                         rgb.g = static_cast<uint8_t>(g * 255);
                         rgb.b = static_cast<uint8_t>(b * 255);
@@ -508,7 +508,7 @@ MainWindow::MainWindow(QWidget *parent) :
             }, Qt::QueuedConnection);
     connect(bridge, &ct::PythonBridge::signalSetShapeColor,
             ui->cloudview, [this](const QString &id, float r, float g, float b) {
-                ct::RGB rgb;
+                ct::ColorRGB rgb;
                 rgb.r = static_cast<uint8_t>(r * 255);
                 rgb.g = static_cast<uint8_t>(g * 255);
                 rgb.b = static_cast<uint8_t>(b * 255);

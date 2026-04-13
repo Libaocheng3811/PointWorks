@@ -247,7 +247,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addPointCloudFromRangeImage(const pcl::RangeImage::Ptr &image, const QString &id, const ct::RGB &rgb)
+    void CloudView::addPointCloudFromRangeImage(const pcl::RangeImage::Ptr &image, const QString &id, const ct::ColorRGB &rgb)
     {
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointWithRange> range_image_color(image, rgb.r, rgb.g, rgb.b);
         // 判断是否添加了该点云，如果未添加就将点云数据和颜色添加到视图器中，否则就更新视图器
@@ -389,7 +389,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addPolygon(const Cloud::Ptr &cloud, const QString &id, const ct::RGB &rgb)
+    void CloudView::addPolygon(const Cloud::Ptr &cloud, const QString &id, const ct::ColorRGB &rgb)
     {
         // TODO 同样需要转换格式，性能损耗
         std::string std_id = id.toStdString();
@@ -428,7 +428,7 @@ namespace ct
     }
 
     void CloudView::addArrow(const ct::PointXYZRGBN &pt1, const ct::PointXYZRGBN &pt2, const QString &id,
-                             bool display_length, const ct::RGB &rgb)
+                             bool display_length, const ct::ColorRGB &rgb)
     {
         if (!m_viewer->contains(id.toStdString()))
             m_viewer->addArrow(pt1, pt2, rgb.rf(), rgb.gf(), rgb.bf(), display_length, id.toStdString());
@@ -453,7 +453,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addCube(const ct::PointXYZRGBN &min, ct::PointXYZRGBN &max, const QString &id, const ct::RGB &rgb)
+    void CloudView::addCube(const ct::PointXYZRGBN &min, ct::PointXYZRGBN &max, const QString &id, const ct::ColorRGB &rgb)
     {
         std::string std_id = id.toStdString();
         if (!m_viewer->contains(std_id))
@@ -579,7 +579,7 @@ namespace ct
         return PointXYZRGBN(point[0], point[1], point[2], 0, 0, 0);
     }
 
-    void CloudView::addPolygon2D(const std::vector<PointXY> &points, const QString &id, const ct::RGB &rgb)
+    void CloudView::addPolygon2D(const std::vector<PointXY> &points, const QString &id, const ct::ColorRGB &rgb)
     {
         Cloud::Ptr cloud(new Cloud);
 
@@ -701,7 +701,7 @@ namespace ct
 
         // 准备批量添加的容器，减少 addPoints 调用次数
         std::vector<PointXYZ> batch_pts;
-        std::vector<RGB> batch_colors;
+        std::vector<ColorRGB> batch_colors;
         std::vector<CompressedNormal> batch_normals;
         std::map<std::string, std::vector<float>> batch_scalars;
 
@@ -854,7 +854,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::setPointCloudColor(const Cloud::Ptr &cloud, const RGB& rgb)
+    void CloudView::setPointCloudColor(const Cloud::Ptr &cloud, const ColorRGB& rgb)
     {
         cloud->setCloudColor(rgb);
 
@@ -868,7 +868,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::setPointCloudColor(const QString &id, const RGB &rgb)
+    void CloudView::setPointCloudColor(const QString &id, const ColorRGB &rgb)
     {
         std::string sid = id.toStdString();
         for(auto& c : m_visible_clouds) {
@@ -934,7 +934,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::setBackgroundColor(const ct::RGB &rgb)
+    void CloudView::setBackgroundColor(const ct::ColorRGB &rgb)
     {
         m_render->GradientBackgroundOff();
         m_viewer->setBackgroundColor(rgb.rf(), rgb.gf(), rgb.bf());
@@ -950,7 +950,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::setShapeColor(const QString &shapeid, const RGB &rgb)
+    void CloudView::setShapeColor(const QString &shapeid, const ColorRGB &rgb)
     {
         m_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
                                               rgb.rf(), rgb.gf(), rgb.bf(), shapeid.toStdString());
@@ -1019,7 +1019,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::showInfo(const QString &text, int level, const RGB &rgb)
+    void CloudView::showInfo(const QString &text, int level, const ColorRGB &rgb)
     {
         // 比较获取优先级，维护最大的信息级别
         m_info_level = std::max(m_info_level, level);

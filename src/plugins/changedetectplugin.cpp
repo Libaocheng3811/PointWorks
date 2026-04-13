@@ -190,7 +190,7 @@ void ChangeDetectPlugin::onApply() {
         // 准备批量缓冲区
         struct CloudBuffer {
             std::vector<ct::PointXYZ> pts;
-            std::vector<ct::RGB> colors;
+            std::vector<ct::ColorRGB> colors;
             std::vector<ct::CompressedNormal> normals;
             std::vector<float> dists; // 距离标量值
 

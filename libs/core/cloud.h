@@ -48,10 +48,10 @@ namespace ct
         // ===== 八叉树构建与数据加载 =====
         void initOctree(const Box& globalBox);
 
-        void addPoint(const PointXYZ& pt, const RGB* color = nullptr, const CompressedNormal* normal = nullptr);
+        void addPoint(const PointXYZ& pt, const ColorRGB* color = nullptr, const CompressedNormal* normal = nullptr);
 
         void addPoints(const std::vector<PointXYZ>& pts,
-                       const std::vector<RGB>* colors = nullptr,
+                       const std::vector<ColorRGB>* colors = nullptr,
                        const std::vector<CompressedNormal>* normals = nullptr,
                        const std::map<std::string, std::vector<float>>* scalars = nullptr);
 
@@ -90,9 +90,9 @@ namespace ct
         void updateColorByField(const std::string& field_name);
 
         // ===== 颜色操作 =====
-        void setCloudColor(const RGB& rgb);
+        void setCloudColor(const ColorRGB& rgb);
         void setCloudColor(const std::string& axis);
-        void updateLODColorRecursive(OctreeNode* node, const RGB& rgb);
+        void updateLODColorRecursive(OctreeNode* node, const ColorRGB& rgb);
         const std::string& currentColorMode() const { return m_current_color_mode; }
 
         void backupColors();
@@ -119,11 +119,11 @@ namespace ct
         Box box() const {return m_box;}
         void setBox(const Box& box) {m_box = box;}
 
-        RGB boxColor() const {return m_box_rgb;}
-        void setBoxColor(const RGB& rgb) {m_box_rgb = rgb;}
+        ColorRGB boxColor() const {return m_box_rgb;}
+        void setBoxColor(const ColorRGB& rgb) {m_box_rgb = rgb;}
 
-        RGB normalColor() const {return m_normals_rgb;}
-        void setNormalColor(const RGB& rgb) {m_normals_rgb = rgb;}
+        ColorRGB normalColor() const {return m_normals_rgb;}
+        void setNormalColor(const ColorRGB& rgb) {m_normals_rgb = rgb;}
 
         const std::string& filepath() const {return m_filepath;}
         void setFilepath(const std::string& filepath) {m_filepath = filepath;}
@@ -170,7 +170,7 @@ namespace ct
         void copyFrom(const Cloud& other);
         void invalidateCache();
         CloudBlock* insertPointToOctree(OctreeNode* node, const PointXYZ& pt,
-                                 const RGB* color, const CompressedNormal* normal);
+                                 const ColorRGB* color, const CompressedNormal* normal);
 
         void splitNode(OctreeNode* node);
 
@@ -204,8 +204,8 @@ namespace ct
         std::string m_filepath;
         Box m_box;
 
-        RGB m_box_rgb;
-        RGB m_normals_rgb;
+        ColorRGB m_box_rgb;
+        ColorRGB m_normals_rgb;
 
         int m_point_size = 1;
         float m_opacity = 1.0f;

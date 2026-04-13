@@ -190,7 +190,7 @@ namespace ct
         m_all_blocks.push_back(m_octree_root->m_block);
     }
 
-    void Cloud::addPoint(const PointXYZ& pt, const RGB* color, const CompressedNormal* normal)
+    void Cloud::addPoint(const PointXYZ& pt, const ColorRGB* color, const CompressedNormal* normal)
     {
         if (!m_octree_root) {
             Box defaultBox;
@@ -208,7 +208,7 @@ namespace ct
     }
 
     CloudBlock* Cloud::insertPointToOctree(OctreeNode* node, const PointXYZ& pt,
-                                           const RGB* color, const CompressedNormal* normal)
+                                           const ColorRGB* color, const CompressedNormal* normal)
     {
         // ---------------------------------------------------------
         // 情况 1: 当前是叶子节点 (Leaf Node)
@@ -321,7 +321,7 @@ namespace ct
                 }
 
                 // 继承父节点的属性状态 (如是否启用了颜色/法线)
-                if (m_has_rgb) newChild->m_block->m_colors = std::make_unique<std::vector<RGB>>();
+                if (m_has_rgb) newChild->m_block->m_colors = std::make_unique<std::vector<ColorRGB>>();
                 if (m_has_normals) newChild->m_block->m_normals = std::make_unique<std::vector<CompressedNormal>>();
 
                 // 处理颜色和法线的预留 (可选，如果内存允许)
@@ -330,7 +330,7 @@ namespace ct
 
                 // 如果当前插入的点带有颜色，确保新 Block 启用颜色
                 if (color && !newChild->m_block->m_colors) {
-                    newChild->m_block->m_colors = std::make_unique<std::vector<RGB>>();
+                    newChild->m_block->m_colors = std::make_unique<std::vector<ColorRGB>>();
                     m_has_rgb = true;
                 }
                 if (normal && !newChild->m_block->m_normals) {
@@ -442,7 +442,7 @@ namespace ct
 
                 // 同步属性状态 (颜色/法线/标量场注册)
                 if (m_has_rgb) {
-                    newChild->m_block->m_colors = std::make_unique<std::vector<RGB>>();
+                    newChild->m_block->m_colors = std::make_unique<std::vector<ColorRGB>>();
                     if (m_config.maxPointsPerBlock > 0) newChild->m_block->m_colors->reserve(m_config.maxPointsPerBlock);
                 }
                 if (m_has_normals) {
@@ -464,7 +464,7 @@ namespace ct
                 // 如果旧块有备份颜色，子块也需要初始化备份容器（虽然此时为空，待数据移入后可能需要处理）
                 // 通常 split 发生在加载阶段，备份颜色可能还不存在。如果是在编辑阶段 split，则需要处理。
                 if (oldBlock->m_backup_colors) {
-                    newChild->m_block->m_backup_colors = std::make_unique<std::vector<RGB>>();
+                    newChild->m_block->m_backup_colors = std::make_unique<std::vector<ColorRGB>>();
                 }
 
                 // 注册到全局列表
@@ -522,7 +522,7 @@ namespace ct
     }
 
     void Cloud::addPoints(const std::vector<PointXYZ>& pts,
-                          const std::vector<RGB>* colors,
+                          const std::vector<ColorRGB>* colors,
                           const std::vector<CompressedNormal>* normals,
                           const std::map<std::string, std::vector<float>>* scalars)
     {
@@ -557,7 +557,7 @@ namespace ct
 
         // 串行插入 (因为 insertPointToOctree 可能触发 split，涉及树结构修改，不适合并行)
         for (size_t i = 0; i < n; ++i) {
-            const RGB* c = (colors && i < colors->size()) ? &(*colors)[i] : nullptr;
+            const ColorRGB* c = (colors && i < colors->size()) ? &(*colors)[i] : nullptr;
             const CompressedNormal* nm = (normals && i < normals->size()) ? &(*normals)[i] : nullptr;
 
             // 插入几何数据 (可能触发 split)
@@ -587,7 +587,7 @@ namespace ct
     }
 
     void Cloud::addPoint(const ct::PointXYZRGBN &pt) {
-        RGB color(pt.r, pt.g, pt.b);
+        ColorRGB color(pt.r, pt.g, pt.b);
         CompressedNormal normal;
         normal.set(Eigen::Vector3f(pt.normal_x, pt.normal_y, pt.normal_z));
         addPoint(PointXYZ(pt.x, pt.y, pt.z), &color, &normal);
@@ -635,7 +635,7 @@ namespace ct
         // 遍历所有块，为每个块分配颜色内存
         for (auto& block : m_all_blocks) {
             if (!block->m_colors) {
-                block->m_colors = std::make_unique<std::vector<RGB>>();
+                block->m_colors = std::make_unique<std::vector<ColorRGB>>();
                 // 如果块里已经有点了，需要补齐白色
                 if (!block->m_points.empty()) {
                     block->m_colors->resize(block->size(), Color::White);
@@ -924,7 +924,7 @@ namespace ct
         return &full_data;
     }
 
-    void Cloud::setCloudColor(const RGB& rgb)
+    void Cloud::setCloudColor(const ColorRGB& rgb)
     {
         if (!m_has_rgb) enableColors();
         backupColors(); // 自动备份
@@ -1046,7 +1046,7 @@ namespace ct
         invalidateRenderCache();
     }
 
-    void Cloud::updateLODColorRecursive(OctreeNode* node, const RGB& rgb)
+    void Cloud::updateLODColorRecursive(OctreeNode* node, const ColorRGB& rgb)
     {
         if (!node) return;
 
@@ -1277,7 +1277,7 @@ namespace ct
             if (block->empty() || !block->m_colors) continue;
             if (block->m_backup_colors) continue; // 只保留第一次备份（原始颜色）
 
-            block->m_backup_colors = std::make_unique<std::vector<RGB>>(*block->m_colors);
+            block->m_backup_colors = std::make_unique<std::vector<ColorRGB>>(*block->m_colors);
         }
     }
 
@@ -1293,7 +1293,7 @@ namespace ct
             if (block->m_backup_colors) {
                 // 如果当前 m_colors 被释放了（比如调用过 disableColors），需要重新分配
                 if (!block->m_colors) {
-                    block->m_colors = std::make_unique<std::vector<RGB>>();
+                    block->m_colors = std::make_unique<std::vector<ColorRGB>>();
                 }
 
                 *block->m_colors = *block->m_backup_colors;
@@ -1376,7 +1376,7 @@ namespace ct
 
             // 颜色 (深拷贝 vector)
             if (src_block->m_colors)
-                dst_block->m_colors = std::make_unique<std::vector<RGB>>(*src_block->m_colors);
+                dst_block->m_colors = std::make_unique<std::vector<ColorRGB>>(*src_block->m_colors);
 
             // 法线
             if (src_block->m_normals)
@@ -1387,7 +1387,7 @@ namespace ct
 
             // 备份颜色
             if (src_block->m_backup_colors)
-                dst_block->m_backup_colors = std::make_unique<std::vector<RGB>>(*src_block->m_backup_colors);
+                dst_block->m_backup_colors = std::make_unique<std::vector<ColorRGB>>(*src_block->m_backup_colors);
 
             // 渲染状态
             dst_block->m_is_visible = src_block->m_is_visible;
@@ -1521,7 +1521,7 @@ namespace ct
             if (block->empty()) continue;
 
             // 基础属性
-            const std::vector<RGB>* c = (block->m_colors) ? block->m_colors.get() : nullptr;
+            const std::vector<ColorRGB>* c = (block->m_colors) ? block->m_colors.get() : nullptr;
             const std::vector<CompressedNormal>* n = (block->m_normals) ? block->m_normals.get() : nullptr;
 
             // 标量场 (std::map 指针)
@@ -1575,7 +1575,7 @@ namespace ct
         size_t batch_size = 50000;
 
         std::vector<PointXYZ> pts; pts.reserve(batch_size);
-        std::vector<RGB> colors; colors.reserve(batch_size);
+        std::vector<ColorRGB> colors; colors.reserve(batch_size);
         std::vector<CompressedNormal> normals; normals.reserve(batch_size);
 
         for (size_t i = 0; i < n; ++i) {
@@ -1630,7 +1630,7 @@ namespace ct
         size_t batch_size = 50000;
 
         std::vector<PointXYZ> pts; pts.reserve(batch_size);
-        std::vector<RGB> colors; colors.reserve(batch_size);
+        std::vector<ColorRGB> colors; colors.reserve(batch_size);
 
 
         for (size_t i = 0; i < n; ++i) {
@@ -1733,7 +1733,7 @@ namespace ct
                 size_t local_idx = index - current_offset;
 
                 if (block->m_colors) {
-                    const RGB& c = (*block->m_colors)[local_idx];
+                    const ColorRGB& c = (*block->m_colors)[local_idx];
                     return (c.r << 16) | (c.g << 8) | c.b;
                 } else {
                     return (255<<16) | (255<<8) | 255;

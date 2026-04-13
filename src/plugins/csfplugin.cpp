@@ -87,8 +87,8 @@ void CSFPlugin::onApply() {
 
         if (!m_cloud->hasColors()){
             // 如果没有RGB信息，手动赋色
-            ground_cloud->setCloudColor(ct::RGB{0, 255, 0}); // Green
-            off_ground_cloud->setCloudColor(ct::RGB{255, 0, 0}); // Red
+            ground_cloud->setCloudColor(ct::ColorRGB{0, 255, 0}); // Green
+            off_ground_cloud->setCloudColor(ct::ColorRGB{255, 0, 0}); // Red
         }
 
         // 处理地面点云

@@ -476,7 +476,7 @@ void RegionGrowingDialog::onApply()
                 // 合并模式：所有簇合并为一个点云，用颜色区分
                 pcl::PointCloud<ct::PointXYZRGBN> merged_pcl;
 
-                std::vector<ct::RGB> palette = {
+                std::vector<ct::ColorRGB> palette = {
                     {255, 0, 0}, {0, 255, 0}, {0, 0, 255},
                     {255, 255, 0}, {255, 0, 255}, {0, 255, 255},
                     {128, 0, 0}, {0, 128, 0}, {0, 0, 128}, {128, 128, 0}

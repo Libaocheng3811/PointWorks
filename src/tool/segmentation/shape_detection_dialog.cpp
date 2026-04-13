@@ -345,9 +345,9 @@ void ShapeDetectionDialog::onApply()
                 c->setId(m_cloud->id() + (i == 0 ? "-inlier" : "-outlier"));
                 c->makeAdaptive();
                 if (i == 0 && colorizeInliers) {
-                    c->setCloudColor(ct::RGB{0, 255, 0});
+                    c->setCloudColor(ct::ColorRGB{0, 255, 0});
                 } else if (i == 1) {
-                    c->setCloudColor(ct::RGB{255, 0, 0});
+                    c->setCloudColor(ct::ColorRGB{255, 0, 0});
                 }
                 results.push_back(c);
             }
