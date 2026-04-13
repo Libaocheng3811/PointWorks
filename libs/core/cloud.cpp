@@ -583,7 +583,13 @@ namespace ct
         }
 
         m_point_count += n;
-        if (colors) m_color_modified = true;
+        if (colors) {
+            m_color_modified = true;
+            m_has_rgb = true;
+        }
+        if (normals) {
+            m_has_normals = true;
+        }
     }
 
     void Cloud::addPoint(const ct::PointXYZRGBN &pt) {

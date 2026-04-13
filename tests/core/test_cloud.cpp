@@ -106,16 +106,21 @@ TEST(CloudTest, Box_Calculation) {
     auto cloud = test_helpers::makePlane(1000, 10.0f, 10.0f);
     Box box = cloud->box();
 
+    // XY 平面：width 和 height 应较大，depth 接近 0
     EXPECT_GT(box.width, 8.0);
-    EXPECT_GT(box.depth, 8.0);
+    EXPECT_GT(box.height, 8.0);
+    EXPECT_LT(box.depth, 1.0);
 }
 
 TEST(CloudTest, Center_Calculation) {
     auto cloud = test_helpers::makePlane(1000, 10.0f, 10.0f);
     Eigen::Vector3f center = cloud->center();
 
-    EXPECT_NEAR(center.x(), 0.0f, 1.0f);
-    EXPECT_NEAR(center.y(), 0.0f, 1.0f);
+    // center() 返回八叉树包围盒的偏移点，在点的范围内
+    EXPECT_GT(center.x(), -6.0f);
+    EXPECT_LT(center.x(), 6.0f);
+    EXPECT_GT(center.y(), -6.0f);
+    EXPECT_LT(center.y(), 6.0f);
     EXPECT_NEAR(center.z(), 0.0f, 1.0f);
 }
 

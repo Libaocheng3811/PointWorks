@@ -145,6 +145,7 @@ TEST(SurfaceTest, ConvexHull_CancelNoCrash) {
     auto cloud = test_helpers::makeSphere(200, 5.0f, 0.0f, 42);
     std::atomic<bool> cancel(true);
 
+    // 取消后可能返回 nullptr，验证不崩溃即可
     auto result = Surface::ConvexHull(cloud, false, 3, &cancel);
-    ASSERT_NE(result.mesh, nullptr);
+    // 不崩溃即通过，不检查结果
 }

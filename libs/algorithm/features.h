@@ -156,6 +156,7 @@ namespace ct
                                                                std::function<void(int)> on_progress = nullptr);
 
         static LRFResult SHOTLocalReferenceFrameEstimation(const Cloud::Ptr& cloud,
+                                                             float radius = 0.0f,
                                                              std::atomic<bool>* cancel = nullptr,
                                                              std::function<void(int)> on_progress = nullptr);
 

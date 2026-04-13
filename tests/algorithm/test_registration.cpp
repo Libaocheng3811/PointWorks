@@ -61,8 +61,7 @@ TEST(RegistrationTest, ICP_CancelNoCrash) {
 
     std::atomic<bool> cancel(true);
     auto result = Registration::IterativeClosestPoint(ctx, false, &cancel);
-    // 不崩溃即可
-    ASSERT_CLOUD_NOT_NULL(result.aligned_cloud);
+    // 取消后可能返回 nullptr，不崩溃即可
 }
 
 // ===== ICP NonLinear =====

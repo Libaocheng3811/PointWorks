@@ -56,9 +56,9 @@ TEST(DistanceC2CTest, DistanceCountMatchesSource) {
     C2CParams params;
     params.method = C2CParams::C2C_NEAREST;
 
-    auto result = DistanceCalculator::calculateC2C(source, target, params);
+    // calculateC2C(ref, comp): 为 comp 的每个点计算到 ref 的最近距离
+    auto result = DistanceCalculator::calculateC2C(target, source, params);
     EXPECT_TRUE(result.success) << result.error_msg;
-    // 距离数量应与源点云点数一致
     EXPECT_EQ(result.distances.size(), source->size());
 }
 

@@ -666,6 +666,7 @@ namespace ct
     }
 
     LRFResult Features::SHOTLocalReferenceFrameEstimation(const Cloud::Ptr& cloud,
+                                                           float radius,
                                                            std::atomic<bool>* cancel, std::function<void(int)> on_progress)
     {
         if (cancel) cancel->store(false);
@@ -684,6 +685,8 @@ namespace ct
         est.setInputCloud(pcl_cloud);
         est.setSearchMethod(tree);
         est.setNumberOfThreads(1);
+        if (radius > 0) est.setRadiusSearch(radius);
+        else est.setRadiusSearch(0.01f);
 
         _progress(40);
 
