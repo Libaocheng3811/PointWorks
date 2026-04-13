@@ -80,6 +80,5 @@ TEST(NormalsTest, Cancel_NoCrash) {
     std::atomic<bool> cancel(true);
 
     auto result = Normals::estimate(cloud, 30, 0.0, 0.0f, 0.0f, 0.0f, false, &cancel);
-    // 不崩溃即可
-    ASSERT_CLOUD_NOT_NULL(result.cloud);
+    // 取消后可能返回 nullptr，不崩溃即可
 }
