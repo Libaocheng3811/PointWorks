@@ -11,10 +11,10 @@ set(Srcs
     tool/pickpoints.cpp
     tool/filters.cpp
     tool/rangeimage.cpp
-    tool/align_by_centers.cpp
-    tool/global_registration.cpp
-    tool/fine_registration.cpp
-    tool/point_pairs_alignment.cpp
+    tool/align/align_by_centers.cpp
+    tool/align/global_registration.cpp
+    tool/align/fine_registration.cpp
+    tool/align/point_pairs_alignment.cpp
     tool/segmentation/shape_detection_dialog.cpp
     tool/segmentation/morphological_filter_dialog.cpp
     tool/segmentation/region_growing_dialog.cpp
@@ -51,10 +51,10 @@ set(Hdrs
     tool/pickpoints.h
     tool/filters.h
     tool/rangeimage.h
-    tool/align_by_centers.h
-    tool/global_registration.h
-    tool/fine_registration.h
-    tool/point_pairs_alignment.h
+    tool/align/align_by_centers.h
+    tool/align/global_registration.h
+    tool/align/fine_registration.h
+    tool/align/point_pairs_alignment.h
     tool/segmentation/shape_detection_dialog.h
     tool/segmentation/morphological_filter_dialog.h
     tool/segmentation/region_growing_dialog.h
