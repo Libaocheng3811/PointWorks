@@ -11,13 +11,14 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/range_image/range_image.h>
 #include <vtkGenericOpenGLRenderWindow.h>
-#include <vtkOrientationMarkerWidget.h>
+#include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkCaptionActor2D.h>
 #include <vtkTextProperty.h>
 #include <vtkSmartPointer.h>
 #include <vtkCallbackCommand.h>
 
 class vtkBillboardTextActor3D;
+#include "viewcube.h"
 
 #include <QMap>
 
@@ -384,11 +385,9 @@ namespace ct {
         /**
          * @brief 设置是否显示坐标系小部件
          */
-        void setShowAxes(const bool& enable)
-        {
-            m_axes->SetEnabled(enable);
-            m_viewer->getRenderWindow()->Render();
-        }
+        void setShowAxes(const bool& enable);
+
+        void syncViewCubeOrientation();
 
         ///////////////////////////////////////////////////////////
         // other
@@ -469,6 +468,7 @@ namespace ct {
 
     protected:
         void mousePressEvent(QMouseEvent* event) override;
+        void resizeEvent(QResizeEvent* event) override;
         void mouseReleaseEvent(QMouseEvent* event);
         void mouseMoveEvent(QMouseEvent* event);
 
@@ -515,7 +515,7 @@ namespace ct {
         pcl::visualization::PCLVisualizer::Ptr m_viewer;
         vtkSmartPointer<vtkRenderer> m_render;
         vtkSmartPointer<vtkGenericOpenGLRenderWindow> m_renderwindow;
-        vtkSmartPointer<vtkOrientationMarkerWidget> m_axes;
+        ViewCube* m_view_cube = nullptr;
 
         // 维护一个正在显示的Cloud::Ptr列表，方便进行预览模式切换
         std::vector<Cloud::Ptr> m_visible_clouds;

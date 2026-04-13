@@ -58,8 +58,7 @@ namespace ct
         m_info_level(0),
         m_last_id(""),
         m_render(vtkSmartPointer<vtkRenderer>::New()),
-        m_renderwindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New()),
-        m_axes(vtkSmartPointer<vtkOrientationMarkerWidget>::New())
+        m_renderwindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New())
     {
         m_renderwindow->AddRenderer(m_render);
         m_render->GetActiveCamera()->SetClippingRange(0.01, 10000.0);
@@ -106,17 +105,39 @@ namespace ct
                 m_viewer->updateText(data.text.toStdString(), 10, y_pos, 12,
                                      data.rgb.rf(), data.rgb.gf(), data.rgb.bf(), id);
             }
+
+            // ViewCube 定位到右下角
+            if (m_view_cube) {
+                m_view_cube->move(size.width() - m_view_cube->width() - 8,
+                                  size.height() - m_view_cube->height() - 8);
+            }
         });
 
-        vtkNew<vtkAxesActor> actor;
-        m_axes->SetOutlineColor(0.9300, 0.5700, 0.1300);
-        m_axes->SetOrientationMarker(actor);
-
-        m_axes->SetInteractor(this->interactor());
-        m_axes->SetViewport(0.9, 0, 1, 0.15);
-        m_axes->SetEnabled(true);
-        m_axes->InteractiveOn();
-        m_axes->InteractiveOff();
+        // ViewCube: 导航立方体（坐标系 + 立方体）
+        m_view_cube = new ViewCube(this);
+        m_view_cube->setCameraCallback(
+            [this](const Eigen::Vector3f& dir, const Eigen::Vector3f& up, bool smooth) {
+                if (smooth) {
+                    vtkCamera* cam = m_render->GetActiveCamera();
+                    double fp[3], pos[3];
+                    cam->GetFocalPoint(fp);
+                    cam->GetPosition(pos);
+                    double dist = std::sqrt(std::pow(pos[0]-fp[0], 2) +
+                                            std::pow(pos[1]-fp[1], 2) +
+                                            std::pow(pos[2]-fp[2], 2));
+                    m_viewer->setCameraPosition(
+                        fp[0] + dir.x() * dist, fp[1] + dir.y() * dist, fp[2] + dir.z() * dist,
+                        fp[0], fp[1], fp[2],
+                        up.x(), up.y(), up.z());
+                    if (m_auto_render) m_viewer->getRenderWindow()->Render();
+                } else {
+                    setView(dir, up);
+                }
+            });
+        m_view_cube->lower();
+        m_view_cube->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+        m_view_cube->show();
+        m_view_cube->raise();
 
         m_viewer->getRenderWindow()->Render();
     }
@@ -155,6 +176,9 @@ namespace ct
         static vtkCamera* lastCam = nullptr;
         static Eigen::Vector3f lastPos(0, 0, 0);
         static double lastFocal[3] = {0, 0, 0};
+
+        // 同步 ViewCube 朝向
+        syncViewCubeOrientation();
 
         vtkCamera* cam = m_render->GetActiveCamera();
         double* pos = cam->GetPosition();
@@ -1102,6 +1126,7 @@ namespace ct
                 );
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
+        syncViewCubeOrientation();
     }
 
     void CloudView::setTopView() {
@@ -1168,6 +1193,12 @@ namespace ct
         }
         m_render->ResetCameraClippingRange();
         m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::resizeEvent(QResizeEvent* event)
+    {
+        QVTKOpenGLNativeWidget::resizeEvent(event);
+        emit sizeChanged(event->size());
     }
 
     void CloudView::mousePressEvent(QMouseEvent *event)
@@ -1244,17 +1275,39 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
+
+
+    void CloudView::setShowAxes(const bool& enable)
+    {
+        if (m_view_cube) m_view_cube->setViewCubeEnabled(enable);
+    }
+
+    void CloudView::syncViewCubeOrientation()
+    {
+        if (!m_view_cube || !m_view_cube->isViewCubeEnabled()) return;
+        vtkCamera* cam = m_render->GetActiveCamera();
+        double pos[3], fp[3], up[3];
+        cam->GetPosition(pos);
+        cam->GetFocalPoint(fp);
+        cam->GetViewUp(up);
+        // ViewCube uses to-eye direction (pos - fp), not look direction (fp - pos)
+        Eigen::Vector3f dir(pos[0]-fp[0], pos[1]-fp[1], pos[2]-fp[2]);
+        dir.normalize();
+        Eigen::Vector3f cameraUp(up[0], up[1], up[2]);
+        m_view_cube->updateCameraOrientation(dir, cameraUp);
+    }
+
     ViewOptions CloudView::getViewOptions() const
     {
         ViewOptions opts;
-        opts.show_axes = m_axes->GetEnabled() != 0;
+        opts.show_axes = m_view_cube && m_view_cube->isViewCubeEnabled();
         opts.show_id = m_show_id;
         return opts;
     }
 
     void CloudView::setViewOptions(const ViewOptions& opts)
     {
-        m_axes->SetEnabled(opts.show_axes);
+        setShowAxes(opts.show_axes);
         setShowId(opts.show_id);
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }

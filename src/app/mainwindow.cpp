@@ -44,7 +44,6 @@
 
 #include "python/python_console.h"
 #include "python/python_editor.h"
-
 #include <algorithm>
 
 #include <QDesktopWidget>
