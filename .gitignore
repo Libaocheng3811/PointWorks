@@ -47,3 +47,6 @@ qrc_*.cpp
 
 # 忽略大型点云文件
 data/L16-1-M01-001_pred.ply
+
+# 忽略设计方案
+/planDocs

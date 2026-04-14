@@ -42,6 +42,7 @@
 #include "python/python_manager.h"
 #include "python/python_bridge.h"
 #include "python_connections.h"
+#include "help_launcher.h"
 
 #include "python/python_console.h"
 #include "python/python_editor.h"
@@ -323,6 +324,9 @@ MainWindow::MainWindow(QWidget *parent) :
     if (bridge) {
         ct::connectPythonSignals(bridge, ui->cloudview, ui->cloudtree, ui->console);
     }
+
+    // === About ===
+    connect(ui->actionAbout, &QAction::triggered, this, [this] { ct::HelpLauncher::showAbout(this); });
 
     // === 项目管理（自包含控制器） ===
     m_project_manager = new ProjectManager(ui->cloudtree, ui->cloudview, ui->menuOpenRecent, this);
