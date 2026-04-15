@@ -50,3 +50,6 @@ qrc_*.cpp
 
 # 忽略设计方案
 /planDocs
+
+/3rdparty/libE57-Format
+/3rdparty/Xerces-C
