@@ -189,6 +189,11 @@ namespace ct
         QList<QPair<QString, pcl::PolygonMesh::Ptr>> getLoadedMeshes() const;
 
         /**
+         * @brief 查询指定点云是否关联了 PolygonMesh
+         */
+        bool hasMesh(const QString& cloudId) const;
+
+        /**
          * @brief 聚焦视图到选中点云
          * 如果有选中项 -> 聚焦选中项的并集
          * 如果无选中项 -> 聚焦所有可见点云
@@ -233,6 +238,11 @@ namespace ct
         void savePointCloud(const Cloud::Ptr& cloud, const QString& filename, bool isBinary);
 
         /**
+         * @brief 保存 mesh 文件
+         */
+        void saveMeshFile(const pcl::PolygonMesh::Ptr& mesh, const QString& filename);
+
+        /**
          * @brief 删除点云的ID
          */
         void removedCloudId(const QString&);
@@ -244,9 +254,9 @@ namespace ct
 
     private slots:
         /**
-         * @brief 加载点云文件的结果
+         * @brief 加载点云文件的结果（含 mesh）
          */
-        void loadCloudResult(bool success, const Cloud::Ptr& cloud, float time);
+        void loadCloudResult(bool success, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh, float time);
 
     public slots:
         /// 标记点云为"脚本使用中"
@@ -260,6 +270,11 @@ namespace ct
          * @brief 保存点云文件的结果
          */
         void saveCloudResult(bool success, const QString& path, float time);
+
+        /**
+         * @brief 保存 mesh 文件的结果
+         */
+        void saveMeshResult(bool success, const QString& path, float time);
 
         /**
          * @brief 处理复选框状态改变事件

@@ -221,7 +221,22 @@ void ComputeHullDialog::onCompute()
 
             QString suffix = is_convex ? "_convex_hull" : "_concave_hull";
             QString result_id = QString::fromStdString(cloud->id()) + suffix;
-            m_cloudview->addPolygonMesh(result.mesh, result_id);
+
+            // 提取 mesh 顶点作为 Cloud 插入树中，并注册完整 mesh 以支持保存
+            pcl::PointCloud<ct::PointXYZRGBN> mesh_points;
+            pcl::fromPCLPointCloud2(result.mesh->cloud, mesh_points);
+            if (mesh_points.size() > 0) {
+                auto mesh_cloud = ct::Cloud::fromPCL_XYZRGBN(mesh_points);
+                mesh_cloud->setId(result_id.toStdString());
+                mesh_cloud->makeAdaptive();
+
+                QTreeWidgetItem* origin_item = m_cloudtree->getItemById(
+                    QString::fromStdString(cloud->id()));
+                m_cloudtree->insertCloud(mesh_cloud, origin_item, true,
+                                         ct::MountStrategy::Sibling);
+
+                m_cloudtree->registerMesh(result_id, result.mesh);
+            }
 
             printI(QString("%1 done in %2 ms, result: [%3]")
                        .arg(algo_name)

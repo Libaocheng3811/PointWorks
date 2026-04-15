@@ -24,6 +24,13 @@ struct CT_IO_EXPORT CloudEntry
     float opacity = 1.0f;
     bool is_visible = true;
 
+    // 扩展元数据
+    bool has_mesh = false;           // 是否关联了 PolygonMesh
+    QStringList scalar_fields;       // 标量场名称列表（仅记录名称）
+    bool has_colors = false;
+    bool has_normals = false;
+    QString cloud_type;              // "xyz", "XYZRGB", "XYZNormal", "XYZRGBNormal"
+
     QJsonObject toJson() const;
     static CloudEntry fromJson(const QJsonObject& obj);
 };
@@ -60,6 +67,11 @@ struct CT_IO_EXPORT ViewOptions
     bool show_axes = true;
     bool show_id = true;
 
+    // 背景色
+    bool use_gradient_bg = true;
+    double bg_color[3] = {0.0, 0.05, 0.08};
+    double bg_color2[3] = {0.05, 0.4, 0.6};
+
     QJsonObject toJson() const;
     static ViewOptions fromJson(const QJsonObject& obj);
 };
@@ -95,8 +107,8 @@ public:
     static QString toRelativePath(const QString& baseDir, const QString& absolutePath);
 
     /// 项目文件扩展名
-    static QString fileFilter() { return "PointWorks Project (*.ctp)"; }
-    static QString defaultSuffix() { return "ctp"; }
+    static QString fileFilter() { return "PointWorks Project (*.pwproj)"; }
+    static QString defaultSuffix() { return "pwproj"; }
 };
 
 } // namespace ct

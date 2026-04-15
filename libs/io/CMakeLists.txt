@@ -11,6 +11,7 @@ target_link_libraries(ct_io
         Qt${QT_VERSION_MAJOR}::Widgets
     PRIVATE
         LASlib
+        E57Format
 )
 
 target_compile_definitions(ct_io PRIVATE CT_BUILDING_CT_IO)

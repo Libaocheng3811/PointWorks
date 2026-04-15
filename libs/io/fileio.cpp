@@ -6,6 +6,16 @@
 #include "pcl/io/obj_io.h"
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/common/common.h>
+#include <pcl/surface/vtk_smoothing/vtk_utils.h>
+
+#include <vtkSTLReader.h>
+#include <vtkSTLWriter.h>
+#include <vtkPolyDataReader.h>
+#include <vtkPolyDataWriter.h>
+#include <vtkOBJReader.h>
+
+#include "E57SimpleReader.h"
+#include "E57SimpleWriter.h"
 
 #include "lasreader.hpp"
 #include "laswriter.hpp"
@@ -131,6 +141,7 @@ namespace ct
         emit progress(0);
 
         Cloud::Ptr cloud(new Cloud);
+        pcl::PolygonMesh::Ptr mesh; // 尝试加载面片
         QFileInfo fileInfo(filename);
         QString suffix = fileInfo.suffix().toLower();
         bool is_success = false;
@@ -139,19 +150,30 @@ namespace ct
         if (suffix == "las" || suffix == "laz"){
             is_success = loadLAS(filename, cloud);
         }
+        else if (suffix == "e57"){
+            is_success = loadE57(filename, cloud);
+        }
         else if (suffix == "ply" || suffix == "pcd"){
             is_success = loadPLY_PCD(filename, cloud);
+            // PLY 文件可能包含面片，尝试作为 mesh 加载
+            if (is_success && suffix == "ply") {
+                mesh.reset(new pcl::PolygonMesh);
+                if (pcl::io::loadPLYFile(filename.toLocal8Bit().toStdString(), *mesh) == 0
+                    && mesh->polygons.empty()) {
+                    mesh.reset(); // 没有面片，置空
+                }
+            }
         }
         else if (suffix == "txt" || suffix == "xyz" || suffix == "asc"){
             is_success = loadTXT(filename, cloud);
         }
         else{
-            is_success = loadGeneralPCL(filename, cloud);
+            is_success = loadGeneralPCL(filename, cloud, mesh);
         }
 
         // 失败处理
         if (!is_success || m_is_canceled){
-            emit loadCloudResult(false, cloud, time.toc());
+            emit loadCloudResult(false, cloud, mesh, time.toc());
             return;
         }
 
@@ -162,7 +184,7 @@ namespace ct
         cloud->update(); //更新包围盒，统计信息
 
         emit progress(100);
-        emit loadCloudResult(true, cloud, time.toc());
+        emit loadCloudResult(true, cloud, mesh, time.toc());
     }
 
     void FileIO::savePointCloud(const Cloud::Ptr &cloud, const QString &filename, bool isBinary) {
@@ -182,6 +204,9 @@ namespace ct
         if (suffix == "las" || suffix == "laz"){
             is_success = saveLAS(cloud, filename);
         }
+        else if (suffix == "e57"){
+            is_success = saveE57(cloud, filename);
+        }
         else if (suffix == "txt" || suffix == "xyz" || suffix == "csv"){
             is_success = saveTXT(cloud, filename);
         }
@@ -191,6 +216,55 @@ namespace ct
 
         if (is_success) emit saveCloudResult(true, filename, time.toc());
         else emit saveCloudResult(false, filename, time.toc());
+    }
+
+    void FileIO::saveMesh(const pcl::PolygonMesh::Ptr &mesh, const QString &filename) {
+        TicToc time;
+        time.tic();
+
+        bool is_success = saveMeshFile(mesh, filename);
+
+        if (is_success) emit saveMeshResult(true, filename, time.toc());
+        else emit saveMeshResult(false, filename, time.toc());
+    }
+
+    bool FileIO::saveMeshFile(const pcl::PolygonMesh::Ptr &mesh, const QString &filename) {
+        if (!mesh || mesh->polygons.empty()) return false;
+
+        QFileInfo fileInfo(filename);
+        QString suffix = fileInfo.suffix().toLower();
+        std::string path = filename.toLocal8Bit().toStdString();
+
+        emit progress(20);
+
+        int res = -1;
+        if (suffix == "obj") {
+            res = pcl::io::saveOBJFile(path, *mesh);
+        } else if (suffix == "stl") {
+            // 使用 VTK 直接写 STL（更可靠）
+            vtkSmartPointer<vtkPolyData> polydata;
+            pcl::VTKUtils::mesh2vtk(*mesh, polydata);
+            vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
+            writer->SetFileName(path.c_str());
+            writer->SetInputData(polydata);
+            writer->SetFileTypeToBinary();
+            res = writer->Write() ? 0 : -1;
+        } else if (suffix == "vtk") {
+            // 使用 VTK 直接写 VTK 格式
+            vtkSmartPointer<vtkPolyData> polydata;
+            pcl::VTKUtils::mesh2vtk(*mesh, polydata);
+            vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+            writer->SetFileName(path.c_str());
+            writer->SetInputData(polydata);
+            writer->SetFileTypeToBinary();
+            res = writer->Write() ? 0 : -1;
+        } else {
+            // 默认使用 PLY 格式保存 mesh（带面片）
+            res = pcl::io::savePLYFile(path, *mesh);
+        }
+
+        emit progress(100);
+        return res == 0;
     }
 
     bool FileIO::loadPLY_PCD(const QString &filename, Cloud::Ptr &cloud) {
@@ -959,17 +1033,61 @@ namespace ct
     }
 #endif
 
-    bool FileIO::loadGeneralPCL(const QString &filename, Cloud::Ptr &cloud) {
+    bool FileIO::loadGeneralPCL(const QString &filename, Cloud::Ptr &cloud, pcl::PolygonMesh::Ptr &mesh) {
         emit progress(5);
 
-        // 使用带法线和颜色的通用点类型
+        std::string path = filename.toLocal8Bit().toStdString();
+
+        // 使用带法线和颜色的通用点类型加载顶点
         pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 
         int res = -1;
-        if (filename.endsWith(".obj", Qt::CaseInsensitive))
-            res = pcl::io::loadOBJFile(filename.toLocal8Bit().toStdString(), *temp_cloud);
+        if (filename.endsWith(".obj", Qt::CaseInsensitive)) {
+            // 使用 VTK 的 OBJ Reader（比 PCL 的实现更健壮，能正确处理缺失材质文件）
+            vtkSmartPointer<vtkOBJReader> reader = vtkSmartPointer<vtkOBJReader>::New();
+            reader->SetFileName(path.c_str());
+            reader->Update();
+            vtkPolyData* polydata = reader->GetOutput();
+            if (polydata->GetNumberOfPoints() > 0) {
+                pcl::PolygonMesh::Ptr obj_mesh(new pcl::PolygonMesh);
+                pcl::VTKUtils::vtk2mesh(polydata, *obj_mesh);
+                pcl::fromPCLPointCloud2(obj_mesh->cloud, *temp_cloud);
+                if (!obj_mesh->polygons.empty()) {
+                    mesh = obj_mesh;
+                }
+                res = 0;
+            }
+        }
         else if (filename.endsWith(".ifs", Qt::CaseInsensitive))
-            res = pcl::io::loadIFSFile(filename.toLocal8Bit().toStdString(), *temp_cloud);
+            res = pcl::io::loadIFSFile(path, *temp_cloud);
+        else if (filename.endsWith(".stl", Qt::CaseInsensitive)) {
+            // STL 只有面片，使用 VTK 读取
+            vtkSmartPointer<vtkSTLReader> reader = vtkSmartPointer<vtkSTLReader>::New();
+            reader->SetFileName(path.c_str());
+            reader->Update();
+            vtkPolyData* polydata = reader->GetOutput();
+            if (polydata->GetNumberOfCells() > 0) {
+                pcl::PolygonMesh::Ptr stl_mesh(new pcl::PolygonMesh);
+                pcl::VTKUtils::vtk2mesh(polydata, *stl_mesh);
+                pcl::fromPCLPointCloud2(stl_mesh->cloud, *temp_cloud);
+                mesh = stl_mesh;
+                res = 0;
+            }
+        }
+        else if (filename.endsWith(".vtk", Qt::CaseInsensitive)) {
+            // VTK 使用 VTK 库直接读取
+            vtkSmartPointer<vtkPolyDataReader> reader = vtkSmartPointer<vtkPolyDataReader>::New();
+            reader->SetFileName(path.c_str());
+            reader->Update();
+            vtkPolyData* polydata = reader->GetOutput();
+            if (polydata->GetNumberOfCells() > 0) {
+                pcl::PolygonMesh::Ptr vtk_mesh(new pcl::PolygonMesh);
+                pcl::VTKUtils::vtk2mesh(polydata, *vtk_mesh);
+                pcl::fromPCLPointCloud2(vtk_mesh->cloud, *temp_cloud);
+                mesh = vtk_mesh;
+                res = 0;
+            }
+        }
 
         if (res == -1 || temp_cloud->empty()) return false;
 
@@ -1322,6 +1440,265 @@ namespace ct
         laswriter->close();
         delete laswriter;
         return true;
+    }
+
+    bool FileIO::loadE57(const QString &filename, Cloud::Ptr &cloud) {
+        emit progress(5);
+
+        std::string path = filename.toLocal8Bit().toStdString();
+
+        try {
+            e57::Reader reader(path, {});
+            if (!reader.IsOpen()) return false;
+
+            e57::E57Root file_header;
+            reader.GetE57Root(file_header);
+
+            int64_t scan_count = reader.GetData3DCount();
+            if (scan_count <= 0) return false;
+
+            emit progress(10);
+
+            // 合并所有扫描站到同一个 Cloud
+            // 先扫描所有站获取总点数和包围盒
+            size_t total_points = 0;
+            double global_min[3] = {DBL_MAX, DBL_MAX, DBL_MAX};
+            double global_max[3] = {-DBL_MAX, -DBL_MAX, -DBL_MAX};
+
+            bool has_color = false;
+            bool has_intensity = false;
+
+            std::vector<e57::Data3D> headers(scan_count);
+            for (int64_t i = 0; i < scan_count; ++i) {
+                if (m_is_canceled) return false;
+                reader.ReadData3D(i, headers[i]);
+                total_points += headers[i].pointCount;
+                if (headers[i].pointFields.colorRedField) has_color = true;
+                if (headers[i].pointFields.intensityField) has_intensity = true;
+            }
+
+            if (total_points == 0) return false;
+
+            // 从所有站的包围盒计算全局包围盒
+            for (int64_t i = 0; i < scan_count; ++i) {
+                auto& b = headers[i].cartesianBounds;
+                global_min[0] = std::min(global_min[0], b.xMinimum);
+                global_min[1] = std::min(global_min[1], b.yMinimum);
+                global_min[2] = std::min(global_min[2], b.zMinimum);
+                global_max[0] = std::max(global_max[0], b.xMaximum);
+                global_max[1] = std::max(global_max[1], b.yMaximum);
+                global_max[2] = std::max(global_max[2], b.zMaximum);
+            }
+
+            // Global Shift 检测
+            Eigen::Vector3d suggested_shift = Eigen::Vector3d::Zero();
+            if (std::abs(global_min[0]) > 10000.0 || std::abs(global_min[1]) > 10000.0) {
+                double sx = -std::floor(global_min[0] / 1000.0) * 1000.0;
+                double sy = -std::floor(global_min[1] / 1000.0) * 1000.0;
+                suggested_shift = Eigen::Vector3d(sx, sy, 0.0);
+
+                bool skipped = false;
+                emit requestGlobalShift(
+                    Eigen::Vector3d(global_min[0], global_min[1], global_min[2]),
+                    suggested_shift, skipped);
+                if (!skipped) cloud->setGlobalShift(-suggested_shift);
+            }
+
+            float shift_x = (float)suggested_shift.x();
+            float shift_y = (float)suggested_shift.y();
+            float shift_z = (float)suggested_shift.z();
+
+            // 初始化八叉树
+            Box box;
+            box.width  = (float)((global_max[0] - global_min[0]) * 1.01);
+            box.height = (float)((global_max[1] - global_min[1]) * 1.01);
+            box.depth  = (float)((global_max[2] - global_min[2]) * 1.01);
+            box.translation = Eigen::Vector3f(
+                (float)((global_min[0] + global_max[0]) * 0.5),
+                (float)((global_min[1] + global_max[1]) * 0.5),
+                (float)((global_min[2] + global_max[2]) * 0.5));
+            cloud->initOctree(box);
+
+            if (has_color) cloud->enableColors();
+
+            CloudBatch batch;
+            batch.reserve(BATCH_SIZE);
+
+            size_t points_loaded = 0;
+            int progress_interval = (total_points > 100) ? (size_t)(total_points / 80) : 1;
+
+            // 逐站读取
+            for (int64_t si = 0; si < scan_count; ++si) {
+                if (m_is_canceled) return false;
+
+                size_t count = headers[si].pointCount;
+                if (count == 0) continue;
+
+                // 配置数据缓冲区（缓冲区由 SetUpData3DPointsData 按 count 大小分配）
+                e57::Data3DPointsFloat data(headers[si]);
+
+                auto cv_reader = reader.SetUpData3DPointsData(si, count, data);
+
+                // read() 一次性读取该站全部点，返回实际读取数
+                unsigned got = cv_reader.read();
+
+                for (size_t i = 0; i < got; ++i) {
+                    // 跳过无效点
+                    if (data.cartesianInvalidState && data.cartesianInvalidState[i]) continue;
+
+                    float x = (float)data.cartesianX[i] + shift_x;
+                    float y = (float)data.cartesianY[i] + shift_y;
+                    float z = (float)data.cartesianZ[i] + shift_z;
+
+                    batch.points.emplace_back(x, y, z);
+
+                    if (has_color && data.colorRed && data.colorGreen && data.colorBlue) {
+                        if (!data.isColorInvalid || !data.isColorInvalid[i]) {
+                            batch.colors.emplace_back(
+                                (uint8_t)(data.colorRed[i] >> 8),
+                                (uint8_t)(data.colorGreen[i] >> 8),
+                                (uint8_t)(data.colorBlue[i] >> 8));
+                        } else {
+                            batch.colors.emplace_back(0, 0, 0);
+                        }
+                    }
+
+                    if (batch.points.size() >= BATCH_SIZE) {
+                        batch.flushTo(cloud);
+                    }
+                }
+
+                points_loaded += got;
+                cv_reader.close();
+
+                if (points_loaded % progress_interval < got) {
+                    int pct = 10 + (int)(80 * points_loaded / total_points);
+                    emit progress(pct);
+                }
+            }
+
+            if (!batch.empty()) batch.flushTo(cloud);
+
+            if (has_color) cloud->setHasColors(true);
+            cloud->makeAdaptive();
+
+            reader.Close();
+            emit progress(100);
+            return true;
+
+        } catch (const e57::E57Exception& e) {
+            // 读取失败，忽略
+            return false;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    bool FileIO::saveE57(const Cloud::Ptr &cloud, const QString &filename) {
+        std::string path = filename.toLocal8Bit().toStdString();
+
+        // 恢复原始坐标
+        Eigen::Vector3d shift = cloud->getGlobalShift();
+        bool has_shift = (shift != Eigen::Vector3d::Zero());
+
+        try {
+            e57::Writer writer(path, e57::WriterOptions{});
+            if (!writer.IsOpen()) return false;
+
+            emit progress(10);
+
+            size_t total = cloud->size();
+            if (total == 0) return false;
+
+            // 配置 Data3D 头
+            e57::Data3D header;
+            header.name = cloud->id();
+            header.pointCount = total;
+
+            // 坐标字段（必须）
+            header.pointFields.cartesianXField = true;
+            header.pointFields.cartesianYField = true;
+            header.pointFields.cartesianZField = true;
+            header.pointFields.cartesianInvalidStateField = true;
+
+            // 颜色字段（如果有）
+            bool has_color = cloud->hasColors();
+            if (has_color) {
+                header.pointFields.colorRedField = true;
+                header.pointFields.colorGreenField = true;
+                header.pointFields.colorBlueField = true;
+                header.pointFields.isColorInvalidField = true;
+                header.colorLimits.colorRedMinimum = 0;
+                header.colorLimits.colorRedMaximum = 65535;
+                header.colorLimits.colorGreenMinimum = 0;
+                header.colorLimits.colorGreenMaximum = 65535;
+                header.colorLimits.colorBlueMinimum = 0;
+                header.colorLimits.colorBlueMaximum = 65535;
+            }
+
+            // 创建 Data3D
+            int64_t data_index = writer.NewData3D(header);
+
+            // 分配缓冲区
+            e57::Data3DPointsFloat buffers(header);
+
+            // 设置写入器
+            auto cv_writer = writer.SetUpData3DPointsData(data_index, total, buffers);
+
+            emit progress(20);
+
+            // 遍历所有 Block 写入点
+            const auto& blocks = cloud->getBlocks();
+            size_t written = 0;
+            int progress_interval = (total > 100) ? (size_t)(total / 70) : 1;
+
+            float sx = (float)shift.x();
+            float sy = (float)shift.y();
+            float sz = (float)shift.z();
+
+            for (size_t bi = 0; bi < blocks.size(); ++bi) {
+                if (m_is_canceled) { writer.Close(); return false; }
+
+                const auto& block = blocks[bi];
+                size_t bsize = block->size();
+
+                for (size_t i = 0; i < bsize; ++i) {
+                    buffers.cartesianX[i] = block->m_points[i].x + sx;
+                    buffers.cartesianY[i] = block->m_points[i].y + sy;
+                    buffers.cartesianZ[i] = block->m_points[i].z + sz;
+                    buffers.cartesianInvalidState[i] = 0;
+
+                    if (has_color && block->m_colors) {
+                        auto& c = (*block->m_colors)[i];
+                        // E57 颜色是 16 位
+                        buffers.colorRed[i] = (uint16_t)c.r << 8;
+                        buffers.colorGreen[i] = (uint16_t)c.g << 8;
+                        buffers.colorBlue[i] = (uint16_t)c.b << 8;
+                        buffers.isColorInvalid[i] = 0;
+                    }
+                }
+
+                // 写入这一批
+                cv_writer.write(bsize);
+                written += bsize;
+
+                if (written % progress_interval < bsize) {
+                    int pct = 20 + (int)(70 * written / total);
+                    emit progress(pct);
+                }
+            }
+
+            cv_writer.close();
+            writer.Close();
+
+            emit progress(100);
+            return true;
+
+        } catch (const e57::E57Exception&) {
+            return false;
+        } catch (...) {
+            return false;
+        }
     }
 
     bool FileIO::saveTXT(const Cloud::Ptr &cloud, const QString &filename) {

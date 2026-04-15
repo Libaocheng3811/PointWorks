@@ -5,6 +5,8 @@
 #include "core/field_types.h"
 #include "core/exports.h"
 
+#include <pcl/PolygonMesh.h>
+
 #include <atomic>
 #include <QObject>
 #include <QString>
@@ -66,15 +68,19 @@ namespace ct
 
     signals:
         /**
-         * @brief 加载点云文件的结果
-         * @note const Cloud::Ptr &cloud 表示参数cloud是对Cloud::Ptr 类型的智能指针的引用，且这个引用是常量
+         * @brief 加载点云文件的结果（含 mesh，mesh 为空表示纯点云）
          */
-        void loadCloudResult(bool success, const Cloud::Ptr &cloud, float time);
+        void loadCloudResult(bool success, const Cloud::Ptr &cloud, const pcl::PolygonMesh::Ptr &mesh, float time);
 
         /**
          * @brief 保存点云文件的结果
          */
         void saveCloudResult(bool success, const QString &filename, float time);
+
+        /**
+         * @brief 保存 mesh 文件的结果
+         */
+        void saveMeshResult(bool success, const QString &filename, float time);
 
         /**
         * @brief 请求UI显示映射对话框 (阻塞式)
@@ -125,6 +131,13 @@ namespace ct
         void savePointCloud(const Cloud::Ptr &cloud, const QString &filename, bool isBinary);
 
         /**
+         * @brief 保存 mesh 文件
+         * @param mesh PolygonMesh 数据
+         * @param filename 保存的文件路径
+         */
+        void saveMesh(const pcl::PolygonMesh::Ptr &mesh, const QString &filename);
+
+        /**
          * @brief 取消当前操作
          */
         void cancel() { m_is_canceled = true;};
@@ -133,11 +146,15 @@ namespace ct
         bool loadLAS(const QString &filename, Cloud::Ptr &cloud);
         bool loadPLY_PCD(const QString &filename, Cloud::Ptr &cloud); // 支持自定义字段
         bool loadTXT(const QString &filename, Cloud::Ptr &cloud); // 支持交互
-        bool loadGeneralPCL(const QString &filename, Cloud::Ptr &cloud); // OBJ, IFS 等标准格式
+        bool loadGeneralPCL(const QString &filename, Cloud::Ptr &cloud, pcl::PolygonMesh::Ptr &mesh); // OBJ, IFS, STL, VTK
+        bool loadE57(const QString &filename, Cloud::Ptr &cloud); // E57 工业扫描格式
 
         bool saveLAS(const Cloud::Ptr &cloud, const QString &filename);
+        bool saveE57(const Cloud::Ptr &cloud, const QString &filename);
         bool saveTXT(const Cloud::Ptr &cloud, const QString &filename);
         bool savePCL(const Cloud::Ptr &cloud, const QString &filename, bool isBinary);
+
+        bool saveMeshFile(const pcl::PolygonMesh::Ptr &mesh, const QString &filename);
 
     private:
         std::atomic<bool> m_is_canceled{false};

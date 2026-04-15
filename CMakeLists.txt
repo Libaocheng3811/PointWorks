@@ -151,6 +151,27 @@ set(LASZIP_BUILD_STATIC ON CACHE BOOL "Build static laszip" FORCE)
 set(LASLIB_BUILD_STATIC ON CACHE BOOL "Build static laslib" FORCE)
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools" FORCE)
 
+# Xerces-C + libE57：使用预编译静态库
+set(LIBE57_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libE57")
+
+# xerces-c 静态库
+add_library(xerces-c STATIC IMPORTED)
+set_target_properties(xerces-c PROPERTIES
+    IMPORTED_LOCATION "${LIBE57_DIR}/lib/xerces-c_3.lib"
+    INTERFACE_INCLUDE_DIRECTORIES "${LIBE57_DIR}/include"
+)
+# xerces-c 依赖的 Windows 系统库
+target_link_libraries(xerces-c INTERFACE ws2_32 advapi32)
+
+# E57Format 静态库
+add_library(E57Format STATIC IMPORTED)
+set_target_properties(E57Format PROPERTIES
+    IMPORTED_LOCATION "${LIBE57_DIR}/lib/E57Format.lib"
+    INTERFACE_INCLUDE_DIRECTORIES "${LIBE57_DIR}/include"
+    INTERFACE_COMPILE_DEFINITIONS "E57FORMAT_STATIC_DEFINE"
+)
+target_link_libraries(E57Format INTERFACE xerces-c)
+
 add_subdirectory(3rdparty/pybind11)
 add_subdirectory(3rdparty/LASTools)
 add_subdirectory(3rdparty/CSF)

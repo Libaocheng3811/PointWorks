@@ -379,6 +379,7 @@ namespace ct {
          */
         void setShowFPS(const bool& enable)
         {
+            m_show_fps = enable;
             m_viewer->setShowFPS(enable);
         }
 
@@ -508,6 +509,7 @@ namespace ct {
         Q_DISABLE_COPY(CloudView);
 
         bool m_show_id;
+        bool m_show_fps = true;
         int m_info_level;
         QString m_last_id;
         QString m_current_id; // 用于记录当前显示的ID字符串

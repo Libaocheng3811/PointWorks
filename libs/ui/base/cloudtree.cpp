@@ -41,6 +41,7 @@ namespace ct
         // qRegisterMetaType 函数用于注册一个自定义类型，以便它可以被用于 Qt 的元对象系统
         qRegisterMetaType<Cloud::Ptr>("Cloud::Ptr &");
         qRegisterMetaType<Cloud::Ptr>("Cloud::Ptr");
+        qRegisterMetaType<pcl::PolygonMesh::Ptr>("pcl::PolygonMesh::Ptr");
         qRegisterMetaType<QList<ct::FieldInfo>>("QList<ct::FieldInfo>");
         qRegisterMetaType<QMap<QString, QString>>("QMap<QString, QString>&");
         qRegisterMetaType<ct::TxtImportParams>("ct::TxtImportParams");
@@ -52,9 +53,11 @@ namespace ct
         connect(&m_thread, &QThread::finished, m_fileio, &QObject::deleteLater);
         connect(m_fileio, &FileIO::loadCloudResult, this, &CloudTree::loadCloudResult);
         connect(m_fileio, &FileIO::saveCloudResult, this, &CloudTree::saveCloudResult);
+        connect(m_fileio, &FileIO::saveMeshResult, this, &CloudTree::saveMeshResult);
 
         connect(this, &CloudTree::loadPointCloud, m_fileio, &FileIO::loadPointCloud);
         connect(this, &CloudTree::savePointCloud, m_fileio, &FileIO::savePointCloud);
+        connect(this, &CloudTree::saveMeshFile, m_fileio, &FileIO::saveMesh);
         connect(this, &QTreeWidget::itemChanged, this, &CloudTree::itemChangedEvent);
         connect(this, &CloudTree::itemSelectionChanged, this, &CloudTree::itemSelectionChangedEvent);
 
@@ -92,7 +95,7 @@ namespace ct
          * pattern1 pattern2 ... 是一个或多个文件模式，它们定义了过滤器匹配的文件类型, 如 *.*, *.ply
          */
         // 定义了一个文件过滤器
-        QString filter = "All Supported(*.ply *.pcd *.las *.laz *.obj *.ifs *.txt *.asc *.xyz);;All Files(*.*)";
+        QString filter = "All Supported(*.ply *.pcd *.las *.laz *.obj *.stl *.vtk *.ifs *.e57 *.txt *.asc *.xyz);;All Files(*.*)";
         // 打开文件对话框,可以选择多个文件
         QStringList filePathList = QFileDialog::getOpenFileNames(this, tr("open cloud files"), m_path, filter);
         if (filePathList.isEmpty()) return;
@@ -353,26 +356,57 @@ namespace ct
         Cloud::Ptr cloud = getCloud(item);
         if (!cloud) return; // 如果是文件夹，不保存，返回空
 
-        QString filter = "PLY(*.ply);;PCD(*.pcd);;LAS(*.las);;TXT(*.txt)";
-        QString filepath = QFileDialog::getSaveFileName(this, tr("Save cloud file"), QString::fromStdString(cloud->id()), filter);
-        if (filepath.isEmpty()) return;
+        // 检查节点是否有关联的 mesh
+        QString cloudId = QString::fromStdString(cloud->id());
+        bool has_mesh = m_mesh_map.contains(cloudId) && !m_mesh_map[cloudId]->polygons.empty();
 
-        QMessageBox message_box(QMessageBox::NoIcon, "Saved format", tr("Save in binary or ascii format?"),
-                                QMessageBox::NoButton, this);
-        message_box.addButton(tr("Ascii"), QMessageBox::ActionRole);
-        message_box.addButton(tr("Binary"), QMessageBox::ActionRole)->setDefault(true);
-        message_box.addButton(QMessageBox::Cancel);
-        int k = message_box.exec();
-        if (k == QMessageBox::Cancel)
-        {
-            printW("Save cloud canceled.");
-            return;
+        // 根据是否有关联 mesh 构建不同的保存过滤器
+        QString filter;
+        if (has_mesh) {
+            filter = "PLY(*.ply);;OBJ(*.obj);;STL(*.stl);;VTK(*.vtk);;PCD(*.pcd);;LAS(*.las);;E57(*.e57);;TXT(*.txt)";
+        } else {
+            filter = "PLY(*.ply);;PCD(*.pcd);;LAS(*.las);;E57(*.e57);;TXT(*.txt)";
         }
 
-        showProgress("Saving Point Cloud...");
-        bindWorker(m_fileio);
+        QString filepath = QFileDialog::getSaveFileName(this, tr("Save file"), QString::fromStdString(cloud->id()), filter);
+        if (filepath.isEmpty()) return;
 
-        emit savePointCloud(cloud, filepath, k);
+        QFileInfo fi(filepath);
+        QString suffix = fi.suffix().toLower();
+
+        // 判断是否走 mesh 保存路径
+        // mesh 格式：obj, stl, vtk
+        // PLY: 如果有关联 mesh，默认保存为 mesh（含面片）
+        bool save_as_mesh = has_mesh && (suffix == "obj" || suffix == "stl" || suffix == "vtk" || suffix == "ply");
+
+        if (save_as_mesh) {
+            // Mesh 保存路径（PLY 也会保存面片信息）
+            showProgress("Saving Mesh...");
+            bindWorker(m_fileio);
+            emit saveMeshFile(m_mesh_map[cloudId], filepath);
+        } else if (suffix == "e57") {
+            // E57 无需选择 binary/ascii（自带压缩）
+            showProgress("Saving E57...");
+            bindWorker(m_fileio);
+            emit savePointCloud(cloud, filepath, true);
+        } else {
+            // 点云保存路径（PLY mesh 也走这里，让用户选择 binary/ascii）
+            QMessageBox message_box(QMessageBox::NoIcon, "Saved format", tr("Save in binary or ascii format?"),
+                                    QMessageBox::NoButton, this);
+            message_box.addButton(tr("Ascii"), QMessageBox::ActionRole);
+            message_box.addButton(tr("Binary"), QMessageBox::ActionRole)->setDefault(true);
+            message_box.addButton(QMessageBox::Cancel);
+            int k = message_box.exec();
+            if (k == QMessageBox::Cancel)
+            {
+                printW("Save cloud canceled.");
+                return;
+            }
+
+            showProgress("Saving Point Cloud...");
+            bindWorker(m_fileio);
+            emit savePointCloud(cloud, filepath, k);
+        }
     }
 
     void CloudTree::renameCloudItem(QTreeWidgetItem *item, const QString &name) {
@@ -617,7 +651,7 @@ namespace ct
         item->setSelected(selected);
     }
 
-    void CloudTree::loadCloudResult(bool success, const Cloud::Ptr &cloud, float time)
+    void CloudTree::loadCloudResult(bool success, const Cloud::Ptr &cloud, const pcl::PolygonMesh::Ptr &mesh, float time)
     {
         if (!success)
             printE("load the file failed!");
@@ -651,6 +685,13 @@ namespace ct
                 fileNode->setData(0, NodeFilePathRole, fullPath);
                 insertCloud(cloud, fileNode, true);
             }
+
+            // 如果加载了 mesh（含面片），注册到视图
+            if (mesh && !mesh->polygons.empty()) {
+                QString cloudId = QString::fromStdString(cloud->id());
+                registerMesh(cloudId, mesh);
+                printI(QString("Mesh detected: %1 polygons").arg(mesh->polygons.size()));
+            }
         }
         m_loading_queue_count--;
         if (m_loading_queue_count <= 0) {
@@ -677,6 +718,19 @@ namespace ct
         {
             m_path = path;
             printI(QString("Save the file [path:%1] done, take time %2 ms.").arg(path).arg(time));
+        }
+
+        closeProgress();
+    }
+
+    void CloudTree::saveMeshResult(bool success, const QString &path, float time)
+    {
+        if (!success)
+            printE("Save mesh file failed!");
+        else
+        {
+            m_path = path;
+            printI(QString("Save mesh file [path:%1] done, take time %2 ms.").arg(path).arg(time));
         }
 
         closeProgress();
@@ -1131,6 +1185,11 @@ namespace ct
             result.append(qMakePair(it.key(), it.value()));
         }
         return result;
+    }
+
+    bool CloudTree::hasMesh(const QString& cloudId) const
+    {
+        return m_mesh_map.contains(cloudId);
     }
 
     void CloudTree::zoomToSelected() {

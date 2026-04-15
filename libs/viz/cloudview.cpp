@@ -1300,15 +1300,38 @@ namespace ct
     ViewOptions CloudView::getViewOptions() const
     {
         ViewOptions opts;
+        opts.show_fps = m_show_fps;
         opts.show_axes = m_view_cube && m_view_cube->isViewCubeEnabled();
         opts.show_id = m_show_id;
+
+        // 背景色
+        double bg[3], bg2[3];
+        m_render->GetBackground(bg);
+        m_render->GetBackground2(bg2);
+        opts.use_gradient_bg = m_render->GetGradientBackground() != 0;
+        for (int i = 0; i < 3; ++i) {
+            opts.bg_color[i] = bg[i];
+            opts.bg_color2[i] = bg2[i];
+        }
+
         return opts;
     }
 
     void CloudView::setViewOptions(const ViewOptions& opts)
     {
+        setShowFPS(opts.show_fps);
         setShowAxes(opts.show_axes);
         setShowId(opts.show_id);
+
+        // 背景色
+        if (opts.use_gradient_bg) {
+            m_render->GradientBackgroundOn();
+            m_render->SetBackground2(opts.bg_color2[0], opts.bg_color2[1], opts.bg_color2[2]);
+        } else {
+            m_render->GradientBackgroundOff();
+        }
+        m_render->SetBackground(opts.bg_color[0], opts.bg_color[1], opts.bg_color[2]);
+
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 

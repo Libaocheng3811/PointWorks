@@ -28,6 +28,13 @@ QJsonObject CloudEntry::toJson() const
     shift["z"] = global_shift.z();
     obj["global_shift"] = shift;
 
+    // 扩展元数据
+    obj["has_mesh"] = has_mesh;
+    obj["has_colors"] = has_colors;
+    obj["has_normals"] = has_normals;
+    if (!cloud_type.isEmpty()) obj["cloud_type"] = cloud_type;
+    if (!scalar_fields.isEmpty()) obj["scalar_fields"] = QJsonArray::fromStringList(scalar_fields);
+
     return obj;
 }
 
@@ -45,6 +52,16 @@ CloudEntry CloudEntry::fromJson(const QJsonObject& obj)
     QJsonObject shift = obj["global_shift"].toObject();
     e.global_shift = Eigen::Vector3d(
         shift["x"].toDouble(0), shift["y"].toDouble(0), shift["z"].toDouble(0));
+
+    // 扩展元数据
+    e.has_mesh = obj["has_mesh"].toBool(false);
+    e.has_colors = obj["has_colors"].toBool(false);
+    e.has_normals = obj["has_normals"].toBool(false);
+    e.cloud_type = obj["cloud_type"].toString();
+
+    QJsonArray sf = obj["scalar_fields"].toArray();
+    for (const auto& s : sf)
+        e.scalar_fields.append(s.toString());
 
     return e;
 }
@@ -100,6 +117,15 @@ QJsonObject ViewOptions::toJson() const
     obj["show_fps"] = show_fps;
     obj["show_axes"] = show_axes;
     obj["show_id"] = show_id;
+
+    // 背景色
+    obj["use_gradient_bg"] = use_gradient_bg;
+    QJsonArray bg, bg2;
+    bg.append(bg_color[0]); bg.append(bg_color[1]); bg.append(bg_color[2]);
+    bg2.append(bg_color2[0]); bg2.append(bg_color2[1]); bg2.append(bg_color2[2]);
+    obj["bg_color"] = bg;
+    obj["bg_color2"] = bg2;
+
     return obj;
 }
 
@@ -109,6 +135,22 @@ ViewOptions ViewOptions::fromJson(const QJsonObject& obj)
     o.show_fps = obj["show_fps"].toBool(true);
     o.show_axes = obj["show_axes"].toBool(true);
     o.show_id = obj["show_id"].toBool(true);
+
+    // 背景色
+    o.use_gradient_bg = obj["use_gradient_bg"].toBool(true);
+    QJsonArray bg = obj["bg_color"].toArray();
+    if (bg.size() == 3) {
+        o.bg_color[0] = bg[0].toDouble();
+        o.bg_color[1] = bg[1].toDouble();
+        o.bg_color[2] = bg[2].toDouble();
+    }
+    QJsonArray bg2 = obj["bg_color2"].toArray();
+    if (bg2.size() == 3) {
+        o.bg_color2[0] = bg2[0].toDouble();
+        o.bg_color2[1] = bg2[1].toDouble();
+        o.bg_color2[2] = bg2[2].toDouble();
+    }
+
     return o;
 }
 

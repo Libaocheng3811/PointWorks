@@ -123,7 +123,7 @@ void ProjectManager::onOpenProject()
     }
 
     QString path = QFileDialog::getOpenFileName(m_parent_widget, "Open Project", QString(),
-        "PointWorks Project (*.pwp);;All Files (*)");
+        ct::ProjectFile::fileFilter() + ";;All Files (*)");
     if (path.isEmpty()) return;
     openProject(path);
 }
@@ -140,7 +140,7 @@ void ProjectManager::onSaveProject()
 void ProjectManager::onSaveProjectAs()
 {
     QString path = QFileDialog::getSaveFileName(m_parent_widget, "Save Project As", QString(),
-        "PointWorks Project (*.pwp);;All Files (*)");
+        ct::ProjectFile::fileFilter() + ";;All Files (*)");
     if (path.isEmpty()) return;
     saveProject(path);
 }
@@ -152,7 +152,7 @@ void ProjectManager::onOpenRecentProject()
     QString path = action->data().toString();
     if (path.isEmpty()) return;
 
-    if (path.endsWith(".pwp", Qt::CaseInsensitive)) {
+    if (path.endsWith(".pwproj", Qt::CaseInsensitive)) {
         openProject(path);
     } else {
         m_tree->loadCloudFile(path);
@@ -344,6 +344,16 @@ void ProjectManager::collectCloudEntries(const QString& projectDir, ct::ProjectD
 
         auto* item = m_tree->getItemById(entry.uuid);
         entry.is_visible = item ? (item->checkState(0) != Qt::Unchecked) : true;
+
+        // 扩展元数据
+        entry.has_mesh = m_tree->hasMesh(entry.uuid);
+        entry.has_colors = cloud->hasColors();
+        entry.has_normals = cloud->hasNormals();
+        entry.cloud_type = QString::fromStdString(cloud->type());
+
+        auto sfNames = cloud->getScalarFieldNames();
+        for (const auto& name : sfNames)
+            entry.scalar_fields.append(QString::fromStdString(name));
 
         data.clouds.append(entry);
     }
