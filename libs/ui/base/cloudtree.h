@@ -178,6 +178,16 @@ namespace ct
         void registerMesh(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh);
 
         /**
+         * @brief 注册带纹理的 PolygonMesh 到树节点
+         */
+        void registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh);
+
+        /**
+         * @brief 移除已注册的纹理 PolygonMesh
+         */
+        void unregisterTexturedMesh(const QString& cloudId);
+
+        /**
          * @brief 移除已注册的 PolygonMesh
          */
         void unregisterMesh(const QString& cloudId);
@@ -258,6 +268,11 @@ namespace ct
          */
         void loadCloudResult(bool success, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh, float time);
 
+        /**
+         * @brief 加载带纹理网格的结果
+         */
+        void loadTexturedMeshResult(const QString& cloudId, const QString& objFilePath);
+
     public slots:
         /// 标记点云为"脚本使用中"
         void markCloudInUse(const QString& id);
@@ -306,6 +321,7 @@ namespace ct
         QMap<QTreeWidgetItem*, Cloud::Ptr> m_cloud_map;
         QMap<QString, QTreeWidgetItem*> m_item_by_id;  // uuid -> item 反向索引
         QMap<QString, pcl::PolygonMesh::Ptr> m_mesh_map; // cloudId -> PolygonMesh
+        QMap<QString, TexturedMeshPtr> m_textured_mesh_map; // cloudId -> TexturedMesh
         QString m_path;
         QThread m_thread;
         FileIO* m_fileio;
@@ -337,5 +353,6 @@ Q_DECLARE_METATYPE(ct_StringFieldMap)
 Q_DECLARE_METATYPE(ct::TxtImportParams)
 Q_DECLARE_METATYPE(ct::TxtExportParams)
 Q_DECLARE_METATYPE(Eigen::Vector3d)
+Q_DECLARE_METATYPE(ct::TexturedMeshPtr)
 
 #endif //POINTWORKS_CLOUDTREE_H

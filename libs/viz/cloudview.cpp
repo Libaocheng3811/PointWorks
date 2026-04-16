@@ -18,11 +18,28 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 
 #include <vtkActor.h>
 #include <vtkProperty.h>
+#include <vtkOBJReader.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkTexture.h>
+#include <vtkImageData.h>
+#include <vtkPNGReader.h>
+#include <vtkJPEGReader.h>
+#include <vtkBMPReader.h>
+#include <vtkTIFFReader.h>
 #include <vtkActorCollection.h>
+#include <vtkCellArray.h>
+#include <vtkPolyData.h>
+#include <vtkPointData.h>
+
 
 #include <QDropEvent>
 #include <QMimeData>
 #include <QUrl>
+#include <QFileInfo>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
+
 
 #include <cmath>
 #include <map>
@@ -416,6 +433,233 @@ namespace ct
             m_viewer->removeShape(std_id);
         m_viewer->addPolygonMesh(*mesh, std_id, viewport);
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::addTexturedMesh(const QString& objFilePath, const QString& id)
+    {
+        removeTexturedMesh(id);
+
+        QFileInfo objInfo(objFilePath);
+        QDir objDir = objInfo.absoluteDir();
+
+        // ============================================================
+        // 1. 用 vtkOBJReader 读取完整几何
+        //    VTK9+ 的 vtkOBJReader 会自动解析 MTL，并输出：
+        //    - pointData 中每个材质一个 2-component UV 数组（以材质名命名）
+        //    - cellData 中 MaterialIds（1 component）标明每个 cell 的材质编号
+        //    - cellData 中 GroupIds
+        // ============================================================
+        vtkSmartPointer<vtkOBJReader> reader = vtkSmartPointer<vtkOBJReader>::New();
+        reader->SetFileName(objFilePath.toLocal8Bit().constData());
+        reader->Update();
+        vtkPolyData* fullPolyData = reader->GetOutput();
+        if (!fullPolyData || fullPolyData->GetNumberOfPoints() == 0) return;
+
+        vtkIdType totalCells = fullPolyData->GetNumberOfCells();
+
+        // ============================================================
+        // 2. 收集 pointData 中的 per-material UV 数组
+        //    过滤条件：2 components 且不是 "Normals"
+        //    按字母序排列，MaterialId=i 对应第 i 个 UV 数组
+        // ============================================================
+        QStringList uvArrayNames;
+        for (int a = 0; a < fullPolyData->GetPointData()->GetNumberOfArrays(); a++) {
+            vtkDataArray* arr = fullPolyData->GetPointData()->GetArray(a);
+            if (arr && arr->GetNumberOfComponents() == 2 && arr->GetNumberOfTuples() > 0) {
+                QString name = fullPolyData->GetPointData()->GetArrayName(a);
+                if (name.compare("Normals", Qt::CaseInsensitive) != 0 &&
+                    name.compare("TCoords", Qt::CaseInsensitive) != 0) {
+                    uvArrayNames.append(name);
+                }
+            }
+        }
+        uvArrayNames.sort(); // MaterialId 按字母序对应
+
+        // ============================================================
+        // 3. 获取 cellData 中的 MaterialIds
+        // ============================================================
+        vtkDataArray* matIdArr = fullPolyData->GetCellData()->GetArray("MaterialIds");
+        if (!matIdArr) {
+            // 回退：无材质信息，用原始 TCoords 直接渲染
+            vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+            mapper->SetInputData(fullPolyData);
+            vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+            actor->SetMapper(mapper);
+            m_render->AddActor(actor);
+            QVector<vtkSmartPointer<vtkActor>> actors;
+            actors.push_back(actor);
+            m_textured_mesh_actors[id] = actors;
+            if (m_auto_render) m_viewer->getRenderWindow()->Render();
+            return;
+        }
+
+        // ============================================================
+        // 4. 解析 MTL 文件，获取材质颜色和纹理路径
+        // ============================================================
+        struct ObjMaterial {
+            QString name;
+            QString diffuseTexturePath;
+            float kd[3] = {0.8f, 0.8f, 0.8f};
+        };
+
+        // 从 OBJ 文件提取 mtllib 引用
+        QStringList mtlFiles;
+        {
+            QFile objFile(objFilePath);
+            if (objFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QTextStream objIn(&objFile);
+                while (!objIn.atEnd()) {
+                    QString line = objIn.readLine().trimmed();
+                    if (line.startsWith("mtllib "))
+                        mtlFiles.append(line.mid(7).trimmed());
+                }
+                objFile.close();
+            }
+        }
+
+        QMap<QString, ObjMaterial> materials;
+        for (const QString& mtlFileName : mtlFiles) {
+            QString mtlPath = objDir.absoluteFilePath(mtlFileName);
+            QFile mtlFile(mtlPath);
+            if (!mtlFile.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+            ObjMaterial curMat;
+            QTextStream mtlIn(&mtlFile);
+            while (!mtlIn.atEnd()) {
+                QString line = mtlIn.readLine().trimmed();
+                if (line.isEmpty() || line.startsWith('#')) continue;
+
+                if (line.startsWith("newmtl ")) {
+                    if (!curMat.name.isEmpty())
+                        materials[curMat.name] = curMat;
+                    curMat = ObjMaterial();
+                    curMat.name = line.mid(7).trimmed();
+                } else if (line.startsWith("Kd ")) {
+                    auto parts = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+                    if (parts.size() >= 4) {
+                        curMat.kd[0] = parts[1].toFloat();
+                        curMat.kd[1] = parts[2].toFloat();
+                        curMat.kd[2] = parts[3].toFloat();
+                    }
+                } else if (line.startsWith("map_Kd", Qt::CaseInsensitive)) {
+                    QString texPart = line.mid(6).trimmed();
+                    QStringList parts = texPart.split(QRegularExpression("\\s+"));
+                    if (!parts.isEmpty()) {
+                        curMat.diffuseTexturePath = objDir.absoluteFilePath(parts.last());
+                    }
+                }
+            }
+            if (!curMat.name.isEmpty())
+                materials[curMat.name] = curMat;
+            mtlFile.close();
+        }
+
+        // ============================================================
+        // 5. 按 MaterialIds 分组拆分 cell，每个材质创建独立 Actor
+        //    每个材质使用自己的 UV 数组作为 TCoords
+        // ============================================================
+        QVector<vtkSmartPointer<vtkActor>> actors;
+
+        // 找出有多少个不同的 materialId
+        QMap<int, std::vector<vtkIdType>> matIdToCells;
+        for (vtkIdType ci = 0; ci < totalCells; ci++) {
+            int mid = static_cast<int>(matIdArr->GetTuple1(ci));
+            matIdToCells[mid].push_back(ci);
+        }
+
+        for (auto groupIt = matIdToCells.constBegin(); groupIt != matIdToCells.constEnd(); ++groupIt) {
+            int matId = groupIt.key();
+            const auto& cellIds = groupIt.value();
+
+            // 获取该材质对应的 UV 数组名
+            QString uvArrayName = (matId < uvArrayNames.size()) ? uvArrayNames[matId] : QString();
+            vtkDataArray* matUV = uvArrayName.isEmpty() ? nullptr
+                : fullPolyData->GetPointData()->GetArray(uvArrayName.toUtf8().constData());
+
+            // 在 MTL 中查找对应材质（UV 数组名就是材质名）
+            const ObjMaterial* mat = materials.contains(uvArrayName) ? &materials[uvArrayName] : nullptr;
+
+            // 提取该材质的 cell
+            vtkSmartPointer<vtkCellArray> matCells = vtkSmartPointer<vtkCellArray>::New();
+            for (vtkIdType cid : cellIds) {
+                vtkCell* cell = fullPolyData->GetCell(cid);
+                if (cell) matCells->InsertNextCell(cell);
+            }
+            if (matCells->GetNumberOfCells() == 0) continue;
+
+            // 构建该材质的 polydata
+            vtkSmartPointer<vtkPolyData> matPolyData = vtkSmartPointer<vtkPolyData>::New();
+            matPolyData->SetPoints(fullPolyData->GetPoints());
+            matPolyData->SetPolys(matCells);
+
+            // 复制法线（如果有）
+            vtkDataArray* normals = fullPolyData->GetPointData()->GetNormals();
+            if (normals) {
+                matPolyData->GetPointData()->SetNormals(normals);
+            }
+
+            // 设置该材质专属的 UV 数组作为 TCoords
+            if (matUV) {
+                matPolyData->GetPointData()->SetTCoords(matUV);
+            }
+
+            vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+            mapper->SetInputData(matPolyData);
+            mapper->ScalarVisibilityOff();
+
+            vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+            actor->SetMapper(mapper);
+
+            // 设置材质底色
+            if (mat) {
+                actor->GetProperty()->SetColor(mat->kd[0], mat->kd[1], mat->kd[2]);
+            }
+
+            // 加载纹理
+            if (mat && !mat->diffuseTexturePath.isEmpty()) {
+                QString texPath = mat->diffuseTexturePath;
+                QString suffix = QFileInfo(texPath).suffix().toLower();
+                vtkSmartPointer<vtkImageReader2> imgReader;
+                if (suffix == "png") imgReader = vtkSmartPointer<vtkPNGReader>::New();
+                else if (suffix == "jpg" || suffix == "jpeg") imgReader = vtkSmartPointer<vtkJPEGReader>::New();
+                else if (suffix == "bmp") imgReader = vtkSmartPointer<vtkBMPReader>::New();
+                else if (suffix == "tiff" || suffix == "tif") imgReader = vtkSmartPointer<vtkTIFFReader>::New();
+                else if (suffix == "tga") imgReader = vtkSmartPointer<vtkBMPReader>::New();
+
+                if (imgReader) {
+                    imgReader->SetFileName(texPath.toLocal8Bit().constData());
+                    imgReader->Update();
+                    if (imgReader->GetOutput() && imgReader->GetOutput()->GetNumberOfPoints() > 0) {
+                        vtkSmartPointer<vtkTexture> texture = vtkSmartPointer<vtkTexture>::New();
+                        texture->SetInputConnection(imgReader->GetOutputPort());
+                        texture->InterpolateOn();
+                        texture->RepeatOn();
+                        texture->EdgeClampOn();
+                        actor->SetTexture(texture);
+                    }
+                }
+            }
+
+            m_render->AddActor(actor);
+            actors.push_back(actor);
+        }
+
+        if (!actors.isEmpty()) {
+            m_textured_mesh_actors[id] = actors;
+            if (m_auto_render) m_viewer->getRenderWindow()->Render();
+        }
+    }
+
+    void CloudView::removeTexturedMesh(const QString& id)
+    {
+        auto it = m_textured_mesh_actors.find(id);
+        if (it != m_textured_mesh_actors.end()) {
+            for (const auto& actor : it.value()) {
+                m_render->RemoveActor(actor);
+            }
+            m_textured_mesh_actors.erase(it);
+            if (m_auto_render) m_viewer->getRenderWindow()->Render();
+        }
     }
 
     void CloudView::addPolylineFromPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport)
@@ -825,6 +1069,13 @@ namespace ct
 
     void CloudView::removeAllShapes()
     {
+        for (auto it = m_textured_mesh_actors.begin(); it != m_textured_mesh_actors.end(); ++it) {
+            for (const auto& actor : it.value()) {
+                m_render->RemoveActor(actor);
+            }
+        }
+        m_textured_mesh_actors.clear();
+
         m_viewer->removeAllShapes();
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }

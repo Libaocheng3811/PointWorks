@@ -59,7 +59,7 @@
 #include <QComboBox>
 #include <QHeaderView>
 
-#define  CLOUD_ICON_PATH    ":/res/icon/view-calendar.svg"
+#define  CLOUD_ICON_PATH    ":/res/icon2/cloud.svg"
 #define  GROUP_ICON_PATH    ":/res/icon/view-group.svg"
 
 // setupUi()是Ui::MainWindow类的方法，负责初始化界面中的控件。

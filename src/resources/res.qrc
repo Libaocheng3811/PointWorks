@@ -9,6 +9,8 @@
     <file>icon2/surface.svg</file>
     <file>icon2/top_view.svg</file>
     <file>icon2/pencil.svg</file>
+    <file>icon2/mesh.svg</file>
+    <file>icon2/cloud.svg</file>
     <file>trans/zh_CN.qm</file>
     <file>trans/zh_CN.ts</file>
     <file>theme/darkstyle.qss</file>

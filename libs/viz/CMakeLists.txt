@@ -5,7 +5,8 @@ find_package(VTK COMPONENTS
     vtkGUISupportQt
     vtkGUISupportQtOpenGL
     vtkRenderingGL2PSOpenGL2
-    vtkRenderingVolumeOpenGL2)
+    vtkRenderingVolumeOpenGL2
+    vtkIOImage)
 
 add_library(ct_viz SHARED ${VizSrcs} ${VizHdrs})
 

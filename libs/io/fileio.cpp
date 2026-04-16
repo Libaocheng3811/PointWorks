@@ -13,6 +13,14 @@
 #include <vtkPolyDataReader.h>
 #include <vtkPolyDataWriter.h>
 #include <vtkOBJReader.h>
+#include <vtkPointData.h>
+#include <vtkPolyData.h>
+
+#include <QFileInfo>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
+#include <QRegularExpression>
 
 #include "E57SimpleReader.h"
 #include "E57SimpleWriter.h"
@@ -138,6 +146,7 @@ namespace ct
         TicToc time;
         time.tic();
         m_is_canceled = false;
+        m_textured_mesh.reset(); // 重置纹理网格
         emit progress(0);
 
         Cloud::Ptr cloud(new Cloud);
@@ -184,7 +193,17 @@ namespace ct
         cloud->update(); //更新包围盒，统计信息
 
         emit progress(100);
-        emit loadCloudResult(true, cloud, mesh, time.toc());
+
+        // 有纹理 mesh 时：先通过 loadCloudResult 正常传递 mesh，再通知纹理路径
+        if (m_textured_mesh && *m_textured_mesh) {
+            emit loadCloudResult(true, cloud, mesh, time.toc());
+            emit loadTexturedMeshResult(
+                QString::fromStdString(cloud->id()),
+                QString::fromStdString(m_textured_mesh->objFilePath));
+            m_textured_mesh.reset();
+        } else {
+            emit loadCloudResult(true, cloud, mesh, time.toc());
+        }
     }
 
     void FileIO::savePointCloud(const Cloud::Ptr &cloud, const QString &filename, bool isBinary) {
@@ -1056,6 +1075,14 @@ namespace ct
                     mesh = obj_mesh;
                 }
                 res = 0;
+
+                // 检测 OBJ 是否引用了材质（有 MTL + map_Kd 即视为有纹理）
+                QString textureImagePath = parseOBJMaterialTexture(filename);
+                if (!textureImagePath.isEmpty()) {
+                    m_textured_mesh = std::make_shared<TexturedMesh>();
+                    m_textured_mesh->mesh = obj_mesh;
+                    m_textured_mesh->objFilePath = filename.toLocal8Bit().toStdString();
+                }
             }
         }
         else if (filename.endsWith(".ifs", Qt::CaseInsensitive))
@@ -2089,5 +2116,52 @@ namespace ct
         }
 
         return (res == 0);
+    }
+
+    // ================================================================
+    // 纹理加载辅助函数
+    // ================================================================
+
+    QString FileIO::parseOBJMaterialTexture(const QString &objPath)
+    {
+        QFileInfo objInfo(objPath);
+        QDir objDir = objInfo.absoluteDir();
+
+        // 解析 OBJ 文件的 mtllib 行
+        QFile objFile(objPath);
+        if (!objFile.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
+
+        QString mtlFileName;
+        QTextStream in(&objFile);
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            if (line.startsWith("mtllib ", Qt::CaseInsensitive)) {
+                mtlFileName = line.mid(7).trimmed();
+                break;
+            }
+        }
+        objFile.close();
+
+        if (mtlFileName.isEmpty()) return {};
+
+        // 解析 MTL 文件的 map_Kd（漫反射贴图）
+        QString mtlPath = objDir.absoluteFilePath(mtlFileName);
+        QFile mtlFile(mtlPath);
+        if (!mtlFile.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
+
+        QTextStream mtlIn(&mtlFile);
+        while (!mtlIn.atEnd()) {
+            QString line = mtlIn.readLine().trimmed();
+            if (line.startsWith("map_Kd", Qt::CaseInsensitive)) {
+                QString texPart = line.mid(6).trimmed();
+                // 取最后一个 token（处理内联选项如 "-bm 1.0 texture.png"）
+                QStringList parts = texPart.split(QRegularExpression("\\s+"));
+                if (!parts.isEmpty()) {
+                    return objDir.absoluteFilePath(parts.last());
+                }
+            }
+        }
+
+        return {};
     }
 }

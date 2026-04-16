@@ -6,6 +6,8 @@
 #include "io/projectfile.h"
 #include "octreerenderer.h"
 
+class vtkActor;
+
 #include "QVTKOpenGLNativeWidget.h"
 #include <pcl/PolygonMesh.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -149,6 +151,18 @@ namespace ct {
          * @param viewport 视口（默认 0 = 全部）
          */
         void addPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport = 0);
+
+        /**
+         * @brief 添加带纹理的 OBJ 网格到视图（CloudView 内部解析 MTL 获取所有材质）
+         * @param objFilePath OBJ 文件路径
+         * @param id 网格标识符
+         */
+        void addTexturedMesh(const QString& objFilePath, const QString& id);
+
+        /**
+         * @brief 移除带纹理的多边形网格
+         */
+        void removeTexturedMesh(const QString& id);
 
         /**
          * @brief 从 PolygonMesh 添加线框到视图
@@ -526,6 +540,7 @@ namespace ct {
         QMap<QString, std::shared_ptr<OctreeRenderer>> m_OctreeRenders;
         QSet<QString> m_coord_ids;
         QMap<QString, vtkSmartPointer<vtkBillboardTextActor3D>> m_badge_actors;
+        QMap<QString, QVector<vtkSmartPointer<vtkActor>>> m_textured_mesh_actors; // 纹理网格 actor（每材质一个）
         unsigned long m_observer_tag = 0; // 回调 ID
         unsigned long m_interaction_tag = 0; //保存交互回调的 ID
 

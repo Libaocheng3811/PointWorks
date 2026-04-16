@@ -6,6 +6,7 @@
 #include "core/exports.h"
 
 #include <pcl/PolygonMesh.h>
+#include "textured_mesh.h"
 
 #include <atomic>
 #include <QObject>
@@ -14,6 +15,7 @@
 #include <vector>
 #include <map>
 #include <string>
+
 
 namespace ct
 {
@@ -71,6 +73,12 @@ namespace ct
          * @brief 加载点云文件的结果（含 mesh，mesh 为空表示纯点云）
          */
         void loadCloudResult(bool success, const Cloud::Ptr &cloud, const pcl::PolygonMesh::Ptr &mesh, float time);
+
+        /**
+         * @brief 加载带纹理的网格结果（仅当 OBJ 含纹理时发射）
+         * CloudView 根据 objFilePath 自行解析 MTL 获取所有材质
+         */
+        void loadTexturedMeshResult(const QString& cloudId, const QString& objFilePath);
 
         /**
          * @brief 保存点云文件的结果
@@ -156,8 +164,12 @@ namespace ct
 
         bool saveMeshFile(const pcl::PolygonMesh::Ptr &mesh, const QString &filename);
 
+        // --- 纹理加载辅助 ---
+        static QString parseOBJMaterialTexture(const QString &objPath);
+
     private:
         std::atomic<bool> m_is_canceled{false};
+        TexturedMeshPtr m_textured_mesh; // 加载期间暂存纹理网格
 
         // 批处理大小 (例如 50万点提交一次)
         const size_t BATCH_SIZE = 500000;

@@ -46,12 +46,14 @@ namespace ct
         qRegisterMetaType<QMap<QString, QString>>("QMap<QString, QString>&");
         qRegisterMetaType<ct::TxtImportParams>("ct::TxtImportParams");
         qRegisterMetaType<ct::TxtExportParams>("ct::TxtExportParams");
+        qRegisterMetaType<ct::TexturedMeshPtr>("ct::TexturedMeshPtr"); // 保留：TexturedMeshPtr 在其他地方可能使用
 
         // move to thread
         m_fileio = new FileIO;
         m_fileio->moveToThread(&m_thread);
         connect(&m_thread, &QThread::finished, m_fileio, &QObject::deleteLater);
         connect(m_fileio, &FileIO::loadCloudResult, this, &CloudTree::loadCloudResult);
+        connect(m_fileio, &FileIO::loadTexturedMeshResult, this, &CloudTree::loadTexturedMeshResult);
         connect(m_fileio, &FileIO::saveCloudResult, this, &CloudTree::saveCloudResult);
         connect(m_fileio, &FileIO::saveMeshResult, this, &CloudTree::saveMeshResult);
 
@@ -313,8 +315,10 @@ namespace ct
                 m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
                 m_cloud_map.remove(c);
                 m_item_by_id.remove(cid);
-                // 清理关联的 PolygonMesh
-                if (m_mesh_map.contains(cid)) {
+                // 清理关联的 PolygonMesh / TexturedMesh
+                if (m_textured_mesh_map.contains(cid)) {
+                    unregisterTexturedMesh(cid);
+                } else if (m_mesh_map.contains(cid)) {
                     unregisterMesh(cid);
                 }
             }
@@ -816,16 +820,25 @@ namespace ct
                 }
             }
 
-            // --- PolygonMesh 可见性联动 ---
+            // --- PolygonMesh / TexturedMesh 可见性联动 ---
             QString mesh_id = it->data(0, NodeMeshIdRole).toString();
             if (!mesh_id.isEmpty()) {
                 bool shouldShow = (it->checkState(0) != Qt::Unchecked);
                 if (shouldShow) {
-                    auto mesh_it = m_mesh_map.find(mesh_id);
-                    if (mesh_it != m_mesh_map.end()) {
-                        m_cloudview->addPolygonMesh(mesh_it.value(), mesh_id);
+                    auto tex_it = m_textured_mesh_map.find(mesh_id);
+                    if (tex_it != m_textured_mesh_map.end() && !tex_it.value()->objFilePath.empty()) {
+                        // 纹理 mesh：隐藏点云散点，移除无纹理 mesh，显示带纹理 mesh 表面
+                        m_cloudview->setPointCloudVisibility(mesh_id, false);
+                        m_cloudview->removePolygonMesh(mesh_id);
+                        m_cloudview->addTexturedMesh(QString::fromStdString(tex_it.value()->objFilePath), mesh_id);
+                    } else {
+                        auto mesh_it = m_mesh_map.find(mesh_id);
+                        if (mesh_it != m_mesh_map.end()) {
+                            m_cloudview->addPolygonMesh(mesh_it.value(), mesh_id);
+                        }
                     }
                 } else {
+                    m_cloudview->removeTexturedMesh(mesh_id);
                     m_cloudview->removePolygonMesh(mesh_id);
                     m_cloudview->removeShape(mesh_id);
                 }
@@ -1176,6 +1189,66 @@ namespace ct
         if (item) {
             item->setData(0, NodeMeshIdRole, QVariant());
         }
+    }
+
+    void CloudTree::registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh)
+    {
+        m_textured_mesh_map[cloudId] = texturedMesh;
+        m_mesh_map[cloudId] = texturedMesh->mesh; // 兼容保存等非纹理功能
+
+        QTreeWidgetItem* item = getItemById(cloudId);
+        if (item) {
+            item->setData(0, NodeMeshIdRole, cloudId);
+        }
+
+        if (!texturedMesh->objFilePath.empty()) {
+            // 纹理 mesh 用 VTK actor 渲染表面，移除之前注册的无纹理 mesh 和点云避免遮挡
+            m_cloudview->removePolygonMesh(cloudId);
+            m_cloudview->removePointCloud(cloudId);
+            m_cloudview->addTexturedMesh(QString::fromStdString(texturedMesh->objFilePath), cloudId);
+        } else {
+            m_cloudview->addPolygonMesh(texturedMesh->mesh, cloudId);
+        }
+    }
+
+    void CloudTree::unregisterTexturedMesh(const QString& cloudId)
+    {
+        m_textured_mesh_map.remove(cloudId);
+        m_cloudview->removeTexturedMesh(cloudId);
+
+        // 同时清理普通 mesh 引用
+        m_mesh_map.remove(cloudId);
+        m_cloudview->removePolygonMesh(cloudId);
+        m_cloudview->removeShape(cloudId);
+
+        QTreeWidgetItem* item = getItemById(cloudId);
+        if (item) {
+            item->setData(0, NodeMeshIdRole, QVariant());
+        }
+    }
+
+    void CloudTree::loadTexturedMeshResult(const QString& cloudId,
+                                           const QString& objFilePath)
+    {
+        if (cloudId.isEmpty() || objFilePath.isEmpty()) return;
+
+        // 从 m_mesh_map 获取已注册的 mesh（由 loadCloudResult → registerMesh 写入）
+        auto meshIt = m_mesh_map.find(cloudId);
+        if (meshIt == m_mesh_map.end() || !meshIt.value() || meshIt.value()->polygons.empty()) {
+            printW("Textured mesh result received but mesh not found in map for: " + cloudId);
+            return;
+        }
+
+        printI(QString("Textured mesh detected: %1 polygons, obj: %2")
+               .arg(meshIt.value()->polygons.size())
+               .arg(objFilePath));
+
+        // 构建 TexturedMesh 并注册
+        TexturedMeshPtr texturedMesh = std::make_shared<TexturedMesh>();
+        texturedMesh->mesh = meshIt.value();
+        texturedMesh->objFilePath = objFilePath.toStdString();
+
+        registerTexturedMesh(cloudId, texturedMesh);
     }
 
     QList<QPair<QString, pcl::PolygonMesh::Ptr>> CloudTree::getLoadedMeshes() const

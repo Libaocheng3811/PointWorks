@@ -53,3 +53,5 @@ qrc_*.cpp
 
 /3rdparty/libE57-Format
 /3rdparty/Xerces-C
+bash.exe.stackdump
+GEMINI.md
