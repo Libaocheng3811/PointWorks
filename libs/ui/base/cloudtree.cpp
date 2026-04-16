@@ -1028,8 +1028,8 @@ namespace ct
             m_table->setCellWidget(row, 1, opacity);
         }
 
-        // Color
-        {
+        // Color（仅点云节点，模型通过 Edit > Colors 弹窗设置）
+        if (!isMesh) {
             int row = m_table->rowCount();
             m_table->insertRow(row);
             QTableWidgetItem* labelItem = new QTableWidgetItem("Color");
@@ -1038,53 +1038,27 @@ namespace ct
 
             QComboBox* color_mode = new QComboBox;
             color_mode->addItem("RGB (Default)");
+            color_mode->addItem("x");
+            color_mode->addItem("y");
+            color_mode->addItem("z");
 
-            if (isMesh) {
-                color_mode->addItem("Red");
-                color_mode->addItem("Green");
-                color_mode->addItem("Blue");
-                color_mode->addItem("White");
-                color_mode->addItem("Gray");
-                // 纹理模型时禁用颜色选择
-                color_mode->setEnabled(!hasTexture);
-            } else {
-                color_mode->addItem("x");
-                color_mode->addItem("y");
-                color_mode->addItem("z");
-
-                QString currentMode = QString::fromStdString(cloud->currentColorMode());
-                int idx = color_mode->findText(currentMode);
-                color_mode->setCurrentIndex(idx >= 0 ? idx : 0);
-            }
+            QString currentMode = QString::fromStdString(cloud->currentColorMode());
+            int idx = color_mode->findText(currentMode);
+            color_mode->setCurrentIndex(idx >= 0 ? idx : 0);
             color_mode->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-            if (isMesh) {
-                connect(color_mode, &QComboBox::currentTextChanged,
-                        this, [=](const QString& text){
-                            if (hasTexture) return;
-                            ColorRGB rgb = Color::White;
-                            if (text == "Red") rgb = Color::Red;
-                            else if (text == "Green") rgb = Color::Green;
-                            else if (text == "Blue") rgb = Color::Blue;
-                            else if (text == "Gray") rgb = {128, 128, 128};
-                            m_cloudview->setShapeColor(cloudId, rgb);
-                            m_cloudview->setTextureMeshColor(cloudId, rgb.rf(), rgb.gf(), rgb.bf());
-                            m_cloudview->refresh();
-                        });
-            } else {
-                connect(color_mode, &QComboBox::currentTextChanged,
-                        this, [=](const QString& text){
-                            if (text == "RGB (Default)") {
-                                m_cloudview->resetPointCloudColor(cloud);
-                            } else if (text == "x" || text == "y" || text == "z") {
-                                cloud->setCloudColor(text.toLower().toStdString());
-                                m_cloudview->addPointCloud(cloud);
-                            } else {
-                                cloud->updateColorByField(text.toStdString());
-                                m_cloudview->addPointCloud(cloud);
-                            }
-                        });
-            }
+            connect(color_mode, &QComboBox::currentTextChanged,
+                    this, [=](const QString& text){
+                        if (text == "RGB (Default)") {
+                            m_cloudview->resetPointCloudColor(cloud);
+                        } else if (text == "x" || text == "y" || text == "z") {
+                            cloud->setCloudColor(text.toLower().toStdString());
+                            m_cloudview->addPointCloud(cloud);
+                        } else {
+                            cloud->updateColorByField(text.toStdString());
+                            m_cloudview->addPointCloud(cloud);
+                        }
+                    });
             m_table->setCellWidget(row, 1, color_mode);
         }
 

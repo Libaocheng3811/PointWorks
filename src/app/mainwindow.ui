@@ -210,6 +210,8 @@
     <property name="title">
      <string>Options</string>
     </property>
+    <addaction name="actionDisplaySettings"/>
+    <addaction name="separator"/>
     <widget class="QMenu" name="menuTheme">
      <property name="font">
       <font>
@@ -1348,6 +1350,22 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>AzureKinect</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDisplaySettings">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/color-management.svg</normaloff>:/res/icon/color-management.svg
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Display Settings</string>
    </property>
    <property name="font">
     <font>

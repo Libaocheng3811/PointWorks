@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>320</width>
-    <height>320</height>
+    <height>280</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>300</width>
-    <height>280</height>
+    <height>250</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -23,44 +23,39 @@
    <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
-      <string>Color Target</string>
+      <string>Color</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QComboBox" name="cbox_type">
-        <property name="currentText">
-         <string>PointCloud</string>
-        </property>
-        <property name="currentIndex">
-         <number>0</number>
-        </property>
-        <item>
-         <property name="text">
-          <string>PointCloud</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>BackGround</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>PointCloud Normals</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>BoundingBox</string>
-         </property>
-        </item>
-       </widget>
-      </item>
       <item>
        <layout class="QGridLayout" name="gridLayout">
         <property name="rightMargin">
          <number>0</number>
         </property>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="label_target">
+          <property name="text">
+           <string>Target:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="cbox_target">
+          <item>
+           <property name="text">
+            <string>Points</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Normals</string>
+           </property>
+          </item>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>
@@ -145,7 +140,8 @@
        </property>
        <property name="icon">
         <iconset resource="../resources/res.qrc">
-         <normaloff>:/res/icon/apply1.svg</normaloff>:/res/icon/apply1.svg</iconset>
+         <normaloff>:/res/icon/apply1.svg</normaloff>:/res/icon/apply1.svg
+       </iconset>
        </property>
       </widget>
      </item>
@@ -156,7 +152,8 @@
        </property>
        <property name="icon">
         <iconset resource="../resources/res.qrc">
-         <normaloff>:/res/icon/reset.svg</normaloff>:/res/icon/reset.svg</iconset>
+         <normaloff>:/res/icon/reset.svg</normaloff>:/res/icon/reset.svg
+       </iconset>
        </property>
       </widget>
      </item>

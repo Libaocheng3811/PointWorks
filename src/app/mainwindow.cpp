@@ -6,6 +6,7 @@
 
 #include "edit/boundingbox.h"
 #include "edit/color.h"
+#include "options/displaysettings.h"
 
 #include "tool/cutting.h"
 #include "tool/pickpoints.h"
@@ -123,6 +124,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // edit
     connect(ui->actionBoundingBox, &QAction::triggered, [=] {this->createToolDialog<BoundingBox>("BoundingBox"); });
     connect(ui->actionColors, &QAction::triggered, [=] {this->createToolDialog<Color>("Color"); });
+    connect(ui->actionDisplaySettings, &QAction::triggered, [=] {this->createModalDialog<DisplaySettingsDialog>("Display Settings"); });
     connect(ui->actionTransformation, &QAction::triggered, [=] {this->createToolDialog<Transformation>("Transformation"); });
     connect(ui->actionNormals, &QAction::triggered, [=] {this->createToolDialog<Normals>("Normals"); });
     connect(ui->actionScale, &QAction::triggered, [=] {this->createDialog<Scale>("Scale"); });
