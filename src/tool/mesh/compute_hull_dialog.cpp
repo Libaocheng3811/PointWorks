@@ -233,7 +233,8 @@ void ComputeHullDialog::onCompute()
                 QTreeWidgetItem* origin_item = m_cloudtree->getItemById(
                     QString::fromStdString(cloud->id()));
                 m_cloudtree->insertCloud(mesh_cloud, origin_item, true,
-                                         ct::MountStrategy::Sibling);
+                                         ct::MountStrategy::Sibling,
+                                         ct::NodeMesh);
 
                 m_cloudtree->registerMesh(result_id, result.mesh);
             }

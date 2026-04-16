@@ -570,7 +570,8 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                     mesh_cloud->makeAdaptive();
 
                     QTreeWidgetItem* origin_item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-                    m_cloudtree->insertCloud(mesh_cloud, origin_item, true, ct::MountStrategy::Sibling);
+                    m_cloudtree->insertCloud(mesh_cloud, origin_item, true, ct::MountStrategy::Sibling,
+                                             ct::NodeMesh);
 
                     // 注册 mesh 到树节点，勾选联动可见性
                     m_cloudtree->registerMesh(result_id, result.mesh);

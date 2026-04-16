@@ -209,20 +209,27 @@ namespace ct
             actualParent = nullptr;
         }
 
-        // 创建节点
+        // 创建节点（阻塞信号避免 addItem 中 setCheckState 触发 itemChangedEvent）
+        const bool wasBlocked = this->blockSignals(true);
         QTreeWidgetItem* newItem = addItem(actualParent, QString::fromStdString(cloud->id()), nodeType, false);
+        this->blockSignals(wasBlocked);
 
         m_cloud_map.insert(newItem, cloud);
         m_item_by_id.insert(QString::fromStdString(cloud->id()), newItem);
-        m_cloudview->addPointCloud(cloud); // 渲染
 
-        // 根据点云类型决定显示属性
-        if (cloud->pointSize() > 1) {
-            m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
-            if (QString::fromStdString(cloud->id()).contains("picked-")) m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
+        // Mesh 节点由 registerMesh 通过 addMeshActor 渲染，不添加点云散点
+        if (nodeType != NodeMesh) {
+            m_cloudview->addPointCloud(cloud);
+
+            // 根据点云类型决定显示属性
+            if (cloud->pointSize() > 1) {
+                m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
+                if (QString::fromStdString(cloud->id()).contains("picked-"))
+                    m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
+            }
         }
 
-        if (selected && cloud->pointSize() > 100){
+        if (selected) {
             m_cloudview->addBox(cloud);
         }
 
@@ -834,15 +841,17 @@ namespace ct
                 bool shouldShow = (it->checkState(0) != Qt::Unchecked);
                 if (shouldShow) {
                     auto tex_it = m_textured_mesh_map.find(mesh_id);
-                    if (tex_it != m_textured_mesh_map.end() && !tex_it.value()->objFilePath.empty()) {
+                    if (tex_it != m_textured_mesh_map.end() && *tex_it &&
+                        !tex_it.value()->objFilePath.empty()) {
                         // 纹理 mesh：隐藏点云散点，移除无纹理 mesh，显示带纹理 mesh 表面
                         m_cloudview->setPointCloudVisibility(mesh_id, false);
-                        m_cloudview->removePolygonMesh(mesh_id);
                         m_cloudview->addTexturedMesh(QString::fromStdString(tex_it.value()->objFilePath), mesh_id);
                     } else {
+                        // 无纹理 mesh 或算法生成的 mesh：用 VTK actor 渲染
                         auto mesh_it = m_mesh_map.find(mesh_id);
-                        if (mesh_it != m_mesh_map.end()) {
-                            m_cloudview->addPolygonMesh(mesh_it.value(), mesh_id);
+                        if (mesh_it != m_mesh_map.end() && mesh_it.value()) {
+                            m_cloudview->setPointCloudVisibility(mesh_id, false);
+                            m_cloudview->addMeshActor(mesh_it.value(), mesh_id);
                         }
                     }
                 } else {
@@ -862,196 +871,389 @@ namespace ct
     {
         m_cloudview->setAutoRender(false);
 
-        // 获取所有节点和被选中的节点
+        // ============================================================
+        // Phase 1: 更新3D视图中的包围盒
+        // ============================================================
         QList<QTreeWidgetItem*> allItems = m_cloud_map.keys();
         QList<QTreeWidgetItem*> selectedItems = getSelectedItems();
 
-        // 更新3D视图中的包围盒
         for (QTreeWidgetItem* item : allItems){
             Cloud::Ptr cloud = m_cloud_map.value(item);
             if (!cloud) continue;
 
             bool isSelected = selectedItems.contains(item);
-            bool isVisible = m_cloudview->contains(QString::fromStdString(cloud->id())); // 点云是否在视图中显示，只有显示的点云才绘制包围盒
+            bool isChecked = (item->checkState(0) != Qt::Unchecked);
             bool hasBox = m_cloudview->contains(QString::fromStdString(cloud->boxId()));
 
-            if (isSelected && isVisible){
-                // 只有当：被选中 + 已显示 + 是原始点云(点数多) 时，才显示包围盒
+            if (isSelected && isChecked){
                 if (!hasBox && cloud->size() > 100)
                     m_cloudview->addBox(cloud);
             }
             else{
-                // 未选中，或者云本身都没显示，肯定要移除盒子
                 if (hasBox) m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
             }
         }
 
-        // 更新属性表
-        if (m_table) {
-            const int POINT_SIZE_ROW = 6;
-            const int OPACITY_ROW = 7;
-            const int NORMALS_ROW = 8;
-            const int COLOR_MODE_ROW = 9;
-            const int TEXT_ROW_COUNT = 6; // 行 0-5 为纯文本行
+        // ============================================================
+        // Phase 2: 更新属性栏（根据节点类型动态构建）
+        // ============================================================
+        if (!m_table) {
+            m_cloudview->setAutoRender(true);
+            m_cloudview->refresh();
+            return;
+        }
 
-            m_table->removeCellWidget(POINT_SIZE_ROW, 1);
-            m_table->removeCellWidget(OPACITY_ROW, 1);
-            m_table->removeCellWidget(NORMALS_ROW, 1);
-            m_table->removeCellWidget(COLOR_MODE_ROW, 1);
+        m_cloudview->showCloudId("");
 
-            // 清除文本内容 (行 0-5)
-            for(int i=0; i<TEXT_ROW_COUNT; ++i) {
-                if (m_table->item(i, 1)) m_table->item(i, 1)->setText("");
-                else m_table->setItem(i, 1, new QTableWidgetItem(""));
+        // 清空旧内容
+        m_table->setRowCount(0);
+
+        if (selectedItems.isEmpty()){
+            m_cloudview->setAutoRender(true);
+            m_cloudview->refresh();
+            return;
+        }
+
+        QTreeWidgetItem* firstItem = selectedItems.first();
+        SceneNodeType nodeType = getNodeType(firstItem);
+        Cloud::Ptr cloud = getCloud(firstItem);
+        if (!cloud) {
+            m_cloudview->setAutoRender(true);
+            m_cloudview->refresh();
+            return;
+        }
+
+        QString cloudId = QString::fromStdString(cloud->id());
+        bool isMesh = (nodeType == NodeMesh);
+        bool hasTexture = m_textured_mesh_map.contains(cloudId);
+
+        // 辅助 lambda：创建一个文本行
+        auto addTextRow = [&](const QString& label, const QString& value, int rowHeight = 0) -> int {
+            int row = m_table->rowCount();
+            m_table->insertRow(row);
+            QTableWidgetItem* labelItem = new QTableWidgetItem(label);
+            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            m_table->setItem(row, 0, labelItem);
+            QTableWidgetItem* valueItem = new QTableWidgetItem(value);
+            valueItem->setFlags(valueItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            m_table->setItem(row, 1, valueItem);
+            if (rowHeight > 0) m_table->setRowHeight(row, rowHeight);
+            return row;
+        };
+
+        // 辅助 lambda：创建分组标题行
+        auto addSectionHeader = [&](const QString& title) -> int {
+            int row = m_table->rowCount();
+            m_table->insertRow(row);
+            QTableWidgetItem* headerItem = new QTableWidgetItem(title);
+            headerItem->setFlags(headerItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            headerItem->setBackground(QColor("#E0E4E8"));
+            QFont boldFont;
+            boldFont.setBold(true);
+            boldFont.setPointSize(10);
+            headerItem->setFont(boldFont);
+            // 合并两列
+            m_table->setItem(row, 0, headerItem);
+            m_table->setSpan(row, 0, 1, 2);
+            m_table->setRowHeight(row, 24);
+            return row;
+        };
+
+        // ============================================================
+        // Common Section
+        // ============================================================
+        addSectionHeader("Common");
+
+        addTextRow("Id", QString::fromStdString(cloud->id()));
+        addTextRow("Type", QString::fromStdString(cloud->type()));
+        addTextRow("Size", QString::number(cloud->size()));
+
+        // BBox
+        {
+            ct::Box box = cloud->box();
+            ct::PointXYZ cmin = cloud->min();
+            ct::PointXYZ cmax = cloud->max();
+            QString bboxText = QString("X: %1 (%2 - %3)\nY: %4 (%5 - %6)\nZ: %7 (%8 - %9)")
+                .arg(box.width, 0, 'f', 3).arg(cmin.x, 0, 'f', 3).arg(cmax.x, 0, 'f', 3)
+                .arg(box.height, 0, 'f', 3).arg(cmin.y, 0, 'f', 3).arg(cmax.y, 0, 'f', 3)
+                .arg(box.depth, 0, 'f', 3).arg(cmin.z, 0, 'f', 3).arg(cmax.z, 0, 'f', 3);
+            int bboxRow = addTextRow("BBox", bboxText, 66);
+            if (auto item = m_table->item(bboxRow, 1))
+                item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+        }
+
+        // Center
+        {
+            Eigen::Vector3f center = cloud->center();
+            QString centerText = QString("X: %1\nY: %2\nZ: %3")
+                .arg(center.x(), 0, 'f', 3)
+                .arg(center.y(), 0, 'f', 3)
+                .arg(center.z(), 0, 'f', 3);
+            int centerRow = addTextRow("Center", centerText, 66);
+            if (auto item = m_table->item(centerRow, 1))
+                item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+        }
+
+        // 显示 ID
+        m_cloudview->showCloudId(cloudId);
+
+        // Opacity
+        {
+            int row = m_table->rowCount();
+            m_table->insertRow(row);
+            QTableWidgetItem* labelItem = new QTableWidgetItem("Opacity");
+            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            m_table->setItem(row, 0, labelItem);
+
+            QDoubleSpinBox* opacity = new QDoubleSpinBox;
+            opacity->setSingleStep(0.1);
+            opacity->setRange(0, 1);
+            opacity->setValue(cloud->opacity());
+            opacity->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+            if (isMesh) {
+                connect(opacity, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+                        this, [=](double value){
+                            cloud->setOpacity(value);
+                            m_cloudview->setTextureMeshOpacity(cloudId, value);
+                            m_cloudview->refresh();
+                        });
+            } else {
+                connect(opacity, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+                        this, [=](double value){
+                            cloud->setOpacity(value);
+                            m_cloudview->setPointCloudOpacity(cloudId, value);
+                            m_cloudview->refresh();
+                        });
             }
-            // 重置 BBox/Center 行高
-            m_table->setRowHeight(4, m_table->rowHeight(0));
-            m_table->setRowHeight(5, m_table->rowHeight(0));
-            m_cloudview->showCloudId(""); // 清空左下角 ID
+            m_table->setCellWidget(row, 1, opacity);
+        }
 
-            QList<QTreeWidgetItem*> selectedItems = getSelectedItems();
+        // Color
+        {
+            int row = m_table->rowCount();
+            m_table->insertRow(row);
+            QTableWidgetItem* labelItem = new QTableWidgetItem("Color");
+            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            m_table->setItem(row, 0, labelItem);
 
-            if (!selectedItems.isEmpty()){
-                // 只显示第一个选中的点云
-                QTreeWidgetItem* firstItem = selectedItems.first();
-                Cloud::Ptr update_cloud = getCloud(firstItem);
+            QComboBox* color_mode = new QComboBox;
+            color_mode->addItem("RGB (Default)");
 
-                if (update_cloud){
-                    // 1. 基础文本信息
-                    m_table->setItem(0, 1, new QTableWidgetItem(QString::fromStdString(update_cloud->id())));
-                    m_table->setItem(1, 1, new QTableWidgetItem(QString::fromStdString(update_cloud->type())));
-                    m_table->setItem(2, 1, new QTableWidgetItem(QString::number(update_cloud->size())));
-                    m_table->setItem(3, 1, new QTableWidgetItem(QString::number(update_cloud->resolution())));
+            if (isMesh) {
+                color_mode->addItem("Red");
+                color_mode->addItem("Green");
+                color_mode->addItem("Blue");
+                color_mode->addItem("White");
+                color_mode->addItem("Gray");
+                // 纹理模型时禁用颜色选择
+                color_mode->setEnabled(!hasTexture);
+            } else {
+                color_mode->addItem("x");
+                color_mode->addItem("y");
+                color_mode->addItem("z");
 
-                    // 2. BBox: 三行显示 X/Y/Z 的尺寸和范围
-                    {
-                        ct::Box box = update_cloud->box();
-                        ct::PointXYZ cmin = update_cloud->min();
-                        ct::PointXYZ cmax = update_cloud->max();
-                        QString bboxText = QString("X: %1 (%2 - %3)\nY: %4 (%5 - %6)\nZ: %7 (%8 - %9)")
-                            .arg(box.width, 0, 'f', 3).arg(cmin.x, 0, 'f', 3).arg(cmax.x, 0, 'f', 3)
-                            .arg(box.height, 0, 'f', 3).arg(cmin.y, 0, 'f', 3).arg(cmax.y, 0, 'f', 3)
-                            .arg(box.depth, 0, 'f', 3).arg(cmin.z, 0, 'f', 3).arg(cmax.z, 0, 'f', 3);
-                        QTableWidgetItem* bboxItem = new QTableWidgetItem(bboxText);
-                        bboxItem->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
-                        m_table->setItem(4, 1, bboxItem);
-                        m_table->setRowHeight(4, 66);
-                    }
+                QString currentMode = QString::fromStdString(cloud->currentColorMode());
+                int idx = color_mode->findText(currentMode);
+                color_mode->setCurrentIndex(idx >= 0 ? idx : 0);
+            }
+            color_mode->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-                    // 3. Center: 三行显示 X/Y/Z 坐标
-                    {
-                        Eigen::Vector3f center = update_cloud->center();
-                        QString centerText = QString("X: %1\nY: %2\nZ: %3")
-                            .arg(center.x(), 0, 'f', 3)
-                            .arg(center.y(), 0, 'f', 3)
-                            .arg(center.z(), 0, 'f', 3);
-                        QTableWidgetItem* centerItem = new QTableWidgetItem(centerText);
-                        centerItem->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
-                        m_table->setItem(5, 1, centerItem);
-                        m_table->setRowHeight(5, 66);
-                    }
+            if (isMesh) {
+                connect(color_mode, &QComboBox::currentTextChanged,
+                        this, [=](const QString& text){
+                            if (hasTexture) return;
+                            ColorRGB rgb = Color::White;
+                            if (text == "Red") rgb = Color::Red;
+                            else if (text == "Green") rgb = Color::Green;
+                            else if (text == "Blue") rgb = Color::Blue;
+                            else if (text == "Gray") rgb = {128, 128, 128};
+                            m_cloudview->setShapeColor(cloudId, rgb);
+                            m_cloudview->setTextureMeshColor(cloudId, rgb.rf(), rgb.gf(), rgb.bf());
+                            m_cloudview->refresh();
+                        });
+            } else {
+                connect(color_mode, &QComboBox::currentTextChanged,
+                        this, [=](const QString& text){
+                            if (text == "RGB (Default)") {
+                                m_cloudview->resetPointCloudColor(cloud);
+                            } else if (text == "x" || text == "y" || text == "z") {
+                                cloud->setCloudColor(text.toLower().toStdString());
+                                m_cloudview->addPointCloud(cloud);
+                            } else {
+                                cloud->updateColorByField(text.toStdString());
+                                m_cloudview->addPointCloud(cloud);
+                            }
+                        });
+            }
+            m_table->setCellWidget(row, 1, color_mode);
+        }
 
-                    // 2. 在视图左下角显示 ID
-                    m_cloudview->showCloudId(QString::fromStdString(update_cloud->id()));
+        // ============================================================
+        // Cloud Section（仅点云节点）
+        // ============================================================
+        if (!isMesh) {
+            addSectionHeader("Cloud");
 
-                    // 3. Point Size (SpinBox)
-                    QSpinBox *point_size = new QSpinBox;
-                    point_size->setRange(1, 99);
-                    point_size->setValue(update_cloud->pointSize());
-                    point_size->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-                    connect(point_size, QOverload<int>::of(&QSpinBox::valueChanged),
-                            this, [=](int value){
-                                update_cloud->setPointSize(value);
-                                m_cloudview->setPointCloudSize(QString::fromStdString(update_cloud->id()), value);
-                                m_cloudview->refresh();
-                            });
-                    m_table->setCellWidget(POINT_SIZE_ROW, 1, point_size);
+            // Resolution
+            addTextRow("Resolution", QString::number(cloud->resolution()));
 
-                    // 4. Opacity (DoubleSpinBox)
-                    QDoubleSpinBox* opacity = new QDoubleSpinBox;
-                    opacity->setSingleStep(0.1);
-                    opacity->setRange(0, 1);
-                    opacity->setValue(update_cloud->opacity());
-                    opacity->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-                    connect(opacity, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-                            this, [=](double value){
-                                update_cloud->setOpacity(value);
-                                m_cloudview->setPointCloudOpacity(QString::fromStdString(update_cloud->id()), value);
-                                m_cloudview->refresh();
-                            });
-                    m_table->setCellWidget(OPACITY_ROW, 1, opacity);
+            // Point Size
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("PointSize");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                m_table->setItem(row, 0, labelItem);
 
-                    // 5. Normals (Checkbox + Scale)
-                    QWidget* normals_widget = new QWidget;
-                    QHBoxLayout* layout = new QHBoxLayout(normals_widget);
-                    layout->setContentsMargins(0,0,0,0);
-                    layout->setSpacing(5);
+                QSpinBox* point_size = new QSpinBox;
+                point_size->setRange(1, 99);
+                point_size->setValue(cloud->pointSize());
+                point_size->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                connect(point_size, QOverload<int>::of(&QSpinBox::valueChanged),
+                        this, [=](int value){
+                            cloud->setPointSize(value);
+                            m_cloudview->setPointCloudSize(cloudId, value);
+                            m_cloudview->refresh();
+                        });
+                m_table->setCellWidget(row, 1, point_size);
+            }
 
-                    QCheckBox* show_normals = new QCheckBox;
-                    QDoubleSpinBox* scale = new QDoubleSpinBox;
-                    scale->setSingleStep(0.01);
-                    scale->setRange(0, 9999);
-                    scale->setValue(0.05);
-                    scale->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+            // Normals
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Normals");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                m_table->setItem(row, 0, labelItem);
 
-                    show_normals->setEnabled(update_cloud->hasNormals());
+                QWidget* normals_widget = new QWidget;
+                QHBoxLayout* layout = new QHBoxLayout(normals_widget);
+                layout->setContentsMargins(0,0,0,0);
+                layout->setSpacing(5);
 
-                    // 连接信号
-                    connect(scale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
-                            [=](double value){
-                                if (update_cloud->hasNormals() && show_normals->isChecked())
-                                    m_cloudview->addPointCloudNormals(update_cloud, 1, value);
-                            });
-                    connect(show_normals, &QCheckBox::stateChanged,
-                            [=](int state){
-                                if (state) m_cloudview->addPointCloudNormals(update_cloud, 1, scale->value());
-                                else m_cloudview->removeShape(QString::fromStdString(update_cloud->normalId()));
-                            });
+                QCheckBox* show_normals = new QCheckBox;
+                QDoubleSpinBox* scale = new QDoubleSpinBox;
+                scale->setSingleStep(0.01);
+                scale->setRange(0, 9999);
+                scale->setValue(0.05);
+                scale->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-                    layout->addWidget(show_normals);
-                    layout->addWidget(scale);
-                    layout->addStretch();
-                    m_table->setCellWidget(NORMALS_ROW, 1, normals_widget);
+                show_normals->setEnabled(cloud->hasNormals());
 
-                    // 6. Color Mode (ComboBox)
-                    if (m_table->rowCount() <= COLOR_MODE_ROW) m_table->setRowCount(COLOR_MODE_ROW + 1);
+                connect(scale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+                        [=](double value){
+                            if (cloud->hasNormals() && show_normals->isChecked())
+                                m_cloudview->addPointCloudNormals(cloud, 1, value);
+                        });
+                connect(show_normals, &QCheckBox::stateChanged,
+                        [=](int state){
+                            if (state) m_cloudview->addPointCloudNormals(cloud, 1, scale->value());
+                            else m_cloudview->removeShape(QString::fromStdString(cloud->normalId()));
+                        });
 
-                    QComboBox* color_mode = new QComboBox;
-                    color_mode->addItem("RGB (Default)");
-                    color_mode->addItem("x");
-                    color_mode->addItem("y");
-                    color_mode->addItem("z");
+                layout->addWidget(show_normals);
+                layout->addWidget(scale);
+                layout->addStretch();
+                m_table->setCellWidget(row, 1, normals_widget);
+            }
 
-                    // 添加标量场字段
-                    std::vector<std::string> fields = update_cloud->getScalarFieldNames();
-                    for (const std::string& f : fields) color_mode->addItem(QString::fromStdString(f));
+            // Scalar Fields（有标量场时才显示）
+            {
+                std::vector<std::string> fields = cloud->getScalarFieldNames();
+                if (!fields.empty()) {
+                    int row = m_table->rowCount();
+                    m_table->insertRow(row);
+                    QTableWidgetItem* labelItem = new QTableWidgetItem("Scalar Field");
+                    labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                    m_table->setItem(row, 0, labelItem);
 
-                    QString currentMode = QString::fromStdString(update_cloud->currentColorMode());
-                    // 尝试在列表中找到当前模式
-                    int idx = color_mode->findText(currentMode);
-                    if (idx >= 0) {
-                        color_mode->setCurrentIndex(idx);
-                    } else {
-                        // 如果没找到（异常情况），默认选 RGB
-                        color_mode->setCurrentIndex(0);
-                    }
+                    QComboBox* scalar_combo = new QComboBox;
+                    for (const std::string& f : fields)
+                        scalar_combo->addItem(QString::fromStdString(f));
+                    scalar_combo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-                    color_mode->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-                    connect(color_mode, &QComboBox::currentTextChanged,
+                    connect(scalar_combo, &QComboBox::currentTextChanged,
                             [=](const QString& text){
-                                if (text == "RGB (Default)") {
-                                    m_cloudview->resetPointCloudColor(update_cloud);
-                                } else if (text == "x" || text == "y" || text == "z") {
-                                    update_cloud->setCloudColor(text.toLower().toStdString());
-                                    m_cloudview->addPointCloud(update_cloud);
-                                } else {
-                                    update_cloud->updateColorByField(text.toStdString());
-                                    m_cloudview->addPointCloud(update_cloud);
-                                }
+                                cloud->updateColorByField(text.toStdString());
+                                m_cloudview->addPointCloud(cloud);
                             });
-                    m_table->setCellWidget(COLOR_MODE_ROW, 1, color_mode);
+                    m_table->setCellWidget(row, 1, scalar_combo);
                 }
+            }
+        }
+
+        // ============================================================
+        // Mesh Section（仅模型节点）
+        // ============================================================
+        if (isMesh) {
+            addSectionHeader("Mesh");
+
+            // Face Count
+            int faceCount = 0;
+            auto meshIt = m_mesh_map.find(cloudId);
+            if (meshIt != m_mesh_map.end() && meshIt.value())
+                faceCount = meshIt.value()->polygons.size();
+            auto texIt = m_textured_mesh_map.find(cloudId);
+            if (texIt != m_textured_mesh_map.end() && *texIt)
+                faceCount = texIt.value()->mesh->polygons.size();
+            addTextRow("Faces", QString::number(faceCount));
+
+            // Texture（所有模型节点都显示，无纹理时禁用）
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Texture");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                m_table->setItem(row, 0, labelItem);
+
+                QCheckBox* showTex = new QCheckBox;
+                showTex->setChecked(hasTexture);
+                showTex->setEnabled(hasTexture);
+                connect(showTex, &QCheckBox::stateChanged,
+                        this, [=](int state){
+                            if (state) {
+                                // 切换到纹理模式：用 VTK OBJ reader 重新加载带纹理的 mesh
+                                auto tIt = m_textured_mesh_map.find(cloudId);
+                                if (tIt != m_textured_mesh_map.end() && *tIt &&
+                                    !tIt.value()->objFilePath.empty())
+                                    m_cloudview->addTexturedMesh(
+                                        QString::fromStdString(tIt.value()->objFilePath), cloudId);
+                            } else {
+                                // 切换到无纹理模式：用 VTK actor 渲染（支持透明度等属性）
+                                m_cloudview->removeTexturedMesh(cloudId);
+                                auto mIt = m_mesh_map.find(cloudId);
+                                if (mIt != m_mesh_map.end() && mIt.value())
+                                    m_cloudview->addMeshActor(mIt.value(), cloudId);
+                            }
+                        });
+                m_table->setCellWidget(row, 1, showTex);
+            }
+
+            // Representation
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Representation");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                m_table->setItem(row, 0, labelItem);
+
+                QComboBox* repr = new QComboBox;
+                repr->addItem("Surface");
+                repr->addItem("Wireframe");
+                repr->addItem("Points");
+                repr->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                repr->setCurrentIndex(0);
+
+                connect(repr, &QComboBox::currentTextChanged,
+                        this, [=](const QString& text){
+                            // 所有 mesh 都使用 VTK actor 渲染，统一通过 actor property 控制
+                            int type = 2;
+                            if (text == "Wireframe") type = 1;
+                            else if (text == "Points") type = 0;
+                            m_cloudview->setTextureMeshRepresentation(cloudId, type);
+                            m_cloudview->refresh();
+                        });
+                m_table->setCellWidget(row, 1, repr);
             }
         }
 
@@ -1183,13 +1385,33 @@ namespace ct
         QTreeWidgetItem* item = getItemById(cloudId);
         if (item) {
             item->setData(0, NodeMeshIdRole, cloudId);
+            // 如果节点当前类型是 NodeCloud，升级为 NodeMesh 并更新图标
+            SceneNodeType curType = CustomTree::getNodeType(item);
+            if (curType == NodeCloud) {
+                item->setData(0, NodeTypeRole, static_cast<int>(NodeMesh));
+                item->setIcon(0, iconForType(NodeMesh));
+            }
         }
-        m_cloudview->addPolygonMesh(mesh, cloudId);
+
+        // 应用已保存的透明度
+        Cloud::Ptr cloud = getCloud(item);
+        float opacity = cloud ? cloud->opacity() : 1.0f;
+
+        m_cloudview->addMeshActor(mesh, cloudId);
+        if (opacity < 1.0f) {
+            m_cloudview->setTextureMeshOpacity(cloudId, opacity);
+        }
+
+        // 如果该节点当前被选中，刷新属性栏以显示正确的面数等信息
+        if (item && item->isSelected()) {
+            itemSelectionChangedEvent();
+        }
     }
 
     void CloudTree::unregisterMesh(const QString& cloudId)
     {
         m_mesh_map.remove(cloudId);
+        m_cloudview->removeTexturedMesh(cloudId);
         m_cloudview->removePolygonMesh(cloudId);
         m_cloudview->removeShape(cloudId);
 
@@ -1215,7 +1437,7 @@ namespace ct
             m_cloudview->removePointCloud(cloudId);
             m_cloudview->addTexturedMesh(QString::fromStdString(texturedMesh->objFilePath), cloudId);
         } else {
-            m_cloudview->addPolygonMesh(texturedMesh->mesh, cloudId);
+            m_cloudview->addMeshActor(texturedMesh->mesh, cloudId);
         }
     }
 
@@ -1257,6 +1479,9 @@ namespace ct
         texturedMesh->objFilePath = objFilePath.toStdString();
 
         registerTexturedMesh(cloudId, texturedMesh);
+
+        // 纹理异步加载完成，刷新属性栏以更新 Texture 复选框状态
+        itemSelectionChangedEvent();
     }
 
     QList<QPair<QString, pcl::PolygonMesh::Ptr>> CloudTree::getLoadedMeshes() const

@@ -31,6 +31,8 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 #include <vtkPolyData.h>
 #include <vtkPointData.h>
 
+#include <pcl/surface/vtk_smoothing/vtk_utils.h>
+
 
 #include <QDropEvent>
 #include <QMimeData>
@@ -435,6 +437,35 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
+    void CloudView::addMeshActor(const pcl::PolygonMesh::Ptr& mesh, const QString& id)
+    {
+        // 先清理已有的 actor
+        removeTexturedMesh(id);
+
+        if (!mesh || mesh->polygons.empty()) return;
+
+        // 将 pcl::PolygonMesh 转换为 vtkPolyData
+        vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+        pcl::VTKUtils::mesh2vtk(*mesh, polydata);
+
+        if (!polydata || polydata->GetNumberOfPoints() == 0) return;
+
+        vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        mapper->SetInputData(polydata);
+        mapper->ScalarVisibilityOff();
+
+        vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+        actor->SetMapper(mapper);
+        actor->GetProperty()->SetColor(0.8, 0.8, 0.8);
+
+        m_render->AddActor(actor);
+        QVector<vtkSmartPointer<vtkActor>> actors;
+        actors.push_back(actor);
+        m_textured_mesh_actors[id] = actors;
+
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
     void CloudView::addTexturedMesh(const QString& objFilePath, const QString& id)
     {
         removeTexturedMesh(id);
@@ -660,6 +691,48 @@ namespace ct
             m_textured_mesh_actors.erase(it);
             if (m_auto_render) m_viewer->getRenderWindow()->Render();
         }
+    }
+
+    void CloudView::setTextureMeshOpacity(const QString& cloud_id, float opacity)
+    {
+        auto it = m_textured_mesh_actors.find(cloud_id);
+        if (it == m_textured_mesh_actors.end()) return;
+        for (const auto& actor : it.value()) {
+            if (actor) actor->GetProperty()->SetOpacity(opacity);
+        }
+    }
+
+    void CloudView::setTextureMeshColor(const QString& cloud_id, float r, float g, float b)
+    {
+        auto it = m_textured_mesh_actors.find(cloud_id);
+        if (it == m_textured_mesh_actors.end()) return;
+        for (const auto& actor : it.value()) {
+            if (actor) actor->GetProperty()->SetColor(r, g, b);
+        }
+    }
+
+    void CloudView::setTextureMeshRepresentation(const QString& cloud_id, int type)
+    {
+        auto it = m_textured_mesh_actors.find(cloud_id);
+        if (it == m_textured_mesh_actors.end()) return;
+        for (const auto& actor : it.value()) {
+            if (actor) {
+                actor->GetProperty()->SetRepresentation(type);
+                if (type == 0) actor->GetProperty()->SetPointSize(3);
+            }
+        }
+    }
+
+    bool CloudView::hasTextureMeshDisplayed(const QString& cloud_id) const
+    {
+        return m_textured_mesh_actors.contains(cloud_id);
+    }
+
+    void CloudView::removeMeshShapes(const QString& id)
+    {
+        std::string std_id = id.toStdString();
+        if (m_viewer->contains(std_id))
+            m_viewer->removeShape(std_id);
     }
 
     void CloudView::addPolylineFromPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport)

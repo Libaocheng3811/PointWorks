@@ -160,6 +160,12 @@ namespace ct {
         void addTexturedMesh(const QString& objFilePath, const QString& id);
 
         /**
+         * @brief 从 PolygonMesh 创建 VTK Actor 并添加到视图（无纹理）
+         * 支持透明度、颜色、渲染模式设置，存储在 m_textured_mesh_actors 中
+         */
+        void addMeshActor(const pcl::PolygonMesh::Ptr& mesh, const QString& id);
+
+        /**
          * @brief 移除带纹理的多边形网格
          */
         void removeTexturedMesh(const QString& id);
@@ -225,6 +231,11 @@ namespace ct {
          * @param viewport 视口（默认 0 = 全部）
          */
         void removePolygonMesh(const QString& id, int viewport = 0);
+
+        /**
+         * @brief 移除指定 id 的所有 PCL shape（polygonMesh、polyline 等）
+         */
+        void removeMeshShapes(const QString& id);
 
         /**
          * @brief 移除对应关系
@@ -478,6 +489,27 @@ namespace ct {
          * @param cloud_id 点云 ID（与 m_OctreeRenders 的 key 对应）
          */
         void invalidateCloudRender(const QString& cloud_id);
+
+        /**
+         * @brief 设置纹理 mesh 所有 actor 的透明度
+         */
+        void setTextureMeshOpacity(const QString& cloud_id, float opacity);
+
+        /**
+         * @brief 设置纹理 mesh 所有 actor 的颜色
+         */
+        void setTextureMeshColor(const QString& cloud_id, float r, float g, float b);
+
+        /**
+         * @brief 设置纹理 mesh 所有 actor 的渲染模式
+         * @param type 0=points, 1=wireframe, 2=surface
+         */
+        void setTextureMeshRepresentation(const QString& cloud_id, int type);
+
+        /**
+         * @brief 查询纹理 mesh 是否正在显示
+         */
+        bool hasTextureMeshDisplayed(const QString& cloud_id) const;
 
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
