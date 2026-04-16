@@ -123,7 +123,7 @@ void ProjectManager::onOpenProject()
     }
 
     QString path = QFileDialog::getOpenFileName(m_parent_widget, "Open Project", QString(),
-        ct::ProjectFile::fileFilter() + ";;All Files (*)");
+        ct::ProjectFile::fileFilter());
     if (path.isEmpty()) return;
     openProject(path);
 }
@@ -140,7 +140,7 @@ void ProjectManager::onSaveProject()
 void ProjectManager::onSaveProjectAs()
 {
     QString path = QFileDialog::getSaveFileName(m_parent_widget, "Save Project As", QString(),
-        ct::ProjectFile::fileFilter() + ";;All Files (*)");
+        ct::ProjectFile::fileFilter());
     if (path.isEmpty()) return;
     saveProject(path);
 }

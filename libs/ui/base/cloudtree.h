@@ -86,7 +86,8 @@ namespace ct
         * @param strategy 挂载策略
         */
         void insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parent = nullptr,
-                         bool selected = false, MountStrategy strategy = MountStrategy::Auto);
+                         bool selected = false, MountStrategy strategy = MountStrategy::Auto,
+                         SceneNodeType nodeType = NodeCloud);
 
         /**
          * @brief 策略一：将结果作为兄弟节点挂载（滤波、采样、配准等）

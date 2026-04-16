@@ -12,7 +12,8 @@ enum SceneNodeType
     NodeFile  = 0,  // 原始文件节点（加载文件时创建的根节点）
     NodeCloud = 1,  // 点云数据节点
     NodeGroup = 2,  // 逻辑分组节点（算法结果容器，如 CSF、聚类结果）
-    NodeShape = 3   // 附属物节点（包围盒、拟合平面等）
+    NodeShape = 3,  // 附属物节点（包围盒、拟合平面等）
+    NodeMesh  = 4   // 网格模型节点（OBJ/STL 等带面片的模型）
 };
 
 /// QTreeWidgetItem 数据角色 — 存储节点类型

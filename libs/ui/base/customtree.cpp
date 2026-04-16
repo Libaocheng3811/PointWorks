@@ -36,6 +36,7 @@ namespace ct
         case NodeCloud: return m_cloud_icon.isNull() ? m_child_icon  : m_cloud_icon;
         case NodeGroup: return m_group_icon;
         case NodeShape: return m_shape_icon;
+        case NodeMesh:  return m_mesh_icon.isNull() ? m_child_icon  : m_mesh_icon;
         default:        return m_cloud_icon.isNull() ? m_child_icon : m_cloud_icon;
         }
     }
@@ -102,7 +103,8 @@ namespace ct
 
     bool CustomTree::isCloudNode(QTreeWidgetItem* item)
     {
-        return getNodeType(item) == NodeCloud;
+        SceneNodeType type = getNodeType(item);
+        return type == NodeCloud || type == NodeMesh;
     }
 
     QTreeWidgetItem* CustomTree::findFileParent(QTreeWidgetItem* item)

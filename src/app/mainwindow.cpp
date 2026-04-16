@@ -60,6 +60,7 @@
 #include <QHeaderView>
 
 #define  CLOUD_ICON_PATH    ":/res/icon2/cloud.svg"
+#define  MESH_ICON_PATH     ":/res/icon2/mesh.svg"
 #define  GROUP_ICON_PATH    ":/res/icon/view-group.svg"
 
 // setupUi()是Ui::MainWindow类的方法，负责初始化界面中的控件。
@@ -97,6 +98,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cloudtree->setPropertiesTable(ui->cloudtable);
     ui->cloudtree->setFileIcon(style()->standardIcon(QStyle::SP_DirClosedIcon));
     ui->cloudtree->setCloudIcon(QIcon(CLOUD_ICON_PATH));
+    ui->cloudtree->setMeshIcon(QIcon(MESH_ICON_PATH));
     ui->cloudtree->setGroupIcon(style()->standardIcon(QStyle::SP_DirOpenIcon));
 
     // 设置属性表格列宽 - 第一列固定，第二列拉伸

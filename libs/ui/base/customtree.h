@@ -53,6 +53,11 @@ namespace ct
         void setShapeIcon(const QIcon& icon) {m_shape_icon = icon;}
 
         /**
+         * @brief 设置网格模型节点的图标 (NodeMesh)
+         */
+        void setMeshIcon(const QIcon& icon) {m_mesh_icon = icon;}
+
+        /**
          * @brief 向后兼容：设置父类项目的图标（等同于 setFileIcon）
          */
         void setParentIcon(const QIcon& icon) {m_file_icon = icon;}
@@ -168,6 +173,7 @@ namespace ct
         QIcon m_cloud_icon;    // NodeCloud
         QIcon m_group_icon;    // NodeGroup
         QIcon m_shape_icon;    // NodeShape
+        QIcon m_mesh_icon;     // NodeMesh
 
         // 向后兼容（仅在不设置新图标时作为 fallback）
         QIcon m_parent_icon;

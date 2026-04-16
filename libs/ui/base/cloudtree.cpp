@@ -96,10 +96,15 @@ namespace ct
          * filterName 是一个描述性的名字，用于在文件对话框中显示给用户。如 all, ply
          * pattern1 pattern2 ... 是一个或多个文件模式，它们定义了过滤器匹配的文件类型, 如 *.*, *.ply
          */
-        // 定义了一个文件过滤器
-        QString filter = "All Supported(*.ply *.pcd *.las *.laz *.obj *.stl *.vtk *.ifs *.e57 *.txt *.asc *.xyz);;All Files(*.*)";
+        // 点云格式
+        QString pointCloudFilters = "Point Cloud Files (*.ply *.pcd *.las *.laz *.e57 *.txt *.asc *.xyz);;"
+                                   "PLY (*.ply);;PCD (*.pcd);;LAS (*.las);;LAZ (*.laz);;E57 (*.e57);;TXT (*.txt *.asc *.xyz)";
+        // 模型格式
+        QString meshFilters = "Mesh Files (*.obj *.stl *.vtk *.ifs);;"
+                             "OBJ (*.obj);;STL (*.stl);;VTK (*.vtk);;IFS (*.ifs)";
+        QString filter = pointCloudFilters + ";;" + meshFilters + ";;All Supported(*.ply *.pcd *.las *.laz *.e57 *.txt *.asc *.xyz *.obj *.stl *.vtk *.ifs);;All Files(*.*)";
         // 打开文件对话框,可以选择多个文件
-        QStringList filePathList = QFileDialog::getOpenFileNames(this, tr("open cloud files"), m_path, filter);
+        QStringList filePathList = QFileDialog::getOpenFileNames(this, tr("Open Files"), m_path, filter);
         if (filePathList.isEmpty()) return;
 
         m_loading_queue_count = filePathList.size();
@@ -143,7 +148,7 @@ namespace ct
 
 
     void CloudTree::insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parentItem,
-                                 bool selected, MountStrategy strategy)
+                                 bool selected, MountStrategy strategy, SceneNodeType nodeType)
     {
         // check cloud id
         if (cloud == nullptr) return;
@@ -181,8 +186,6 @@ namespace ct
 
         // 根据策略确定实际父节点和节点类型
         QTreeWidgetItem* actualParent = parentItem;
-        SceneNodeType nodeType = NodeCloud;
-
         if (strategy == MountStrategy::Auto)
         {
             if (actualParent == nullptr)
@@ -233,7 +236,7 @@ namespace ct
             this->setCurrentItem(newItem);
         }
 
-        printI(QString("Add cloud[id:%1] done.").arg(QString::fromStdString(cloud->id())));
+        printI(QString("Add %1[id:%2] done.").arg(nodeType == NodeMesh ? "mesh" : "cloud").arg(QString::fromStdString(cloud->id())));
 
         // 通知 Bridge 注册该云
         emit cloudInserted(cloud);
@@ -367,9 +370,10 @@ namespace ct
         // 根据是否有关联 mesh 构建不同的保存过滤器
         QString filter;
         if (has_mesh) {
-            filter = "PLY(*.ply);;OBJ(*.obj);;STL(*.stl);;VTK(*.vtk);;PCD(*.pcd);;LAS(*.las);;E57(*.e57);;TXT(*.txt)";
+            filter = "Mesh Files (*.obj *.stl *.vtk);;OBJ (*.obj);;STL (*.stl);;VTK (*.vtk);;"
+                     "Point Cloud Files (*.ply *.pcd *.las *.e57 *.txt);;PLY (*.ply);;PCD (*.pcd);;LAS (*.las);;E57 (*.e57);;TXT (*.txt)";
         } else {
-            filter = "PLY(*.ply);;PCD(*.pcd);;LAS(*.las);;E57(*.e57);;TXT(*.txt)";
+            filter = "Point Cloud Files (*.ply *.pcd *.las *.e57 *.txt);;PLY (*.ply);;PCD (*.pcd);;LAS (*.las);;E57 (*.e57);;TXT (*.txt)";
         }
 
         QString filepath = QFileDialog::getSaveFileName(this, tr("Save file"), QString::fromStdString(cloud->id()), filter);
@@ -664,20 +668,24 @@ namespace ct
             printI(QString("Load the file [path:%1] done, take time %2 ms.").arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
             m_path = QFileInfo(QString::fromStdString(cloud->filepath())).path();
 
+            // 判断是否为 mesh 文件（含面片数据）
+            bool isMesh = mesh && !mesh->polygons.empty();
+            SceneNodeType nodeType = isMesh ? NodeMesh : NodeCloud;
+
             if (!m_pending_parents.isEmpty())
             {
                 // 恢复模式：查找对应的目标父节点（不创建 FileNode）
                 QString fp = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
                 QTreeWidgetItem* parent = m_pending_parents.value(fp, nullptr);
                 if (parent) {
-                    insertCloud(cloud, parent, true);
+                    insertCloud(cloud, parent, true, MountStrategy::Auto, nodeType);
                     m_pending_parents.remove(fp);
                 } else {
                     // fallback：未找到匹配的父节点，按普通模式处理
                     QString folderName = QFileInfo(fp).fileName();
                     QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fp + ")", NodeFile);
                     fileNode->setData(0, NodeFilePathRole, fp);
-                    insertCloud(cloud, fileNode, true);
+                    insertCloud(cloud, fileNode, true, MountStrategy::Auto, nodeType);
                 }
             }
             else
@@ -687,7 +695,7 @@ namespace ct
                 QString fullPath = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
                 QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fullPath + ")", NodeFile);
                 fileNode->setData(0, NodeFilePathRole, fullPath);
-                insertCloud(cloud, fileNode, true);
+                insertCloud(cloud, fileNode, true, MountStrategy::Auto, nodeType);
             }
 
             // 如果加载了 mesh（含面片），注册到视图
