@@ -110,15 +110,27 @@ void OctreeRenderer::update() {
 }
 ```
 
-## FileIO (libs/io/fileio.h)
+## FileIO (libs/io/)
 
-流式文件加载与保存。
+流式文件加载与保存。按数据类型拆分为多个编译单元，FileIO 类作为调度器。
+
+**文件结构**:
+```
+libs/io/
+├── fileio.h              # FileIO 类声明（信号、槽、公共接口）
+├── fileio.cpp            # 调度器 + 辅助函数 + saveMeshFile + parseOBJMaterialTexture (~280行)
+├── fileio_pointcloud.cpp # 点云格式加载/保存（LAS, PLY, PCD, TXT, E57）(~1580行)
+├── fileio_mesh.cpp       # 模型格式加载（OBJ, STL, VTK, IFS）(~170行)
+├── textured_mesh.h       # 纹理网格数据结构
+└── projectfile.h/cpp     # 项目文件保存/加载
+```
 
 **支持格式**:
-- LAS/LAZ（通过 LASlib）
-- PLY、PCD
-- TXT（支持字段映射）
-- OBJ（只读）
+- 点云: LAS/LAZ（LASlib）、PLY、PCD、TXT/XYZ/ASC、E57（E57Format）
+- 模型: OBJ（带纹理检测）、STL、VTK、IFS
+
+**方法拆分策略**:
+方法保持为 `FileIO` 成员函数（声明在 fileio.h），实现分布在各 .cpp 中。调度器只负责格式分发和公共逻辑。
 
 **流式加载流程**:
 ```cpp

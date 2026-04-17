@@ -70,12 +70,51 @@ class CloudTree {
 
 | 工具 | 文件 | 功能 |
 |------|------|------|
-| Color | src/edit/color.h | 颜色设置 |
+| Color | src/edit/color.h | 颜色设置（点云 Points/Normals + 模型） |
 | BoundingBox | src/edit/boundingbox.h | 包围盒绘制 |
 | Transformation | src/edit/transformation.h | 点云变换（平移/旋转/矩阵） |
 | Normals | src/edit/normals.h | 法线编辑 |
 | Scale | src/edit/scale.h | 尺度缩放 |
 | Coordinate | src/edit/coordinate.h | 坐标系操作 |
+
+## 选项设置 (src/options/)
+
+采用 QListWidget 侧栏 + QStackedWidget 的模块化设置页面架构，便于后续扩展。
+
+### DisplaySettingsDialog (src/options/displaysettings.h)
+
+Display Settings 容器对话框，位于 Options 菜单栏。
+
+**架构**:
+```cpp
+class DisplaySettingsDialog : public ct::CustomDialog {
+    void addPage(const QString& name, DisplaySettingsPage* page);
+    QListWidget* m_sidebar;    // 左侧页面选择
+    QStackedWidget* m_pages;   // 右侧页面内容
+};
+```
+
+**设置页面基类**:
+```cpp
+class DisplaySettingsPage : public QWidget {
+    virtual void apply() = 0;
+    virtual void reset() = 0;
+};
+```
+
+### ColorsPage (src/options/displaysettings_colors_page.h)
+
+软件显示颜色设置（背景色 + 包围盒色），非数据颜色。数据颜色通过 Edit > Colors 设置。
+
+| 设置项 | 说明 |
+|--------|------|
+| 背景色 | 3D 视图背景颜色（可选预设或自定义） |
+| 包围盒色 | 选中节点的包围盒显示颜色 |
+
+**添加新设置页**:
+1. 创建 `src/options/xxx_page.h/cpp`，继承 `DisplaySettingsPage`
+2. 实现 `apply()` / `reset()`
+3. 在 `DisplaySettingsDialog::init()` 中调用 `addPage("名称", new XxxPage(...))`
 
 ## 插件系统
 

@@ -53,9 +53,21 @@ chore(build): 更新 cmake 版本
 
 ## 添加新的文件格式
 
-1. 在 `libs/io/fileio.h` 中添加加载/保存函数
-2. 在 `libs/ui/base/cloudtree.h` 中添加格式过滤器
-3. 测试流式加载和坐标偏移
+**点云格式**:
+1. 在 `libs/io/fileio.h` 中添加 `loadXXX()` / `saveXXX()` 私有方法声明
+2. 在 `libs/io/fileio_pointcloud.cpp` 中实现（与同类格式放在一起）
+3. 在 `fileio.cpp` 的 `loadPointCloud()` / `savePointCloud()` 调度器中添加分发分支
+4. 在 `libs/ui/base/cloudtree.h` 中添加格式过滤器
+5. 测试流式加载和坐标偏移
+
+**模型格式**:
+1. 在 `libs/io/fileio.h` 中添加 `loadXXX()` 私有方法声明（含 mesh 参数）
+2. 在 `libs/io/fileio_mesh.cpp` 中实现（与 `loadGeneralPCL` 放在一起）
+3. 在 `fileio.cpp` 的 `loadPointCloud()` 调度器的 else 分支中处理（最终调用 `loadGeneralPCL`）
+4. 在 `libs/io/fileio.cpp` 的 `saveMeshFile()` 中添加保存分发
+5. 测试网格加载和纹理检测
+
+> 注意：ct_io 的 CMakeLists.txt 使用 `file(GLOB *.cpp)`，新增 .cpp 文件无需手动注册。
 
 ## 扩展 Python API
 

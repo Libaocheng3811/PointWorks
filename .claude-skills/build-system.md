@@ -66,8 +66,12 @@ target_link_libraries(ct_viz
 ```cmake
 add_library(ct_io SHARED ...)
 target_link_libraries(ct_io
-    PRIVATE ct_core Qt5::Widgets LASlib)
+    PUBLIC ct_core Qt5::Widgets
+    PRIVATE LASlib E57Format)
+target_compile_definitions(ct_io PRIVATE CT_BUILDING_CT_IO)
 ```
+
+> ct_io 使用 `file(GLOB *.cpp)` 自动收集源文件，新增 .cpp 无需手动注册。
 
 ### ct_algorithm (libs/algorithm/CMakeLists.txt) — STATIC
 ```cmake
@@ -137,12 +141,16 @@ add_subdirectory(3rdparty/pybind11)
 
 | 格式 | 扩展名 | 读取 | 写入 | 说明 |
 |------|--------|------|------|------|
-| LAS | .las | √ | √ | ASPRS LAS 格式 |
-| LAZ | .laz | √ | √ | 压缩 LAS 格式 |
-| PLY | .ply | √ | √ | Stanford PLY 格式 |
+| LAS | .las | √ | √ | ASPRS LAS 格式（LASlib） |
+| LAZ | .laz | √ | √ | 压缩 LAS 格式（LASlib） |
+| E57 | .e57 | √ | √ | 工业扫描格式（E57Format） |
+| PLY | .ply | √ | √ | Stanford PLY 格式（点云+网格） |
 | PCD | .pcd | √ | √ | PCL 点云格式 |
-| TXT | .txt | √ | √ | 文本格式（支持字段映射） |
-| OBJ | .obj | √ | - | Wavefront OBJ 格式 |
+| TXT | .txt/.xyz/.asc | √ | √ | 文本格式（支持字段映射和交互式配置） |
+| OBJ | .obj | √ | √ | Wavefront OBJ 格式（支持纹理检测） |
+| STL | .stl | √ | √ | STL 网格格式 |
+| VTK | .vtk | √ | √ | VTK PolyData 格式 |
+| IFS | .ifs | √ | - | IFS 网格格式 |
 
 ## 预处理器定义
 
