@@ -210,8 +210,6 @@
     <property name="title">
      <string>Options</string>
     </property>
-    <addaction name="actionDisplaySettings"/>
-    <addaction name="separator"/>
     <widget class="QMenu" name="menuTheme">
      <property name="font">
       <font>
@@ -245,8 +243,10 @@
      <addaction name="actionEnglish"/>
      <addaction name="actionChinese"/>
     </widget>
+    <addaction name="separator"/>
     <addaction name="menuTheme"/>
     <addaction name="menuLanguage"/>
+    <addaction name="actionDisplaySettings"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="font">
@@ -1361,8 +1361,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionDisplaySettings">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/color-management.svg</normaloff>:/res/icon/color-management.svg
-    </iconset>
+     <normaloff>:/res/icon2/displaySetting.svg</normaloff>:/res/icon2/displaySetting.svg</iconset>
    </property>
    <property name="text">
     <string>Display Settings</string>
