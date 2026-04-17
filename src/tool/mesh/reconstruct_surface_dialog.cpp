@@ -58,7 +58,7 @@ void ReconstructSurfaceDialog::setupUi()
     cbox_algorithm_->addItems({
         "Poisson (Recommended)",
         "Greedy Projection",
-        "Marching Cubes (RBF)",
+        "Marching Cubes (Hoppe)",
         "Grid Projection"
     });
     algo_row->addWidget(cbox_algorithm_, 1);
@@ -417,7 +417,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
     QCoreApplication::processEvents();
 
     // ========== Step 2: 显示进度条 ==========
-    QString algo_names[] = {"Poisson", "Greedy Projection", "Marching Cubes (RBF)", "Grid Projection"};
+    QString algo_names[] = {"Poisson", "Greedy Projection", "Marching Cubes (Hoppe)", "Grid Projection"};
     QString prefix = is_preview ? "Preview: " : "";
     m_cloudtree->showProgress(prefix + algo_names[algorithm] + "...");
 
@@ -484,8 +484,8 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                     min_angle, max_angle, eps_angle,
                     consistent, true,
                     cancel, on_progress);
-            case 2: // Marching Cubes RBF
-                return ct::Surface::MarchingCubesRBF(work_cloud,
+            case 2: // Marching Cubes Hoppe
+                return ct::Surface::MarchingCubesHoppe(work_cloud,
                     iso_level, grid_res, grid_res, grid_res,
                     percentage, epsilon,
                     cancel, on_progress);
@@ -528,6 +528,15 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             QString algo_suffix[] = {"_poisson", "_greedy", "_marching_cubes", "_grid_projection"};
             QString result_id = QString::fromStdString(cloud->id()) + algo_suffix[algorithm] + suffix;
 
+            // 确保 result_id 唯一（同一算法对同一源点云多次运行时避免 ID 冲突）
+            if (!is_preview) {
+                QString base_id = result_id;
+                int counter = 1;
+                while (m_cloudtree->getItemById(result_id) != nullptr) {
+                    result_id = base_id + "(" + QString::number(counter++) + ")";
+                }
+            }
+
             // 如果是 preview，先清除上次 preview 的结果
             if (is_preview) {
                 for (const auto& pid : m_preview_ids) {
@@ -553,7 +562,9 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             if (check_extract_boundary_->isChecked()) {
                 QString boundary_id = result_id + "_boundary";
                 m_cloudview->addPolylineFromPolygonMesh(result.mesh, boundary_id);
-                if (is_preview) m_preview_ids.append(boundary_id);
+                if (is_preview) {
+                    m_preview_ids.append(boundary_id);
+                }
                 printI(QString("Boundary polylines extracted: [%1]").arg(boundary_id));
             }
 
@@ -575,6 +586,12 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
 
                     // 注册 mesh 到树节点，勾选联动可见性
                     m_cloudtree->registerMesh(result_id, result.mesh);
+
+                    // 将 boundary 注册为 mesh 节点的子节点（必须在 insertCloud 之后）
+                    if (check_extract_boundary_->isChecked()) {
+                        QString boundary_id = result_id + "_boundary";
+                        m_cloudtree->registerShape(result_id, boundary_id, "Boundary", result.mesh);
+                    }
                 }
                 this->accept();
             }

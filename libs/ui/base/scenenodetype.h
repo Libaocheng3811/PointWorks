@@ -13,7 +13,8 @@ enum SceneNodeType
     NodeCloud = 1,  // 点云数据节点
     NodeGroup = 2,  // 逻辑分组节点（算法结果容器，如 CSF、聚类结果）
     NodeShape = 3,  // 附属物节点（包围盒、拟合平面等）
-    NodeMesh  = 4   // 网格模型节点（OBJ/STL 等带面片的模型）
+    NodeMesh  = 4,  // 网格模型节点（OBJ/STL 等带面片的模型）
+    NodeBoundary = 5 // 附属形状节点（边界多段线等，作为父节点的子节点）
 };
 
 /// QTreeWidgetItem 数据角色 — 存储节点类型
@@ -24,6 +25,8 @@ constexpr int NodeUuidRole      = Qt::UserRole + 2;
 constexpr int NodeFilePathRole  = Qt::UserRole + 3;
 /// QTreeWidgetItem 数据角色 — 存储关联的 PolygonMesh visual ID
 constexpr int NodeMeshIdRole    = Qt::UserRole + 4;
+/// QTreeWidgetItem 数据角色 — 存储关联的 VTK shape ID（边界多段线等）
+constexpr int NodeShapeIdRole   = Qt::UserRole + 5;
 
 } // namespace ct
 

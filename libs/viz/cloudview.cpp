@@ -20,6 +20,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 #include <vtkProperty.h>
 #include <vtkOBJReader.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkPolyDataNormals.h>
 #include <vtkTexture.h>
 #include <vtkImageData.h>
 #include <vtkPNGReader.h>
@@ -450,13 +451,49 @@ namespace ct
 
         if (!polydata || polydata->GetNumberOfPoints() == 0) return;
 
+        // 清除所有点数据（可能包含错误的方向法线和 RGB）
+        polydata->GetPointData()->Initialize();
+
+        // 创建顶点颜色数组（统一用 vertex coloring 控制颜色）
+        vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+        colors->SetNumberOfComponents(3);
+        colors->SetNumberOfTuples(polydata->GetNumberOfPoints());
+        unsigned char gray = 204; // 0.8 * 255
+        for (vtkIdType i = 0; i < polydata->GetNumberOfPoints(); ++i) {
+            colors->SetTuple3(i, gray, gray, gray);
+        }
+        colors->SetName("MeshColors");
+        polydata->GetPointData()->SetScalars(colors);
+
+        // 重新计算一致的法线方向（修复 Hoppe 等算法产生的朝内法线问题）
+        vtkSmartPointer<vtkPolyDataNormals> normalGen = vtkSmartPointer<vtkPolyDataNormals>::New();
+        normalGen->SetInputData(polydata);
+        normalGen->ConsistencyOn();        // 确保相邻面片法线方向一致
+        normalGen->AutoOrientNormalsOn();  // 根据邻域全局方向自动翻转法线朝外
+        normalGen->NonManifoldTraversalOff();
+        normalGen->Update();
+        polydata = normalGen->GetOutput();
+
+        // 确保 MeshColors 数组在法线重建后仍然存在
+        if (!polydata->GetPointData()->GetArray("MeshColors")) {
+            vtkSmartPointer<vtkUnsignedCharArray> colors2 = vtkSmartPointer<vtkUnsignedCharArray>::New();
+            colors2->SetNumberOfComponents(3);
+            colors2->SetNumberOfTuples(polydata->GetNumberOfPoints());
+            unsigned char gray2 = 204;
+            for (vtkIdType i = 0; i < polydata->GetNumberOfPoints(); ++i) {
+                colors2->SetTuple3(i, gray2, gray2, gray2);
+            }
+            colors2->SetName("MeshColors");
+            polydata->GetPointData()->SetScalars(colors2);
+        }
+
         vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         mapper->SetInputData(polydata);
-        mapper->ScalarVisibilityOff();
 
         vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
         actor->SetMapper(mapper);
-        actor->GetProperty()->SetColor(0.8, 0.8, 0.8);
+        actor->GetProperty()->SetAmbient(0.1);
+        actor->GetProperty()->SetDiffuse(0.8);
 
         m_render->AddActor(actor);
         QVector<vtkSmartPointer<vtkActor>> actors;
@@ -707,7 +744,20 @@ namespace ct
         auto it = m_textured_mesh_actors.find(cloud_id);
         if (it == m_textured_mesh_actors.end()) return;
         for (const auto& actor : it.value()) {
-            if (actor) actor->GetProperty()->SetColor(r, g, b);
+            if (!actor) continue;
+            // 直接修改 polydata 顶点颜色，绕过 actor color 机制
+            vtkPolyData* pd = vtkPolyData::SafeDownCast(actor->GetMapper()->GetInput());
+            if (!pd) continue;
+            vtkDataArray* arr = pd->GetPointData()->GetArray("MeshColors");
+            if (!arr) continue;
+            unsigned char cr = static_cast<unsigned char>(r * 255);
+            unsigned char cg = static_cast<unsigned char>(g * 255);
+            unsigned char cb = static_cast<unsigned char>(b * 255);
+            for (vtkIdType i = 0; i < arr->GetNumberOfTuples(); ++i) {
+                arr->SetTuple3(i, cr, cg, cb);
+            }
+            arr->Modified();
+            actor->GetMapper()->Modified();
         }
     }
 

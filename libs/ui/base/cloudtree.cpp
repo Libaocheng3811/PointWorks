@@ -331,6 +331,13 @@ namespace ct
                 } else if (m_mesh_map.contains(cid)) {
                     unregisterMesh(cid);
                 }
+            } else {
+                // 清理附属 shape（如边界多段线）
+                QString shape_id = c->data(0, NodeShapeIdRole).toString();
+                if (!shape_id.isEmpty()) {
+                    m_cloudview->removeShape(shape_id);
+                    m_shape_map.remove(shape_id);
+                }
             }
         }
 
@@ -804,34 +811,53 @@ namespace ct
 
         for (QTreeWidgetItem* it : affectedItems){
             Cloud::Ptr cloud = getCloud(it);
-            if (!cloud) continue; // 如果是纯文件夹，跳过
 
-            // 只要不是 Unchecked，就显示 (Checked/Partially)
-            bool shouldShow = (it->checkState(0) != Qt::Unchecked);
-            bool exists = m_cloudview->contains(QString::fromStdString(cloud->id()));
-
-            if(shouldShow){
-                if (exists){
-                    // 若点云已经存在，设为可见
-                    m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), true);
-                }
-                else {
-                    // 不存在，首次加载
-                    m_cloudview->addPointCloud(cloud);
-                    // 恢复属性
-                    if (cloud->pointSize() > 1){
-                        m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
-                        if (QString::fromStdString(cloud->id()).contains("picked-"))
-                            m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
+            // --- NodeBoundary: 附属 shape 的可见性联动 ---
+            if (!cloud) {
+                QString shape_id = it->data(0, NodeShapeIdRole).toString();
+                if (!shape_id.isEmpty()) {
+                    bool show = (it->checkState(0) != Qt::Unchecked);
+                    if (show) {
+                        if (!m_cloudview->contains(shape_id)) {
+                            auto mesh_it = m_shape_map.find(shape_id);
+                            if (mesh_it != m_shape_map.end() && mesh_it.value()) {
+                                m_cloudview->addPolylineFromPolygonMesh(mesh_it.value(), shape_id);
+                            }
+                        }
+                    } else {
+                        m_cloudview->removeShape(shape_id);
                     }
                 }
-                if (it->isSelected() && cloud->size() > 100)
-                    m_cloudview->addBox(cloud);
+                continue;
             }
-            else{
-                if (exists){
-                    // 不移除点云，设为隐藏
-                    m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), false);
+
+            // 只要不是 Unchecked，就显示 (Checked/Partially)
+            SceneNodeType nodeType = getNodeType(it);
+            bool shouldShow = (it->checkState(0) != Qt::Unchecked);
+
+            // NodeMesh 节点不显示点云散点，由下方的 mesh 联动逻辑处理
+            if (nodeType != NodeMesh) {
+                bool exists = m_cloudview->contains(QString::fromStdString(cloud->id()));
+
+                if(shouldShow){
+                    if (exists){
+                        m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), true);
+                    }
+                    else {
+                        m_cloudview->addPointCloud(cloud);
+                        if (cloud->pointSize() > 1){
+                            m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
+                            if (QString::fromStdString(cloud->id()).contains("picked-"))
+                                m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
+                        }
+                    }
+                    if (it->isSelected() && cloud->size() > 100)
+                        m_cloudview->addBox(cloud);
+                }
+                else{
+                    if (exists){
+                        m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), false);
+                    }
                 }
             }
 
@@ -1392,6 +1418,24 @@ namespace ct
         QTreeWidgetItem* item = getItemById(cloudId);
         if (item) {
             item->setData(0, NodeMeshIdRole, QVariant());
+        }
+    }
+
+    void CloudTree::registerShape(const QString& parentCloudId, const QString& shapeId,
+                                   const QString& displayName,
+                                   const pcl::PolygonMesh::Ptr& mesh)
+    {
+        QTreeWidgetItem* parentItem = getItemById(parentCloudId);
+        if (!parentItem) return;
+
+        const bool wasBlocked = this->blockSignals(true);
+        QTreeWidgetItem* shapeItem = addItem(parentItem, displayName, NodeBoundary, false);
+        this->blockSignals(wasBlocked);
+
+        shapeItem->setData(0, NodeShapeIdRole, shapeId);
+
+        if (mesh) {
+            m_shape_map[shapeId] = mesh;
         }
     }
 

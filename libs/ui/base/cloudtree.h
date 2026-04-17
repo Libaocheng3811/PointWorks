@@ -194,6 +194,17 @@ namespace ct
         void unregisterMesh(const QString& cloudId);
 
         /**
+         * @brief 注册 VTK shape 到树节点（与节点可见性联动）
+         * @param parentCloudId 父节点的 Cloud UUID（shape 作为其子节点）
+         * @param shapeId VTK shape 的 ID
+         * @param displayName 树中显示的名称
+         * @param mesh 生成 shape 的源 mesh（用于重新添加）
+         */
+        void registerShape(const QString& parentCloudId, const QString& shapeId,
+                           const QString& displayName,
+                           const pcl::PolygonMesh::Ptr& mesh = nullptr);
+
+        /**
          * @brief 获取所有已注册的 PolygonMesh 列表
          * @return QList of (cloudId, mesh) pairs
          */
@@ -323,6 +334,7 @@ namespace ct
         QMap<QString, QTreeWidgetItem*> m_item_by_id;  // uuid -> item 反向索引
         QMap<QString, pcl::PolygonMesh::Ptr> m_mesh_map; // cloudId -> PolygonMesh
         QMap<QString, TexturedMeshPtr> m_textured_mesh_map; // cloudId -> TexturedMesh
+        QMap<QString, pcl::PolygonMesh::Ptr> m_shape_map;  // shapeId -> source PolygonMesh (for boundary polylines)
         QString m_path;
         QThread m_thread;
         FileIO* m_fileio;

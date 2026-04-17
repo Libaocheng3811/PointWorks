@@ -37,6 +37,7 @@ namespace ct
         case NodeGroup: return m_group_icon;
         case NodeShape: return m_shape_icon;
         case NodeMesh:  return m_mesh_icon.isNull() ? m_child_icon  : m_mesh_icon;
+        case NodeBoundary: return m_shape_icon;
         default:        return m_cloud_icon.isNull() ? m_child_icon : m_cloud_icon;
         }
     }
