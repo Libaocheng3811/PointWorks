@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(CloudTool2)
+project(PointWorks)
 
 if (POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
@@ -77,7 +77,7 @@ endif ()
 # 如果找到OpenMP，追加 OpenMP 编译器标志
 if (OpenMP_FOUND)
     string(APPEND CMAKE_C_FLAGS " ${OpenMP_C_FLAGS}")
-    string(APPEND CMAKE_CXX_FLAGS " ${OpemMP_CXX_FLAGS}")
+    string(APPEND CMAKE_CXX_FLAGS " ${OpenMP_CXX_FLAGS}")
     string(APPEND CMAKE_EXE_LINKER_FLAGS " ${OpenMP_EXE_LINKER_FLAGS}")
 
     if (${CMAKE_VERSION} VERSION_LESS 3.7)
@@ -89,11 +89,24 @@ else ()
     message(STATUS "Not found OpenMP")
 endif ()
 
+# 标准python环境，为避免多个python版本冲突，指定路径
+set(MY_NATIVE_PYTHON_DIR "F:/Program Files/Python39")
+set(Python3_ROOT_DIR ${MY_NATIVE_PYTHON_DIR})
+set(Python3_FIND_STRATEGY LOCATION)
+set(Python3_FIND_REGISTRY NEVER)
+
+find_package(Python3 3.9 EXACT COMPONENTS Interpreter Development.Embed REQUIRED)
+
+message(STATUS "Python Include: ${Python3_INCLUDE_DIRS}")
+message(STATUS "Python Libs: ${Python3_LIBRARIES}")
+
+link_directories(${Python3_LIBRARY_DIRS})
+set(PYBIND11_FINDPYTHON ON CACHE BOOL "" FORCE)
+
 # QT路径
 #set(CMAKE_PREFIX_PATH "D:/LibCommunity/Qt5.15/5.15.2/msvc2019_64")
-
-find_package(QT NAMES Qt5 COMPONENTS Core Widgets OpenGL Gui REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
+find_package(QT NAMES Qt5 COMPONENTS Core Widgets OpenGL Gui Concurrent REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Concurrent REQUIRED)
 
 if (QT_FOUND)
     message(STATUS "Found QT version: ${Qt5_VERSION}.")
@@ -109,7 +122,7 @@ find_package(VTK REQUIRED)
 if (VTK_FOUND)
     message(STATUS "Found VTK version: ${VTK_VERSION}.")
 else ()
-    message(STATUS "VTK is not found.") 
+    message(STATUS "VTK is not found.")
 endif ()
 
 # pcl
@@ -125,42 +138,62 @@ endif ()
 
 find_package(OpenMP REQUIRED)
 
-# camera sdk
-# 1. Azure Kinect
-set(AzureKinect_DIR "${PROJECT_SOURCE_DIR}/camera/AzureKinect")
-include_directories("${AzureKinect_DIR}/include")
-if(WIN32)
-    link_directories("${AzureKinect_DIR}/lib/win32")
-elseif(UNIX)
-    link_directories("${AzureKinect_DIR}/lib/linux")
-endif()
-
-# 2. Photoneo SDK
-set(Photoneo_DIR "${PROJECT_SOURCE_DIR}/camera/Photoneo")
-include_directories("${Photoneo_DIR}/include")
-if(WIN32)
-    link_directories("${Photoneo_DIR}/lib/win32")
-elseif(UNIX)
-    link_directories("${Photoneo_DIR}/lib/linux")
-endif()
-
 message(STATUS "Build Type: " ${CMAKE_BUILD_TYPE})
-
-include_directories(${PROJECT_SOURCE_DIR})
 
 # add_definitions 命令用于向编译器添加编译选项或定义宏
 file(TO_CMAKE_PATH "${PROJECT_SOURCE_DIR}" PROJECT_ROOT_PATH)
 add_definitions(-DROOT_PATH="${PROJECT_SOURCE_DIR}")
 add_definitions(-DDATA_PATH="${PROJECT_SOURCE_DIR}/data/")
+add_definitions(-DPYTHON_HOME="${MY_NATIVE_PYTHON_DIR}")
 
 # 3rdParty 编译选项
 set(LASZIP_BUILD_STATIC ON CACHE BOOL "Build static laszip" FORCE)
 set(LASLIB_BUILD_STATIC ON CACHE BOOL "Build static laslib" FORCE)
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools" FORCE)
 
+# Xerces-C + libE57：使用预编译静态库
+set(LIBE57_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libE57")
+
+# xerces-c 静态库
+add_library(xerces-c STATIC IMPORTED)
+set_target_properties(xerces-c PROPERTIES
+    IMPORTED_LOCATION "${LIBE57_DIR}/lib/xerces-c_3.lib"
+    INTERFACE_INCLUDE_DIRECTORIES "${LIBE57_DIR}/include"
+)
+# xerces-c 依赖的 Windows 系统库
+target_link_libraries(xerces-c INTERFACE ws2_32 advapi32)
+
+# E57Format 静态库
+add_library(E57Format STATIC IMPORTED)
+set_target_properties(E57Format PROPERTIES
+    IMPORTED_LOCATION "${LIBE57_DIR}/lib/E57Format.lib"
+    INTERFACE_INCLUDE_DIRECTORIES "${LIBE57_DIR}/include"
+    INTERFACE_COMPILE_DEFINITIONS "E57FORMAT_STATIC_DEFINE"
+)
+target_link_libraries(E57Format INTERFACE xerces-c)
+
+add_subdirectory(3rdparty/pybind11)
 add_subdirectory(3rdparty/LASTools)
 add_subdirectory(3rdparty/CSF)
-add_subdirectory(core)
-add_subdirectory(widgets)
-add_subdirectory(modules)
-add_subdirectory(cloudtool)
+
+# libs/ 作为跨库 include 根路径 (e.g. #include "core/cloud.h")
+include_directories(${PROJECT_SOURCE_DIR}/libs)
+
+# Libraries
+add_subdirectory(libs/core)
+add_subdirectory(libs/viz)
+add_subdirectory(libs/io)
+add_subdirectory(libs/algorithm)
+add_subdirectory(libs/ui)
+add_subdirectory(libs/python)
+
+# Application
+add_subdirectory(src)
+
+# Testing
+option(BUILD_TESTS "Build unit tests" ON)
+
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

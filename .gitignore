@@ -45,5 +45,14 @@ ui_*.h
 qrc_*.cpp
 *.moc
 
-# 忽略大型点云文件
-data/L16-1-M01-001_pred.ply
+# 忽略测试数据文件夹
+/data2
+
+# 忽略设计方案
+/planDocs
+
+/3rdparty/libE57-Format
+/3rdparty/Xerces-C
+bash.exe.stackdump
+GEMINI.md
+.claude/settings.local.json

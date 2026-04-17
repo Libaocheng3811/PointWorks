@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+  <defs>
+    <clipPath id="cloud-container-blue">
+      <path d="M6,19C4.3,19,2.8,18.2,1.8,17C1.3,16.4,1,15.7,1,15c0-1.8,1.2-3.3,2.9-3.8c0.1-2.1,1.8-3.7,3.9-3.7c0.3,0,0.5,0.03,0.8,0.1C10,6.2,11.8,5,13.8,5c2.6,0,4.7,1.9,5,4.3C21.4,10.2,23,12.4,23,15c0,2.6-2.1,4-4.5,4H6z"/>
+    </clipPath>
+  </defs>
+
+  <path fill="none" stroke="#007BFF" stroke-width="1.5" stroke-linejoin="round" d="M6,19C4.3,19,2.8,18.2,1.8,17C1.3,16.4,1,15.7,1,15c0-1.8,1.2-3.3,2.9-3.8c0.1-2.1,1.8-3.7,3.9-3.7c0.3,0,0.5,0.03,0.8,0.1C10,6.2,11.8,5,13.8,5c2.6,0,4.7,1.9,5,4.3C21.4,10.2,23,12.4,23,15c0,2.6-2.1,4-4.5,4H6z"/>
+
+  <g fill="#007BFF" clip-path="url(#cloud-container-blue)">
+    <circle cx="8" cy="11" r="0.7"/>
+    <circle cx="10" cy="12" r="0.7"/>
+    <circle cx="12" cy="11" r="0.7"/>
+    <circle cx="14" cy="12" r="0.7"/>
+    <circle cx="16" cy="11" r="0.7"/>
+    
+    <circle cx="9" cy="14" r="0.7"/>
+    <circle cx="11" cy="15" r="0.7"/>
+    <circle cx="13" cy="14" r="0.7"/>
+    <circle cx="15" cy="15" r="0.7"/>
+    
+    <circle cx="7" cy="13" r="0.7"/>
+    <circle cx="17" cy="13" r="0.7"/>
+    
+    <circle cx="5" cy="15" r="0.7"/>
+    <circle cx="19" cy="15" r="0.7"/>
+    
+    <circle cx="10" cy="9" r="0.7"/>
+    <circle cx="14" cy="9" r="0.7"/>
+    
+    <circle cx="6" cy="17" r="0.7"/>
+    <circle cx="18" cy="17" r="0.7"/>
+    
+    <circle cx="12" cy="7" r="0.7"/>
+  </g>
+</svg>

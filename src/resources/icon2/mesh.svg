@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">
+  <defs>
+    <style>
+      .facet { 
+        stroke: #321B0A; 
+        stroke-width: 3.5; 
+        stroke-linejoin: round; 
+        stroke-linecap: round; 
+      }
+      .outline { 
+        fill: none; 
+        stroke: #FFFFFF; 
+        stroke-width: 9; 
+        stroke-linejoin: round; 
+      }
+    </style>
+  </defs>
+
+  <polygon class="outline" points="50,12 86,38 72,80 28,80 14,38" />
+
+  <polygon class="facet" fill="#F59B40" points="50,50 14,38 50,12" />
+  
+  <polygon class="facet" fill="#FDB66E" points="50,50 50,12 86,38" />
+  
+  <polygon class="facet" fill="#FDE1C3" points="50,50 86,38 72,80" />
+  
+  <polygon class="facet" fill="#FBC287" points="50,50 72,80 28,80" />
+  
+  <polygon class="facet" fill="#E98224" points="50,50 28,80 14,38" />
+</svg>

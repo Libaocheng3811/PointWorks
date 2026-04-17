@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="24" height="24">
+  <g transform="rotate(45, 50, 50)">
+    
+    <rect x="35" y="15" width="30" height="15" fill="#FF6B9D" />
+    
+    <rect x="35" y="30" width="30" height="10" fill="#E60000" />
+    
+    <rect x="35" y="40" width="15" height="35" fill="#FFD600" />
+    
+    <rect x="50" y="40" width="15" height="35" fill="#F0A500" />
+    
+    <polygon points="35,75 65,75 50,90" fill="#FFEAA7" />
+    
+    <polygon points="45,85 55,85 50,90" fill="#E59400" />
+    
+  </g>
+</svg>

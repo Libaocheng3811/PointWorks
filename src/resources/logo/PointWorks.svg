@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="#1E1E2E" />
+  
+  <defs>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="100%" stop-color="#4FACFE" />
+    </linearGradient>
+    <linearGradient id="coreGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FA709A" />
+      <stop offset="100%" stop-color="#FEE140" />
+    </linearGradient>
+  </defs>
+
+  <g fill="none" stroke="#4FACFE" stroke-width="2" stroke-opacity="0.35" stroke-linejoin="round">
+    <path d="M64 28 L96 46 L96 82 L64 100 L32 82 L32 46 Z" />
+    <path d="M32 46 L64 64 L96 46" />
+    <path d="M64 64 L64 100" />
+  </g>
+
+  <g fill="url(#cloudGrad)">
+    <circle cx="64" cy="28" r="4.5" />
+    <circle cx="48" cy="37" r="3" />
+    <circle cx="80" cy="37" r="3" />
+    <circle cx="64" cy="46" r="3.5" />
+    
+    <circle cx="32" cy="46" r="4.5" />
+    <circle cx="32" cy="64" r="2.5" />
+    <circle cx="48" cy="55" r="3" />
+    <circle cx="48" cy="73" r="3" />
+    <circle cx="32" cy="82" r="4.5" />
+
+    <circle cx="96" cy="46" r="4.5" />
+    <circle cx="96" cy="64" r="2.5" />
+    <circle cx="80" cy="55" r="3" />
+    <circle cx="80" cy="73" r="3" />
+    <circle cx="96" cy="82" r="4.5" />
+
+    <circle cx="64" cy="100" r="4.5" />
+    <circle cx="64" cy="82" r="3" />
+  </g>
+
+  <circle cx="64" cy="64" r="5.5" fill="url(#coreGrad)" />
+
+  <g fill="#00F2FE" opacity="0.7">
+    <circle cx="22" cy="32" r="2" />
+    <circle cx="26" cy="78" r="1.5" />
+    <circle cx="106" cy="38" r="1.5" />
+    <circle cx="102" cy="92" r="2" />
+    <circle cx="42" cy="18" r="1.5" />
+    <circle cx="86" cy="108" r="2" />
+    <circle cx="78" cy="20" r="1" />
+    <circle cx="46" cy="98" r="1" />
+  </g>
+</svg>

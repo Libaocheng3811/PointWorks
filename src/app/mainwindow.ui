@@ -1,0 +1,1743 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1300</width>
+    <height>845</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>700</width>
+    <height>700</height>
+   </size>
+  </property>
+  <property name="baseSize">
+   <size>
+    <width>1300</width>
+    <height>845</height>
+   </size>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
+  <property name="windowTitle">
+   <string>PointWorks</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="../resources/res.qrc">
+    <normaloff>:/res/logo/LogoV4.svg</normaloff>:/res/logo/LogoV4.svg</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="ct::CloudView" name="cloudview" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout"/>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1300</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>File</string>
+    </property>
+    <widget class="QMenu" name="menuOpenRecent">
+     <property name="title">
+      <string>Open Recent</string>
+     </property>
+    </widget>
+    <addaction name="actionOpen"/>
+    <addaction name="actionNewProject"/>
+    <addaction name="actionOpenProject"/>
+    <addaction name="menuOpenRecent"/>
+    <addaction name="actionSave"/>
+    <addaction name="actionSaveProject"/>
+    <addaction name="actionSaveProjectAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionClose"/>
+    <addaction name="actionClose_All"/>
+    <addaction name="actionMerge"/>
+    <addaction name="actionClone"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionColors"/>
+    <addaction name="actionCoords"/>
+    <addaction name="actionNormals"/>
+    <addaction name="actionBoundingBox"/>
+    <addaction name="actionScale"/>
+    <addaction name="actionTransformation"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionTopView"/>
+    <addaction name="actionFrontView"/>
+    <addaction name="actionLeftSideView"/>
+    <addaction name="actionBackView"/>
+    <addaction name="actionRightSideView"/>
+    <addaction name="actionBottomView"/>
+    <addaction name="actionResetcamera"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowFPS"/>
+    <addaction name="actionShowAxes"/>
+    <addaction name="actionShowID"/>
+    <addaction name="actionShowDataTree"/>
+    <addaction name="actionShowProperties"/>
+    <addaction name="actionShowConsole"/>
+    <addaction name="actionPythonConsole"/>
+    <addaction name="actionPythonEditor"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <widget class="QMenu" name="menuRegistration">
+     <property name="title">
+      <string>Registration</string>
+     </property>
+     <addaction name="actionAlignByCenters"/>
+     <addaction name="actionPointPairsAlignment"/>
+     <addaction name="actionGlobalRegistration"/>
+     <addaction name="separator"/>
+     <addaction name="actionFineRegistration"/>
+    </widget>
+    <widget class="QMenu" name="menuSegmentation">
+     <property name="title">
+      <string>Segmentation</string>
+     </property>
+     <addaction name="actionClustering"/>
+     <addaction name="actionRegionGrowing"/>
+     <addaction name="actionSupervoxel"/>
+     <addaction name="actionShapeDetection"/>
+     <addaction name="separator"/>
+     <addaction name="actionMorphologicalFilter"/>
+    </widget>
+    <widget class="QMenu" name="menuMesh">
+     <property name="title">
+      <string>Mesh</string>
+     </property>
+     <addaction name="actionMeshReconstructSurface"/>
+     <addaction name="actionMeshComputeHull"/>
+     <addaction name="separator"/>
+     <addaction name="actionMeshExtractBoundary"/>
+    </widget>
+    <widget class="QMenu" name="menuDistance">
+     <property name="title">
+      <string>Distance</string>
+     </property>
+     <addaction name="actionDistanceC2C"/>
+     <addaction name="actionDistanceC2M"/>
+     <addaction name="actionDistanceC2P"/>
+     <addaction name="separator"/>
+     <addaction name="actionDistanceCPS"/>
+    </widget>
+    <addaction name="actionFilters"/>
+    <addaction name="menuRegistration"/>
+    <addaction name="menuSegmentation"/>
+    <addaction name="menuMesh"/>
+    <addaction name="menuDistance"/>
+    <addaction name="actionPickPoints"/>
+    <addaction name="actionCutting"/>
+    <addaction name="actionSampling"/>
+    <addaction name="actionMeasure"/>
+    <addaction name="actionPathPlan"/>
+    <addaction name="actionRangeImage"/>
+    <addaction name="actionRecognition"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuDevices">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Devices</string>
+    </property>
+    <addaction name="actionPhotoNeo"/>
+    <addaction name="actionAzureKinect"/>
+   </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <widget class="QMenu" name="menuTheme">
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+     <property name="title">
+      <string>Theme</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../resources/res.qrc">
+       <normaloff>:/res/icon/theme.svg</normaloff>:/res/icon/theme.svg</iconset>
+     </property>
+     <addaction name="actionOrigin"/>
+     <addaction name="actionLight"/>
+     <addaction name="actionDark"/>
+    </widget>
+    <widget class="QMenu" name="menuLanguage">
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+     <property name="title">
+      <string>Language</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../resources/res.qrc">
+       <normaloff>:/res/icon/translate.svg</normaloff>:/res/icon/translate.svg</iconset>
+     </property>
+     <addaction name="actionEnglish"/>
+     <addaction name="actionChinese"/>
+    </widget>
+    <addaction name="separator"/>
+    <addaction name="menuTheme"/>
+    <addaction name="menuLanguage"/>
+    <addaction name="actionDisplaySettings"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="action_Help"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <widget class="QMenu" name="menuPlugins">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Plugins</string>
+    </property>
+    <addaction name="actionCSF"/>
+    <addaction name="actionVegetation_Filters"/>
+    <addaction name="actionChange_Detection"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuDevices"/>
+   <addaction name="menuPlugins"/>
+   <addaction name="menuOptions"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="DataDock">
+   <property name="minimumSize">
+    <size>
+     <width>260</width>
+     <height>165</height>
+    </size>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetClosable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea</set>
+   </property>
+   <property name="windowTitle">
+    <string>Data Tree</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="DataTree">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <property name="rightMargin">
+      <number>9</number>
+     </property>
+     <property name="bottomMargin">
+      <number>3</number>
+     </property>
+     <item>
+      <widget class="ct::CloudTree" name="cloudtree">
+       <property name="font">
+        <font>
+         <family>Microsoft YaHei UI</family>
+         <pointsize>9</pointsize>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QTreeWidget{
+	border: 2px solid lightgray;
+	outline: 0px; 
+	border-radius: 8px;
+	background: white;
+}
+
+QTreeWidget::item {
+    padding: 5px;
+}
+
+QHeaderView::section {
+    background-color: #e0e0e0;
+    color: #222;
+    padding: 2px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border: none;                   /* 去掉边框 */
+}
+
+QHeaderView {
+    border: none;
+    background: transparent;
+}
+</string>
+       </property>
+       <property name="columnCount">
+        <number>1</number>
+       </property>
+       <attribute name="headerVisible">
+        <bool>true</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>PointCloud File</string>
+        </property>
+        <property name="font">
+         <font>
+          <family>Microsoft YaHei UI</family>
+          <pointsize>10</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="textAlignment">
+         <set>AlignCenter</set>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="PropertiesDock">
+   <property name="minimumSize">
+    <size>
+     <width>260</width>
+     <height>149</height>
+    </size>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetClosable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::AllDockWidgetAreas</set>
+   </property>
+   <property name="windowTitle">
+    <string>Properties</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="PropertiesTable">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QTableWidget" name="cloudtable">
+       <property name="styleSheet">
+        <string notr="true">QTableWidget{
+	border: 1px solid #C0C4C8;
+	outline: 0px;
+	border-radius: 4px;
+	background: #FFFFFF;
+	alternate-background-color: #F5F7FA;
+}
+QTableWidget::item {
+	padding: 2px 4px;
+}
+QTableWidget::item:selected {
+	background-color: #EAF0F8;
+	color: #19232D;
+}
+/* SpinBox 美化 */
+QTableWidget QSpinBox,
+QTableWidget QDoubleSpinBox {
+	border: 1px solid #D0D4D8;
+	border-radius: 3px;
+	padding: 1px 4px;
+	background: transparent;
+	min-width: 60px;
+}
+QTableWidget QSpinBox::up-button,
+QTableWidget QDoubleSpinBox::up-button {
+	border: none;
+	width: 16px;
+}
+QTableWidget QSpinBox::down-button,
+QTableWidget QDoubleSpinBox::down-button {
+	border: none;
+	width: 16px;
+}
+QTableWidget QSpinBox::up-arrow,
+QTableWidget QDoubleSpinBox::up-arrow,
+QTableWidget QSpinBox::down-arrow,
+QTableWidget QDoubleSpinBox::down-arrow {
+	width: 8px;
+	height: 8px;
+}
+/* ComboBox 美化 */
+QTableWidget QComboBox {
+	border: 1px solid #D0D4D8;
+	border-radius: 3px;
+	padding: 1px 4px;
+	background: transparent;
+	min-width: 60px;
+}
+/* 垂直滚动条 */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #a6a6a6;
+    border-radius: 4px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #888888;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* 水平滚动条 */
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #a6a6a6;
+    border-radius: 4px;
+    min-width: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #888888;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+</string>
+       </property>
+       <property name="verticalScrollBarPolicy">
+        <enum>Qt::ScrollBarAsNeeded</enum>
+       </property>
+       <property name="horizontalScrollBarPolicy">
+        <enum>Qt::ScrollBarAsNeeded</enum>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="showGrid">
+        <bool>false</bool>
+       </property>
+       <property name="gridStyle">
+        <enum>Qt::CustomDashLine</enum>
+       </property>
+       <property name="rowCount">
+        <number>0</number>
+       </property>
+       <attribute name="horizontalHeaderVisible">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>Properties</string>
+        </property>
+        <property name="font">
+         <font>
+          <family>Microsoft YaHei UI</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Value</string>
+        </property>
+        <property name="font">
+         <font>
+          <family>Microsoft YaHei UI</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="ConsoleDock">
+   <property name="minimumSize">
+    <size>
+     <width>135</width>
+     <height>157</height>
+    </size>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="windowTitle">
+    <string>Console</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QTabWidget" name="consoleTabWidget">
+    <property name="tabPosition">
+     <enum>QTabWidget::North</enum>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <property name="tabsClosable">
+     <bool>true</bool>
+    </property>
+    <widget class="ct::Console" name="console">
+     <attribute name="title">
+      <string>Report Console</string>
+     </attribute>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QToolBar" name="FileBar">
+   <property name="windowTitle">
+    <string>toolBar_2</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>35</width>
+     <height>35</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionOpen"/>
+   <addaction name="actionNewProject"/>
+   <addaction name="actionOpenProject"/>
+   <addaction name="actionSave"/>
+   <addaction name="actionSaveProject"/>
+   <addaction name="actionClose"/>
+   <addaction name="actionClose_All"/>
+   <addaction name="actionMerge"/>
+   <addaction name="actionClone"/>
+  </widget>
+  <widget class="QToolBar" name="EditBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>35</width>
+     <height>35</height>
+    </size>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionColors"/>
+   <addaction name="actionCoords"/>
+   <addaction name="actionNormals"/>
+   <addaction name="actionBoundingBox"/>
+   <addaction name="actionScale"/>
+   <addaction name="actionTransformation"/>
+  </widget>
+  <widget class="QToolBar" name="ToolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>35</width>
+     <height>35</height>
+    </size>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionGlobalRegistration"/>
+   <addaction name="actionFilters"/>
+   <addaction name="actionSampling"/>
+   <addaction name="actionFineRegistration"/>
+   <addaction name="actionMeshComputeHull"/>
+   <addaction name="actionPointPairsAlignment"/>
+   <addaction name="actionPickPoints"/>
+   <addaction name="actionCutting"/>
+   <addaction name="actionRangeImage"/>
+  </widget>
+  <widget class="QToolBar" name="ViewBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>35</width>
+     <height>35</height>
+    </size>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionTopView"/>
+   <addaction name="actionFrontView"/>
+   <addaction name="actionLeftSideView"/>
+   <addaction name="actionBackView"/>
+   <addaction name="actionRightSideView"/>
+   <addaction name="actionBottomView"/>
+   <addaction name="actionResetcamera"/>
+  </widget>
+  <widget class="QToolBar" name="PythonBar">
+   <property name="windowTitle">
+    <string>Python</string>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>35</width>
+     <height>35</height>
+    </size>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionPythonEditor"/>
+   <addaction name="actionPythonConsole"/>
+  </widget>
+  <action name="actionOpen">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-new.svg</normaloff>:/res/icon/document-new.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Open</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-save.svg</normaloff>:/res/icon/document-save.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Save</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-close.svg</normaloff>:/res/icon/document-close.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Close</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionClose_All">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/edit-clear-history.svg</normaloff>:/res/icon/edit-clear-history.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Close all</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMerge">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/kr_combine.svg</normaloff>:/res/icon/kr_combine.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Merge</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionClone">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/split.svg</normaloff>:/res/icon/split.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Clone</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/application-exit.svg</normaloff>:/res/icon/application-exit.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionColors">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/color-management.svg</normaloff>:/res/icon/color-management.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Colors</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionCoords">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/coordinate.svg</normaloff>:/res/icon/coordinate.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Coords</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionNormals">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/normal.svg</normaloff>:/res/icon/normal.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Normals</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionBoundingBox">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/node.svg</normaloff>:/res/icon/node.svg</iconset>
+   </property>
+   <property name="text">
+    <string>BoundingBox</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionScale">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/transform-scale.svg</normaloff>:/res/icon/transform-scale.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Scale</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionTransformation">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/target.svg</normaloff>:/res/icon/target.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Transformation</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionTopView">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/top_view.svg</normaloff>:/res/icon2/top_view.svg</iconset>
+   </property>
+   <property name="text">
+    <string>TopView</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionFrontView">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/front_view.svg</normaloff>:/res/icon2/front_view.svg</iconset>
+   </property>
+   <property name="text">
+    <string>FrontView</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionLeftSideView">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/leftside_view.svg</normaloff>:/res/icon2/leftside_view.svg</iconset>
+   </property>
+   <property name="text">
+    <string>LeftSideView</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionBackView">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/back_view.svg</normaloff>:/res/icon2/back_view.svg</iconset>
+   </property>
+   <property name="text">
+    <string>BackView</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionRightSideView">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/rightside_view.svg</normaloff>:/res/icon2/rightside_view.svg</iconset>
+   </property>
+   <property name="text">
+    <string>RightSideView</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionBottomView">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/bottom_view.svg</normaloff>:/res/icon2/bottom_view.svg</iconset>
+   </property>
+   <property name="text">
+    <string>BottomView</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionResetcamera">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/view-refresh.svg</normaloff>:/res/icon/view-refresh.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Resetcamera</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShowFPS">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ShowFPS</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShowAxes">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ShowAxes</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShowID">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ShowID</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionFilters">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/filter.svg</normaloff>:/res/icon/filter.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Filters</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionAlignByCenters">
+   <property name="text">
+    <string>Align by Centers</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPointPairsAlignment">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/snap-bounding-box-center.svg</normaloff>:/res/icon/snap-bounding-box-center.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Point-Pairs Alignment</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionGlobalRegistration">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/exchange-positions-clockwise.svg</normaloff>:/res/icon/exchange-positions-clockwise.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Global Registration</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionClustering">
+   <property name="text">
+    <string>Clustering</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionRegionGrowing">
+   <property name="text">
+    <string>Region Growing</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionSupervoxel">
+   <property name="text">
+    <string>Supervoxel</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShapeDetection">
+   <property name="text">
+    <string>Shape Detection / RANSAC</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMorphologicalFilter">
+   <property name="text">
+    <string>Morphological Filter</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionFineRegistration">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/transform-rotate.svg</normaloff>:/res/icon/transform-rotate.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ICP (Fine Registration)</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionRecognition">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/recognition.svg</normaloff>:/res/icon/recognition.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Recognition</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPickPoints">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/edit-node.svg</normaloff>:/res/icon/edit-node.svg</iconset>
+   </property>
+   <property name="text">
+    <string>PickPoints</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMeshReconstructSurface">
+   <property name="text">
+    <string>Reconstruct Surface</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMeshComputeHull">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/surface.svg</normaloff>:/res/icon2/surface.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Compute Hull</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMeshExtractBoundary">
+   <property name="text">
+    <string>Extract Boundary</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionCutting">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/edit-cut.svg</normaloff>:/res/icon/edit-cut.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Cutting</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionSampling">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/sampling.svg</normaloff>:/res/icon/sampling.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Sampling</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionMeasure">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/measure.svg</normaloff>:/res/icon/measure.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Measure</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPathPlan">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/curve-connector.svg</normaloff>:/res/icon/curve-connector.svg</iconset>
+   </property>
+   <property name="text">
+    <string>PathPlan</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionRangeImage">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/rangeImage.svg</normaloff>:/res/icon2/rangeImage.svg</iconset>
+   </property>
+   <property name="text">
+    <string>RangeImage</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPhotoNeo">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/device.svg</normaloff>:/res/icon/device.svg</iconset>
+   </property>
+   <property name="text">
+    <string>PhotoNeo</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionAzureKinect">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/device.svg</normaloff>:/res/icon/device.svg</iconset>
+   </property>
+   <property name="text">
+    <string>AzureKinect</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDisplaySettings">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/displaySetting.svg</normaloff>:/res/icon2/displaySetting.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Display Settings</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionOrigin">
+   <property name="text">
+    <string>Origin</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionLight">
+   <property name="text">
+    <string>Light</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDark">
+   <property name="text">
+    <string>Dark</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionEnglish">
+   <property name="text">
+    <string>English</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionChinese">
+   <property name="text">
+    <string>Chinese</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShortCutKey">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/fcitx-vk-active-symbolic.svg</normaloff>:/res/icon/fcitx-vk-active-symbolic.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ShortCutKey</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/help-info-symbolic.svg</normaloff>:/res/icon/help-info-symbolic.svg</iconset>
+   </property>
+   <property name="text">
+    <string>About</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="action_Help">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/help-contents-symbolic.svg</normaloff>:/res/icon/help-contents-symbolic.svg</iconset>
+   </property>
+   <property name="text">
+    <string> Help</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionCSF">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/images/terrain.png</normaloff>:/res/images/terrain.png</iconset>
+   </property>
+   <property name="text">
+    <string>CSF Filters</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionVegetation_Filters">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/images/vegetation.png</normaloff>:/res/images/vegetation.png</iconset>
+   </property>
+   <property name="text">
+    <string>Vegetation Filters</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionChange_Detection">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/images/changeDetection.png</normaloff>:/res/images/changeDetection.png</iconset>
+   </property>
+   <property name="text">
+    <string>Change Detection</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceC2C">
+   <property name="text">
+    <string>Cloud/Cloud Dist</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceC2M">
+   <property name="text">
+    <string>Cloud/Mesh Dist</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceC2P">
+   <property name="text">
+    <string>Cloud/Primitive Dist</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionDistanceCPS">
+   <property name="text">
+    <string>Closest Point Set</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShowDataTree">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ShowDataTree</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShowProperties">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ShowProperties</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionShowConsole">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ShowConsole</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPythonConsole">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/images/python_console.png</normaloff>:/res/images/python_console.png</iconset>
+   </property>
+   <property name="text">
+    <string>Python Console</string>
+   </property>
+   <property name="toolTip">
+    <string>Python Console</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionPythonEditor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/images/python_editor.png</normaloff>:/res/images/python_editor.png</iconset>
+   </property>
+   <property name="text">
+    <string>Python Editor</string>
+   </property>
+   <property name="toolTip">
+    <string>Python Editor</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionNewProject">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/resource-calendar-child-insert.svg</normaloff>:/res/icon/resource-calendar-child-insert.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Project</string>
+   </property>
+   <property name="toolTip">
+    <string>New Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="actionOpenProject">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-open.svg</normaloff>:/res/icon/document-open.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Open Project...</string>
+   </property>
+   <property name="toolTip">
+    <string>Open Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
+  </action>
+  <action name="actionSaveProject">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-save-all.svg</normaloff>:/res/icon/document-save-all.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Save Project</string>
+   </property>
+   <property name="toolTip">
+    <string>Save Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionSaveProjectAs">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-save-as.svg</normaloff>:/res/icon/document-save-as.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Save Project As...</string>
+   </property>
+   <property name="toolTip">
+    <string>Save Project As</string>
+   </property>
+  </action>
+  <action name="actionRecentPlaceholder">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>No Recent Projects</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ct::CloudView</class>
+   <extends>QWidget</extends>
+   <header location="global">viz/cloudview.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ct::CloudTree</class>
+   <extends>QTreeWidget</extends>
+   <header>ui/base/cloudtree.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ct::Console</class>
+   <extends>QTextBrowser</extends>
+   <header>viz/console.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../resources/res.qrc"/>
+ </resources>
+ <connections/>
+</ui>
