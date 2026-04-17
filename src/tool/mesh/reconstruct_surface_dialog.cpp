@@ -266,10 +266,10 @@ QWidget* ReconstructSurfaceDialog::createMarchingCubesParamPage()
     layout->setSpacing(4);
 
     dspin_iso_level_ = new QDoubleSpinBox(page);
-    dspin_iso_level_->setRange(-10.0, 10.0);
+    dspin_iso_level_->setRange(0.0, 1.0);
     dspin_iso_level_->setDecimals(2);
     dspin_iso_level_->setValue(0.0);
-    dspin_iso_level_->setSingleStep(0.1);
+    dspin_iso_level_->setSingleStep(0.05);
     layout->addRow("ISO Level:", dspin_iso_level_);
 
     spin_grid_res_ = new QSpinBox(page);
@@ -472,63 +472,75 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
          iso_level, grid_res, percentage, epsilon,
          resolution, padding_size, k,
          cancel, on_progress]() -> ct::SurfaceResult {
+            ct::SurfaceResult result;
             switch (algorithm) {
             case 0: // Poisson
-                return ct::Surface::Poisson(work_cloud, depth, min_depth,
+                result = ct::Surface::Poisson(work_cloud, depth, min_depth,
                     point_weight, scale, solver_divide, iso_divide,
                     samples_per_node, confidence, false, manifold,
                     cancel, on_progress);
+                break;
             case 1: // Greedy Projection
-                return ct::Surface::GreedyProjectionTriangulation(work_cloud,
+                result = ct::Surface::GreedyProjectionTriangulation(work_cloud,
                     mu, max_neighbors, search_radius,
                     min_angle, max_angle, eps_angle,
                     consistent, true,
                     cancel, on_progress);
+                break;
             case 2: // Marching Cubes Hoppe
-                return ct::Surface::MarchingCubesHoppe(work_cloud,
+                result = ct::Surface::MarchingCubesHoppe(work_cloud,
                     iso_level, grid_res, grid_res, grid_res,
                     percentage, epsilon,
                     cancel, on_progress);
+                break;
             case 3: // Grid Projection
-                return ct::Surface::GridProjection(work_cloud,
+                result = ct::Surface::GridProjection(work_cloud,
                     resolution, padding_size, k, 8,
                     cancel, on_progress);
+                break;
             default:
                 return ct::SurfaceResult{};
             }
+
+            // 在工作线程中完成所有耗时的数据准备
+            ct::Surface::prepareResult(result);
+            return result;
         });
 
     // ========== Step 7: 监听完成信号 ==========
     auto* watcher = new QFutureWatcher<ct::SurfaceResult>(this);
     connect(watcher, &QFutureWatcher<ct::SurfaceResult>::finished, this,
         [=]() {
-            if (!progress_closed->load()) {
-                m_cloudtree->closeProgress();
-            }
-            delete cancel;
-            delete progress_closed;
-
             auto result = watcher->result();
             watcher->deleteLater();
 
             if (m_canceled.load() || !result.mesh) {
+                m_cloudtree->closeProgress();
+                delete cancel;
+                delete progress_closed;
                 if (result.mesh == nullptr && !m_canceled.load()) {
                     printW(QString("%1 failed: %2")
                                .arg(algo_names[algorithm])
                                .arg(QString::fromStdString(result.error_msg)));
                 }
                 if (is_preview) {
-                    // Preview 取消后重新显示对话框
                     QTimer::singleShot(0, this, [this]() { this->show(); });
                 }
                 return;
             }
 
+            // 更新进度条提示
+            if (!is_preview && m_cloudtree->m_processing_dialog) {
+                QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setLabelText",
+                    Qt::QueuedConnection, Q_ARG(QString, "Loading result..."));
+            }
+            QCoreApplication::processEvents();
+
             QString suffix = is_preview ? "_preview" : "_surface";
             QString algo_suffix[] = {"_poisson", "_greedy", "_marching_cubes", "_grid_projection"};
             QString result_id = QString::fromStdString(cloud->id()) + algo_suffix[algorithm] + suffix;
 
-            // 确保 result_id 唯一（同一算法对同一源点云多次运行时避免 ID 冲突）
+            // 确保 result_id 唯一
             if (!is_preview) {
                 QString base_id = result_id;
                 int counter = 1;
@@ -537,7 +549,6 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                 }
             }
 
-            // 如果是 preview，先清除上次 preview 的结果
             if (is_preview) {
                 for (const auto& pid : m_preview_ids) {
                     m_cloudview->removePolygonMesh(pid);
@@ -550,7 +561,6 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                 m_cloudview->addPolygonMesh(result.mesh, result_id);
                 m_preview_ids.append(result_id);
             }
-            // Apply 模式下由 registerMesh 统一添加 mesh 到视图
 
             printI(QString("%1%2 done in %3 ms, result: [%4]")
                        .arg(prefix)
@@ -558,7 +568,6 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                        .arg(result.time_ms)
                        .arg(result_id));
 
-            // 后处理：提取边界
             if (check_extract_boundary_->isChecked()) {
                 QString boundary_id = result_id + "_boundary";
                 m_cloudview->addPolylineFromPolygonMesh(result.mesh, boundary_id);
@@ -569,30 +578,32 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             }
 
             if (is_preview) {
-                // Preview 完成后重新显示对话框供用户调参
+                m_cloudtree->closeProgress();
+                delete cancel;
+                delete progress_closed;
                 QTimer::singleShot(0, this, [this]() { this->show(); });
             } else {
-                // Apply: 将 mesh 顶点提取为 Cloud 作为树节点，同时注册 mesh 联动可见性
-                pcl::PointCloud<ct::PointXYZRGBN> mesh_points;
-                pcl::fromPCLPointCloud2(result.mesh->cloud, mesh_points);
-                if (mesh_points.size() > 0) {
-                    auto mesh_cloud = ct::Cloud::fromPCL_XYZRGBN(mesh_points);
-                    mesh_cloud->setId(result_id.toStdString());
-                    mesh_cloud->makeAdaptive();
+                if (result.prepared_cloud) {
+                    result.prepared_cloud->setId(result_id.toStdString());
 
                     QTreeWidgetItem* origin_item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-                    m_cloudtree->insertCloud(mesh_cloud, origin_item, true, ct::MountStrategy::Sibling,
+                    m_cloudtree->insertCloud(result.prepared_cloud, origin_item, true, ct::MountStrategy::Sibling,
                                              ct::NodeMesh);
 
-                    // 注册 mesh 到树节点，勾选联动可见性
-                    m_cloudtree->registerMesh(result_id, result.mesh);
+                    if (result.prepared_polydata) {
+                        m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, result.prepared_polydata);
+                    } else {
+                        m_cloudtree->registerMesh(result_id, result.mesh);
+                    }
 
-                    // 将 boundary 注册为 mesh 节点的子节点（必须在 insertCloud 之后）
                     if (check_extract_boundary_->isChecked()) {
                         QString boundary_id = result_id + "_boundary";
                         m_cloudtree->registerShape(result_id, boundary_id, "Boundary", result.mesh);
                     }
                 }
+                m_cloudtree->closeProgress();
+                delete cancel;
+                delete progress_closed;
                 this->accept();
             }
         });

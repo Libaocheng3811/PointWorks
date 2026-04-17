@@ -33,6 +33,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 #include <vtkPointData.h>
 
 #include <pcl/surface/vtk_smoothing/vtk_utils.h>
+#include <pcl/search/kdtree.h>
 
 
 #include <QDropEvent>
@@ -503,6 +504,27 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
+    void CloudView::addMeshActorFromPolydata(vtkSmartPointer<vtkPolyData> polydata, const QString& id)
+    {
+        removeTexturedMesh(id);
+        if (!polydata || polydata->GetNumberOfPoints() == 0) return;
+
+        vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        mapper->SetInputData(polydata);
+
+        vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+        actor->SetMapper(mapper);
+        actor->GetProperty()->SetAmbient(0.1);
+        actor->GetProperty()->SetDiffuse(0.8);
+
+        m_render->AddActor(actor);
+        QVector<vtkSmartPointer<vtkActor>> actors;
+        actors.push_back(actor);
+        m_textured_mesh_actors[id] = actors;
+
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
     void CloudView::addTexturedMesh(const QString& objFilePath, const QString& id)
     {
         removeTexturedMesh(id);
@@ -791,6 +813,102 @@ namespace ct
         if (m_viewer->contains(std_id))
             m_viewer->removeShape(std_id);
         m_viewer->addPolylineFromPolygonMesh(*mesh, std_id, viewport);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::addPolylineFromCloud(const Cloud::Ptr& cloud, const QString& id,
+                                          const ColorRGB& rgb)
+    {
+        if (!cloud || cloud->size() < 2) return;
+
+        // 先清理已有的同名 shape
+        removeShape(id);
+
+        auto pts = cloud->toPCL_XYZ();
+        size_t n = pts->size();
+
+        // 最近邻链式排序
+        std::vector<int> order;
+        order.reserve(n);
+        std::vector<bool> visited(n, false);
+
+        // 构建 KD-tree 加速最近邻搜索
+        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+        tree->setInputCloud(pts);
+
+        // 从第一个点开始
+        order.push_back(0);
+        visited[0] = true;
+
+        pcl::PointXYZ search_pt = pts->points[0];
+        for (size_t step = 1; step < n; ++step) {
+            std::vector<int> indices(1);
+            std::vector<float> dists(1);
+            // 找最近未访问点
+            int found = -1;
+            float best_dist = std::numeric_limits<float>::max();
+            // 搜索稍多的邻居以提高效率
+            tree->nearestKSearch(search_pt, std::min<int>(n, 10), indices, dists);
+            for (size_t j = 0; j < indices.size(); ++j) {
+                if (!visited[indices[j]]) {
+                    found = indices[j];
+                    best_dist = dists[j];
+                    break;
+                }
+            }
+            // 如果 k 近邻中全部已访问，暴力搜索
+            if (found < 0) {
+                for (size_t j = 0; j < n; ++j) {
+                    if (!visited[j]) {
+                        float dx = pts->points[j].x - search_pt.x;
+                        float dy = pts->points[j].y - search_pt.y;
+                        float dz = pts->points[j].z - search_pt.z;
+                        float d = dx*dx + dy*dy + dz*dz;
+                        if (d < best_dist) {
+                            best_dist = d;
+                            found = static_cast<int>(j);
+                        }
+                    }
+                }
+            }
+            if (found < 0) break;
+            visited[found] = true;
+            order.push_back(found);
+            search_pt = pts->points[found];
+        }
+
+        if (order.size() < 2) return;
+
+        // 构建 VTK polyline
+        vtkSmartPointer<vtkPoints> vtk_pts = vtkSmartPointer<vtkPoints>::New();
+        vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+        lines->InsertNextCell(static_cast<int>(order.size()));
+        for (int idx : order) {
+            vtk_pts->InsertNextPoint(pts->points[idx].x, pts->points[idx].y, pts->points[idx].z);
+            lines->InsertCellPoint(vtk_pts->GetNumberOfPoints() - 1);
+        }
+
+        vtkSmartPointer<vtkPolyData> line_pd = vtkSmartPointer<vtkPolyData>::New();
+        line_pd->SetPoints(vtk_pts);
+        line_pd->SetLines(lines);
+
+        vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        mapper->SetInputData(line_pd);
+
+        vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+        actor->SetMapper(mapper);
+        actor->GetProperty()->SetColor(rgb.rf(), rgb.gf(), rgb.bf());
+        actor->GetProperty()->SetLineWidth(2.0);
+        actor->GetProperty()->SetAmbient(1.0);
+        actor->GetProperty()->SetDiffuse(0.0);
+
+        m_render->AddActor(actor);
+
+        // 存入 shape actors 以便 removeShape 统一管理
+        QVector<vtkSmartPointer<vtkActor>> actors;
+        actors.push_back(actor);
+        m_textured_mesh_actors[id] = actors;
+
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
@@ -1166,8 +1284,16 @@ namespace ct
         std::string std_id = id.toStdString();
         if (m_viewer->contains(std_id)){
             m_viewer->removeShape(std_id);
-            if (m_auto_render) m_viewer->getRenderWindow()->Render();
         }
+        // 同时清理 m_textured_mesh_actors（折线等直接添加到 m_render 的 actor）
+        auto it = m_textured_mesh_actors.find(id);
+        if (it != m_textured_mesh_actors.end()) {
+            for (const auto& actor : it.value()) {
+                if (actor) m_render->RemoveActor(actor);
+            }
+            m_textured_mesh_actors.erase(it);
+        }
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
     void CloudView::removePolygonMesh(const QString& id, int viewport)
@@ -1365,6 +1491,26 @@ namespace ct
         m_viewer->setShapeRenderingProperties(
                 pcl::visualization::PCL_VISUALIZER_REPRESENTATION, type, shapeid.toStdString());
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::setShapeVisibility(const QString& id, bool visible)
+    {
+        // 切换 m_textured_mesh_actors 中的 actor 可见性
+        auto it = m_textured_mesh_actors.find(id);
+        if (it != m_textured_mesh_actors.end()) {
+            for (const auto& actor : it.value()) {
+                if (actor) actor->SetVisibility(visible ? 1 : 0);
+            }
+            if (m_auto_render) m_viewer->getRenderWindow()->Render();
+            return;
+        }
+        // 回退到 PCL viewer shape 系统
+        std::string std_id = id.toStdString();
+        if (m_viewer->contains(std_id)) {
+            m_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY,
+                                                  visible ? 1.0 : 0.0, std_id);
+            if (m_auto_render) m_viewer->getRenderWindow()->Render();
+        }
     }
 
     void CloudView::setPointCloudVisibility(const QString &id, bool visible) {

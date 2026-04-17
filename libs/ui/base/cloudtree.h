@@ -13,6 +13,8 @@
 #include <QThread>
 
 #include <pcl/PolygonMesh.h>
+#include <vtkPolyData.h>
+#include <vtkSmartPointer.h>
 
 #define CLONE_ADD_FLAG "clone-"
 #define MERGE_ADD_FLAG "merge-"
@@ -179,6 +181,12 @@ namespace ct
         void registerMesh(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh);
 
         /**
+         * @brief 注册 mesh 并使用预构建的 VTK polydata（避免主线程重计算）
+         */
+        void registerMeshPrebuilt(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh,
+                                   vtkSmartPointer<vtkPolyData> polydata);
+
+        /**
          * @brief 注册带纹理的 PolygonMesh 到树节点
          */
         void registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh);
@@ -203,6 +211,16 @@ namespace ct
         void registerShape(const QString& parentCloudId, const QString& shapeId,
                            const QString& displayName,
                            const pcl::PolygonMesh::Ptr& mesh = nullptr);
+
+        /**
+         * @brief 注册基于点云的折线到树节点（与节点可见性联动）
+         * @param parentCloudId 父节点的 Cloud UUID
+         * @param shapeId 折线的 ID
+         * @param displayName 树中显示的名称
+         * @param cloud 边界散点云
+         */
+        void registerCloudPolyline(const QString& parentCloudId, const QString& shapeId,
+                                   const QString& displayName, const Cloud::Ptr& cloud);
 
         /**
          * @brief 获取所有已注册的 PolygonMesh 列表
@@ -335,6 +353,7 @@ namespace ct
         QMap<QString, pcl::PolygonMesh::Ptr> m_mesh_map; // cloudId -> PolygonMesh
         QMap<QString, TexturedMeshPtr> m_textured_mesh_map; // cloudId -> TexturedMesh
         QMap<QString, pcl::PolygonMesh::Ptr> m_shape_map;  // shapeId -> source PolygonMesh (for boundary polylines)
+        QMap<QString, Cloud::Ptr> m_cloud_polyline_map;    // shapeId -> source Cloud (for polyline from points)
         QString m_path;
         QThread m_thread;
         FileIO* m_fileio;

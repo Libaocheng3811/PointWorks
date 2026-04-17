@@ -229,7 +229,7 @@ namespace ct
             }
         }
 
-        if (selected) {
+        if (selected && nodeType != NodeMesh) {
             m_cloudview->addBox(cloud);
         }
 
@@ -337,6 +337,7 @@ namespace ct
                 if (!shape_id.isEmpty()) {
                     m_cloudview->removeShape(shape_id);
                     m_shape_map.remove(shape_id);
+                    m_cloud_polyline_map.remove(shape_id);
                 }
             }
         }
@@ -819,9 +820,15 @@ namespace ct
                     bool show = (it->checkState(0) != Qt::Unchecked);
                     if (show) {
                         if (!m_cloudview->contains(shape_id)) {
+                            // 优先从 mesh 提取折线，其次从 cloud 绘制折线
                             auto mesh_it = m_shape_map.find(shape_id);
                             if (mesh_it != m_shape_map.end() && mesh_it.value()) {
                                 m_cloudview->addPolylineFromPolygonMesh(mesh_it.value(), shape_id);
+                            } else {
+                                auto cloud_it = m_cloud_polyline_map.find(shape_id);
+                                if (cloud_it != m_cloud_polyline_map.end() && cloud_it.value()) {
+                                    m_cloudview->addPolylineFromCloud(cloud_it.value(), shape_id);
+                                }
                             }
                         }
                     } else {
@@ -866,24 +873,28 @@ namespace ct
             if (!mesh_id.isEmpty()) {
                 bool shouldShow = (it->checkState(0) != Qt::Unchecked);
                 if (shouldShow) {
-                    auto tex_it = m_textured_mesh_map.find(mesh_id);
-                    if (tex_it != m_textured_mesh_map.end() && *tex_it &&
-                        !tex_it.value()->objFilePath.empty()) {
-                        // 纹理 mesh：隐藏点云散点，移除无纹理 mesh，显示带纹理 mesh 表面
-                        m_cloudview->setPointCloudVisibility(mesh_id, false);
-                        m_cloudview->addTexturedMesh(QString::fromStdString(tex_it.value()->objFilePath), mesh_id);
+                    // actor 已存在时只切换可见性，避免重复重建导致卡顿
+                    if (m_cloudview->contains(mesh_id)) {
+                        m_cloudview->setShapeVisibility(mesh_id, true);
                     } else {
-                        // 无纹理 mesh 或算法生成的 mesh：用 VTK actor 渲染
-                        auto mesh_it = m_mesh_map.find(mesh_id);
-                        if (mesh_it != m_mesh_map.end() && mesh_it.value()) {
+                        auto tex_it = m_textured_mesh_map.find(mesh_id);
+                        if (tex_it != m_textured_mesh_map.end() && *tex_it &&
+                            !tex_it.value()->objFilePath.empty()) {
+                            // 纹理 mesh：隐藏点云散点，移除无纹理 mesh，显示带纹理 mesh 表面
                             m_cloudview->setPointCloudVisibility(mesh_id, false);
-                            m_cloudview->addMeshActor(mesh_it.value(), mesh_id);
+                            m_cloudview->addTexturedMesh(QString::fromStdString(tex_it.value()->objFilePath), mesh_id);
+                        } else {
+                            // 无纹理 mesh 或算法生成的 mesh：用 VTK actor 渲染
+                            auto mesh_it = m_mesh_map.find(mesh_id);
+                            if (mesh_it != m_mesh_map.end() && mesh_it.value()) {
+                                m_cloudview->setPointCloudVisibility(mesh_id, false);
+                                m_cloudview->addMeshActor(mesh_it.value(), mesh_id);
+                            }
                         }
                     }
                 } else {
-                    m_cloudview->removeTexturedMesh(mesh_id);
-                    m_cloudview->removePolygonMesh(mesh_id);
-                    m_cloudview->removeShape(mesh_id);
+                    // 只隐藏，不销毁 actor，下次勾选时直接切换可见性避免重建卡顿
+                    m_cloudview->setShapeVisibility(mesh_id, false);
                 }
             }
         }
@@ -910,6 +921,12 @@ namespace ct
             bool isSelected = selectedItems.contains(item);
             bool isChecked = (item->checkState(0) != Qt::Unchecked);
             bool hasBox = m_cloudview->contains(QString::fromStdString(cloud->boxId()));
+
+            if (getNodeType(item) == NodeMesh) {
+                // NodeMesh 不添加包围盒，但需清理可能残留的 box
+                if (hasBox) m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
+                continue;
+            }
 
             if (isSelected && isChecked){
                 if (!hasBox && cloud->size() > 100)
@@ -1408,6 +1425,34 @@ namespace ct
         }
     }
 
+    void CloudTree::registerMeshPrebuilt(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh,
+                                           vtkSmartPointer<vtkPolyData> polydata)
+    {
+        m_mesh_map[cloudId] = mesh;
+
+        QTreeWidgetItem* item = getItemById(cloudId);
+        if (item) {
+            item->setData(0, NodeMeshIdRole, cloudId);
+            SceneNodeType curType = CustomTree::getNodeType(item);
+            if (curType == NodeCloud) {
+                item->setData(0, NodeTypeRole, static_cast<int>(NodeMesh));
+                item->setIcon(0, iconForType(NodeMesh));
+            }
+        }
+
+        Cloud::Ptr cloud = getCloud(item);
+        float opacity = cloud ? cloud->opacity() : 1.0f;
+
+        m_cloudview->addMeshActorFromPolydata(polydata, cloudId);
+        if (opacity < 1.0f) {
+            m_cloudview->setTextureMeshOpacity(cloudId, opacity);
+        }
+
+        if (item && item->isSelected()) {
+            itemSelectionChangedEvent();
+        }
+    }
+
     void CloudTree::unregisterMesh(const QString& cloudId)
     {
         m_mesh_map.remove(cloudId);
@@ -1437,6 +1482,23 @@ namespace ct
         if (mesh) {
             m_shape_map[shapeId] = mesh;
         }
+    }
+
+    void CloudTree::registerCloudPolyline(const QString& parentCloudId, const QString& shapeId,
+                                           const QString& displayName, const Cloud::Ptr& cloud)
+    {
+        QTreeWidgetItem* parentItem = getItemById(parentCloudId);
+        if (!parentItem) return;
+
+        const bool wasBlocked = this->blockSignals(true);
+        QTreeWidgetItem* shapeItem = addItem(parentItem, displayName, NodeBoundary, false);
+        this->blockSignals(wasBlocked);
+
+        shapeItem->setData(0, NodeShapeIdRole, shapeId);
+        m_cloud_polyline_map[shapeId] = cloud;
+
+        // 立即绘制折线
+        m_cloudview->addPolylineFromCloud(cloud, shapeId);
     }
 
     void CloudTree::registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh)

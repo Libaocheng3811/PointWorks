@@ -4,6 +4,7 @@
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
 #include "viz/console.h"
+#include "base/customtree.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -192,22 +193,23 @@ void ExtractBoundaryDialog::onExtract()
             }
 
             if (output_polyline) {
-                // 创建折线模式：作为新点云加载到对象树
+                // 折线模式：排序散点后绘制为折线，注册为源点云的子节点
+                QString boundary_id = QString::fromStdString(cloud->id()) + "_boundary";
+                result->setId(boundary_id.toStdString());
+                result->makeAdaptive();
+                m_cloudtree->registerCloudPolyline(QString::fromStdString(cloud->id()),
+                                                    boundary_id, "Boundary", result);
+
+                printI(QString("Extract Boundary done, boundary polyline [%1] added.")
+                           .arg(boundary_id));
+            } else {
+                // 散点模式：作为兄弟节点添加到树中，绿色高亮
                 result->setId(cloud->id() + "_boundary");
                 result->makeAdaptive();
-                m_cloudview->addPointCloud(result);
+                m_cloudtree->addSiblingCloud(cloud, result, "-boundary");
                 m_cloudview->setPointCloudColor(QString::fromStdString(result->id()), ct::Color::Green);
 
-                printI(QString("Extract Boundary done, boundary cloud [%1] added.")
-                           .arg(QString::fromStdString(result->id())));
-            } else {
-                // 仅选中边界点模式：高亮显示边界点
-                result->setId(cloud->id() + "_boundary");
-                result->makeAdaptive();
-                m_cloudview->addPointCloud(result);
-                m_cloudview->setPointCloudColor(QString::fromStdString(result->id()), ct::Color::Red);
-
-                printI(QString("Extract Boundary done, %1 boundary points selected.")
+                printI(QString("Extract Boundary done, %1 boundary points added.")
                            .arg(result->size()));
             }
 

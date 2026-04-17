@@ -166,6 +166,11 @@ namespace ct {
         void addMeshActor(const pcl::PolygonMesh::Ptr& mesh, const QString& id);
 
         /**
+         * @brief 使用预构建的 VTK polydata 添加 mesh actor（跳过 mesh2vtk 和法线计算）
+         */
+        void addMeshActorFromPolydata(vtkSmartPointer<vtkPolyData> polydata, const QString& id);
+
+        /**
          * @brief 移除带纹理的多边形网格
          */
         void removeTexturedMesh(const QString& id);
@@ -177,6 +182,15 @@ namespace ct {
          * @param viewport 视口（默认 0 = 全部）
          */
         void addPolylineFromPolygonMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id, int viewport = 0);
+
+        /**
+         * @brief 将散点排序后绘制为折线（最近邻链式排序）
+         * @param cloud 边界散点云
+         * @param id 折线标识符
+         * @param rgb 折线颜色（默认绿色）
+         */
+        void addPolylineFromCloud(const Cloud::Ptr& cloud, const QString& id,
+                                  const ColorRGB& rgb = Color::Green);
 
         ////////////////////////////////////////////////////////
         // 2D->3D(display to world)
@@ -349,6 +363,11 @@ namespace ct {
          */
         void setPointCloudVisibility(const QString& id, bool visible);
 
+        /**
+         * @brief 设置 mesh/shape actor 的可见性（不重建，仅切换 visibility）
+         */
+        void setShapeVisibility(const QString& id, bool visible);
+
         ///////////////////////////////////////////////////////////
         // camera
         /**
@@ -423,6 +442,9 @@ namespace ct {
         bool contains(const QString& id)
         {
             if (m_OctreeRenders.contains(id)) {
+                return true;
+            }
+            if (m_textured_mesh_actors.contains(id)) {
                 return true;
             }
             // 调用pcl::visualization::PCLVisualizer::Ptr类的contains方法，返回一个bool值，表示是否包含这个id

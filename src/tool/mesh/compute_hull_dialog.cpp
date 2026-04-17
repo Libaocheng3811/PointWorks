@@ -190,27 +190,29 @@ void ComputeHullDialog::onCompute()
 
     auto future = QtConcurrent::run([cloud, is_convex, alpha, keep_info, dimension,
                                      cancel, on_progress]() -> ct::SurfaceResult {
+        ct::SurfaceResult result;
         if (is_convex) {
-            return ct::Surface::ConvexHull(cloud, keep_info, dimension, cancel, on_progress);
+            result = ct::Surface::ConvexHull(cloud, keep_info, dimension, cancel, on_progress);
         } else {
-            return ct::Surface::ConcaveHull(cloud, alpha, keep_info, dimension, cancel, on_progress);
+            result = ct::Surface::ConcaveHull(cloud, alpha, keep_info, dimension, cancel, on_progress);
         }
+
+        // 在工作线程中完成所有耗时的数据准备，主线程只做轻量渲染
+        ct::Surface::prepareResult(result);
+        return result;
     });
 
     // ========== Step 7: 监听完成信号 ==========
     auto* watcher = new QFutureWatcher<ct::SurfaceResult>(this);
     connect(watcher, &QFutureWatcher<ct::SurfaceResult>::finished, this,
         [=]() {
-            if (!progress_closed->load()) {
-                m_cloudtree->closeProgress();
-            }
-            delete cancel;
-            delete progress_closed;
-
             auto result = watcher->result();
             watcher->deleteLater();
 
             if (m_canceled.load() || !result.mesh) {
+                m_cloudtree->closeProgress();
+                delete cancel;
+                delete progress_closed;
                 if (result.mesh == nullptr && !m_canceled.load()) {
                     printW(QString("Compute Hull failed: %1")
                                .arg(QString::fromStdString(result.error_msg)));
@@ -219,25 +221,38 @@ void ComputeHullDialog::onCompute()
                 return;
             }
 
+            // 更新进度条提示，让用户知道正在加载结果
+            if (m_cloudtree->m_processing_dialog) {
+                m_cloudtree->m_processing_dialog->setProgress(100);
+                QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setLabelText",
+                    Qt::QueuedConnection, Q_ARG(QString, "Loading result..."));
+            }
+            QCoreApplication::processEvents();
+
             QString suffix = is_convex ? "_convex_hull" : "_concave_hull";
             QString result_id = QString::fromStdString(cloud->id()) + suffix;
 
-            // 提取 mesh 顶点作为 Cloud 插入树中，并注册完整 mesh 以支持保存
-            pcl::PointCloud<ct::PointXYZRGBN> mesh_points;
-            pcl::fromPCLPointCloud2(result.mesh->cloud, mesh_points);
-            if (mesh_points.size() > 0) {
-                auto mesh_cloud = ct::Cloud::fromPCL_XYZRGBN(mesh_points);
-                mesh_cloud->setId(result_id.toStdString());
-                mesh_cloud->makeAdaptive();
+            // 使用工作线程中预处理好的数据，主线程只做轻量 UI 操作
+            if (result.prepared_cloud) {
+                result.prepared_cloud->setId(result_id.toStdString());
 
                 QTreeWidgetItem* origin_item = m_cloudtree->getItemById(
                     QString::fromStdString(cloud->id()));
-                m_cloudtree->insertCloud(mesh_cloud, origin_item, true,
+                m_cloudtree->insertCloud(result.prepared_cloud, origin_item, true,
                                          ct::MountStrategy::Sibling,
                                          ct::NodeMesh);
 
-                m_cloudtree->registerMesh(result_id, result.mesh);
+                // 使用预构建的 polydata，跳过主线程的 VTK 重计算
+                if (result.prepared_polydata) {
+                    m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, result.prepared_polydata);
+                } else {
+                    m_cloudtree->registerMesh(result_id, result.mesh);
+                }
             }
+
+            m_cloudtree->closeProgress();
+            delete cancel;
+            delete progress_closed;
 
             printI(QString("%1 done in %2 ms, result: [%3]")
                        .arg(algo_name)

@@ -5,6 +5,9 @@
 
 #include <pcl/PolygonMesh.h>
 
+#include <vtkPolyData.h>
+#include <vtkSmartPointer.h>
+
 #include <functional>
 #include <atomic>
 
@@ -14,6 +17,8 @@ namespace ct
 
     struct SurfaceResult {
         PolygonMesh::Ptr mesh;
+        Cloud::Ptr prepared_cloud;  // 预处理后的 Cloud（工作线程中生成，避免主线程卡顿）
+        vtkSmartPointer<vtkPolyData> prepared_polydata;  // 预构建的 VTK polydata（含法线和颜色）
         float time_ms = 0;
         std::string error_msg;  // 非空表示执行失败，包含原因描述
     };
@@ -141,6 +146,11 @@ namespace ct
         static SurfaceResult EarClipping(PolygonMesh::Ptr surface,
                                          std::atomic<bool>* cancel = nullptr,
                                          std::function<void(int)> on_progress = nullptr);
+
+        /**
+         * @brief 在 SurfaceResult 中预构建 Cloud 和 VTK polydata（供工作线程调用）
+         */
+        static void prepareResult(SurfaceResult& result);
     };
 
 }  // namespace ct

@@ -43,6 +43,11 @@ namespace ct{
             m_label->setText(msg);
         }
 
+    public slots:
+        void setLabelText(const QString& msg){
+            m_label->setText(msg);
+        }
+
         void reset(){
             m_progressBar->setValue(0);
             m_btnCancel->setEnabled(true);
