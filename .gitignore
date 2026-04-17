@@ -55,3 +55,4 @@ qrc_*.cpp
 /3rdparty/Xerces-C
 bash.exe.stackdump
 GEMINI.md
+.claude/settings.local.json
