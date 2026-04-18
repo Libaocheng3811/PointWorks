@@ -109,6 +109,8 @@ namespace ct
         m_render->SetBackground2(0.05, 0.4, 0.6);
         m_render->SetBackground(0.00, 0.05, 0.08);
 
+        m_scalar_bar_widget = std::make_unique<ScalarBarWidget>(m_render);
+
         connect(this, &CloudView::sizeChanged, [this](QSize size){
             if (m_show_id && !m_current_id.isEmpty()) {
                 m_viewer->updateText(m_current_id.toStdString(),
@@ -127,10 +129,19 @@ namespace ct
                                      data.rgb.rf(), data.rgb.gf(), data.rgb.bf(), id);
             }
 
-            // ViewCube 定位到右下角
+            // ViewCube 定位到右下角，并按窗口大小缩放
             if (m_view_cube) {
-                m_view_cube->move(size.width() - m_view_cube->width() - 8,
-                                  size.height() - m_view_cube->height() - 8);
+                int side = std::min(size.width(), size.height());
+                int cubeSize = side / 5;
+                cubeSize = std::max(cubeSize, 120);
+                cubeSize = std::min(cubeSize, 280);
+                m_view_cube->setFixedSize(cubeSize, cubeSize);
+                m_view_cube->move(size.width() - cubeSize - 8,
+                                  size.height() - cubeSize - 8);
+
+                // 色度条紧贴 cube 上方（Qt y 翻转为 VTK y）
+                double cube_top_vtk = static_cast<double>(cubeSize + 8) / size.height();
+                m_scalar_bar_widget->setBottomMargin(cube_top_vtk);
             }
         });
 
@@ -159,6 +170,19 @@ namespace ct
         m_view_cube->setAttribute(Qt::WA_TransparentForMouseEvents, false);
         m_view_cube->show();
         m_view_cube->raise();
+
+        // 初始尺寸
+        {
+            int side = std::min(width(), height());
+            int cubeSize = side / 5;
+            cubeSize = std::max(cubeSize, 120);
+            cubeSize = std::min(cubeSize, 280);
+            m_view_cube->setFixedSize(cubeSize, cubeSize);
+            m_view_cube->move(width() - cubeSize - 8, height() - cubeSize - 8);
+
+            double cube_top_vtk = static_cast<double>(cubeSize + 8) / height();
+            m_scalar_bar_widget->setBottomMargin(cube_top_vtk);
+        }
 
         m_viewer->getRenderWindow()->Render();
     }
@@ -1853,6 +1877,49 @@ namespace ct
         m_render->SetBackground(opts.bg_color[0], opts.bg_color[1], opts.bg_color[2]);
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::showScalarBar(double min_val, double max_val,
+                                  const QString& title, ColormapType colormap)
+    {
+        m_scalar_bar_widget->update(min_val, max_val, title, colormap);
+        m_scalar_bar_widget->setVisible(true);
+        if (m_auto_render) {
+            m_viewer->getRenderWindow()->Render();
+            this->update();
+        }
+    }
+
+    void CloudView::hideScalarBar()
+    {
+        m_scalar_bar_widget->setVisible(false);
+        if (m_auto_render) {
+            m_viewer->getRenderWindow()->Render();
+            this->update();
+        }
+    }
+
+    void CloudView::setScalarBarVisible(bool visible)
+    {
+        m_scalar_bar_widget->setVisible(visible);
+        if (m_auto_render) {
+            m_viewer->getRenderWindow()->Render();
+            this->update();
+        }
+    }
+
+    bool CloudView::isScalarBarVisible() const
+    {
+        return m_scalar_bar_widget->isVisible();
+    }
+
+    void CloudView::setScalarBarShowZero(bool show)
+    {
+        m_scalar_bar_widget->setShowZeroLine(show);
+        if (m_auto_render) {
+            m_viewer->getRenderWindow()->Render();
+            this->update();
+        }
     }
 
 } // namespace ct

@@ -3,6 +3,7 @@
 
 #include "core/cloud.h"
 #include "core/exports.h"
+#include "core/colormap.h"
 #include "io/projectfile.h"
 #include "octreerenderer.h"
 
@@ -23,8 +24,9 @@ class vtkBillboardTextActor3D;
 #include "viewcube.h"
 
 #include <QMap>
-
 #include <memory>
+#include <vector>
+#include "scalar_bar_widget.h"
 
 namespace ct {
 
@@ -368,6 +370,18 @@ namespace ct {
          */
         void setShapeVisibility(const QString& id, bool visible);
 
+        /**
+         * @brief 显示色度条
+         */
+        void showScalarBar(double min_val, double max_val,
+                           const QString& title = "",
+                           ColormapType colormap = ColormapType::JET);
+
+        void hideScalarBar();
+        void setScalarBarVisible(bool visible);
+        bool isScalarBarVisible() const;
+        void setScalarBarShowZero(bool show);
+
         ///////////////////////////////////////////////////////////
         // camera
         /**
@@ -597,6 +611,8 @@ namespace ct {
         QMap<QString, QVector<vtkSmartPointer<vtkActor>>> m_textured_mesh_actors; // 纹理网格 actor（每材质一个）
         unsigned long m_observer_tag = 0; // 回调 ID
         unsigned long m_interaction_tag = 0; //保存交互回调的 ID
+
+        std::unique_ptr<ScalarBarWidget> m_scalar_bar_widget;
 
     };
 } // namespace ct

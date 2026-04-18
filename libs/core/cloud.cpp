@@ -1154,6 +1154,96 @@ namespace ct
         invalidateRenderCache();
     }
 
+    void Cloud::updateColorByField(const std::string& field_name,
+                                    float display_min, float display_max,
+                                    ColormapType colormap,
+                                    bool show_nan_as_grey)
+    {
+        if (!hasScalarField(field_name)) return;
+        if (!m_has_rgb) enableColors();
+        backupColors();
+
+        const auto& lut = getColormapLUT(colormap);
+        const float* pLut = lut.data();
+        int lut_size = static_cast<int>(lut.size());
+
+        float range = display_max - display_min;
+        if (range < 1e-6f) range = 1.0f;
+
+        const uint8_t grey_r = 180, grey_g = 180, grey_b = 180;
+
+#pragma omp parallel for
+        for (int k = 0; k < static_cast<int>(m_all_blocks.size()); ++k) {
+            auto& block = m_all_blocks[k];
+            auto sf_it = block->m_scalar_fields.find(field_name);
+            if (block->empty() || sf_it == block->m_scalar_fields.end()) continue;
+
+            const std::vector<float>& data = sf_it->second;
+            size_t n = block->size();
+
+            for (size_t i = 0; i < n; ++i) {
+                float v = data[i];
+
+                if (std::isnan(v)) {
+                    if (show_nan_as_grey)
+                        (*block->m_colors)[i] = {grey_r, grey_g, grey_b};
+                    continue;
+                }
+
+                if (show_nan_as_grey && (v < display_min || v > display_max)) {
+                    (*block->m_colors)[i] = {grey_r, grey_g, grey_b};
+                } else {
+                    float norm = (v - display_min) / range;
+                    if (norm < 0.0f) norm = 0.0f;
+                    if (norm > 1.0f) norm = 1.0f;
+                    int idx = static_cast<int>(norm * (lut_size - 1));
+                    float lutVal = pLut[idx];
+                    uint32_t packed;
+                    std::memcpy(&packed, &lutVal, sizeof(packed));
+                    (*block->m_colors)[i].r = (packed >> 16) & 0xFF;
+                    (*block->m_colors)[i].g = (packed >> 8) & 0xFF;
+                    (*block->m_colors)[i].b = packed & 0xFF;
+                }
+                block->m_is_dirty = true;
+                block->m_vtk_polydata.reset();
+            }
+        }
+
+        if (m_octree_root && m_config.enableOctree) {
+            this->generateLOD();
+        }
+        m_current_color_mode = field_name;
+        m_color_modified = true;
+        invalidateRenderCache();
+    }
+
+    bool Cloud::getFieldRange(const std::string& field_name,
+                              float& out_min, float& out_max) const
+    {
+        if (!hasScalarField(field_name)) return false;
+
+        float min_v = FLT_MAX;
+        float max_v = -FLT_MAX;
+
+        for (const auto& block : m_all_blocks) {
+            if (block->empty()) continue;
+            auto it = block->m_scalar_fields.find(field_name);
+            if (it == block->m_scalar_fields.end()) continue;
+
+            const auto& data = it->second;
+            for (float v : data) {
+                if (std::isnan(v)) continue;
+                if (v < min_v) min_v = v;
+                if (v > max_v) max_v = v;
+            }
+        }
+
+        if (min_v > max_v) return false;
+        out_min = min_v;
+        out_max = max_v;
+        return true;
+    }
+
     void Cloud::update()
     {
         if (empty() || !m_octree_root) {

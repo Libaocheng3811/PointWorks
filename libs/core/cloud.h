@@ -4,6 +4,7 @@
 #include "cloudtype.h"
 #include "octree.h"
 #include "exports.h"
+#include "colormap.h"
 
 #include <string>
 #include <map>
@@ -88,6 +89,14 @@ namespace ct
         const std::vector<float>* getScalarField(const std::string& name) const;
 
         void updateColorByField(const std::string& field_name);
+
+        void updateColorByField(const std::string& field_name,
+                                float display_min, float display_max,
+                                ColormapType colormap = ColormapType::JET,
+                                bool show_nan_as_grey = true);
+
+        bool getFieldRange(const std::string& field_name,
+                           float& out_min, float& out_max) const;
 
         // ===== 颜色操作 =====
         void setCloudColor(const ColorRGB& rgb);

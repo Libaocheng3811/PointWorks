@@ -16,6 +16,8 @@ target_link_libraries(ct_ui_dialog PUBLIC
 set(Base_Srcs
     base/customtree.cpp
     base/cloudtree.cpp
+    widgets/sf_histogram_chart.cpp
+    widgets/sf_display_panel.cpp
 )
 
 set(Base_Hdrs
@@ -24,6 +26,8 @@ set(Base_Hdrs
     base/customdock.h
     base/customdialog.h
     base/paramsnapshot.h
+    widgets/sf_histogram_chart.h
+    widgets/sf_display_panel.h
 )
 
 add_library(ct_ui_base STATIC ${Base_Srcs} ${Base_Hdrs})
@@ -38,4 +42,5 @@ target_link_libraries(ct_ui_base
         ct_io
     PRIVATE
         Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Charts
 )

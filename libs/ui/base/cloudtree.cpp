@@ -1,6 +1,8 @@
 #include "cloudtree.h"
 
 #include "core/field_types.h"
+#include "core/colormap.h"
+#include "widgets/sf_display_panel.h"
 
 #include "dialog/fieldmappingdialog.h"
 #include "dialog/txtimportdialog.h"
@@ -1071,40 +1073,6 @@ namespace ct
             m_table->setCellWidget(row, 1, opacity);
         }
 
-        // Color（仅点云节点，模型通过 Edit > Colors 弹窗设置）
-        if (!isMesh) {
-            int row = m_table->rowCount();
-            m_table->insertRow(row);
-            QTableWidgetItem* labelItem = new QTableWidgetItem("Color");
-            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
-            m_table->setItem(row, 0, labelItem);
-
-            QComboBox* color_mode = new QComboBox;
-            color_mode->addItem("RGB (Default)");
-            color_mode->addItem("x");
-            color_mode->addItem("y");
-            color_mode->addItem("z");
-
-            QString currentMode = QString::fromStdString(cloud->currentColorMode());
-            int idx = color_mode->findText(currentMode);
-            color_mode->setCurrentIndex(idx >= 0 ? idx : 0);
-            color_mode->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-            connect(color_mode, &QComboBox::currentTextChanged,
-                    this, [=](const QString& text){
-                        if (text == "RGB (Default)") {
-                            m_cloudview->resetPointCloudColor(cloud);
-                        } else if (text == "x" || text == "y" || text == "z") {
-                            cloud->setCloudColor(text.toLower().toStdString());
-                            m_cloudview->addPointCloud(cloud);
-                        } else {
-                            cloud->updateColorByField(text.toStdString());
-                            m_cloudview->addPointCloud(cloud);
-                        }
-                    });
-            m_table->setCellWidget(row, 1, color_mode);
-        }
-
         // ============================================================
         // Cloud Section（仅点云节点）
         // ============================================================
@@ -1113,6 +1081,42 @@ namespace ct
 
             // Resolution
             addTextRow("Resolution", QString::number(cloud->resolution()));
+
+            // 当前颜色模式判定
+            auto sf_fields = cloud->getScalarFieldNames();
+            bool has_sf = !sf_fields.empty();
+            QString currentMode = QString::fromStdString(cloud->currentColorMode());
+            bool currently_sf = !currentMode.isEmpty()
+                && cloud->hasScalarField(currentMode.toStdString());
+
+            // Color
+            QComboBox* color_mode = nullptr;
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Color");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                m_table->setItem(row, 0, labelItem);
+
+                color_mode = new QComboBox;
+                color_mode->addItem("RGB (Default)");
+                color_mode->addItem("x");
+                color_mode->addItem("y");
+                color_mode->addItem("z");
+                if (has_sf) {
+                    color_mode->addItem("Scalar Field");
+                }
+
+                if (currently_sf) {
+                    color_mode->setCurrentText("Scalar Field");
+                } else {
+                    int idx = color_mode->findText(currentMode);
+                    color_mode->setCurrentIndex(idx >= 0 ? idx : 0);
+                }
+                color_mode->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+                m_table->setCellWidget(row, 1, color_mode);
+            }
 
             // Point Size
             {
@@ -1174,28 +1178,129 @@ namespace ct
                 m_table->setCellWidget(row, 1, normals_widget);
             }
 
-            // Scalar Fields（有标量场时才显示）
-            {
-                std::vector<std::string> fields = cloud->getScalarFieldNames();
-                if (!fields.empty()) {
+            // ============================================================
+            // SF Display Section（仅当点云拥有标量场时）
+            // ============================================================
+            if (has_sf) {
+                addSectionHeader("SF Display");
+                int sf_section_row = m_table->rowCount() - 1;
+
+                // Field 行
+                QComboBox* combo_field = nullptr;
+                int field_row = -1;
+                {
                     int row = m_table->rowCount();
+                    field_row = row;
                     m_table->insertRow(row);
-                    QTableWidgetItem* labelItem = new QTableWidgetItem("Scalar Field");
+                    QTableWidgetItem* labelItem = new QTableWidgetItem("Field");
                     labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
                     m_table->setItem(row, 0, labelItem);
 
-                    QComboBox* scalar_combo = new QComboBox;
-                    for (const std::string& f : fields)
-                        scalar_combo->addItem(QString::fromStdString(f));
-                    scalar_combo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                    combo_field = new QComboBox;
+                    combo_field->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                    for (const auto& f : sf_fields)
+                        combo_field->addItem(QString::fromStdString(f));
 
-                    connect(scalar_combo, &QComboBox::currentTextChanged,
-                            [=](const QString& text){
-                                cloud->updateColorByField(text.toStdString());
-                                m_cloudview->addPointCloud(cloud);
-                            });
-                    m_table->setCellWidget(row, 1, scalar_combo);
+                    if (currently_sf) {
+                        int idx = combo_field->findText(currentMode);
+                        if (idx >= 0) combo_field->setCurrentIndex(idx);
+                    }
+
+                    m_table->setCellWidget(row, 1, combo_field);
                 }
+
+                // Color Scale 行
+                QComboBox* combo_cmap = nullptr;
+                int cmap_row = -1;
+                {
+                    int row = m_table->rowCount();
+                    cmap_row = row;
+                    m_table->insertRow(row);
+                    QTableWidgetItem* labelItem = new QTableWidgetItem("Color Scale");
+                    labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                    m_table->setItem(row, 0, labelItem);
+
+                    combo_cmap = new QComboBox;
+                    combo_cmap->addItems(colormapNames());
+                    combo_cmap->setCurrentText("jet");
+                    combo_cmap->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                    m_table->setCellWidget(row, 1, combo_cmap);
+                }
+
+                // SFDisplayPanel（tab widget）
+                SFDisplayPanel* sf_panel = nullptr;
+                int panel_row = -1;
+                {
+                    sf_panel = new SFDisplayPanel();
+                    sf_panel->onColorChanged = [=]() {
+                        m_cloudview->invalidateCloudRender(cloudId);
+                        m_cloudview->refresh();
+                    };
+                    QObject::connect(sf_panel, &SFDisplayPanel::scalarBarRequested,
+                            m_cloudview, &CloudView::showScalarBar);
+                    QObject::connect(sf_panel, &SFDisplayPanel::scalarBarToggled,
+                            m_cloudview, &CloudView::setScalarBarVisible);
+                    QObject::connect(sf_panel, &SFDisplayPanel::scalarBarShowZero,
+                            m_cloudview, &CloudView::setScalarBarShowZero);
+
+                    sf_panel->bindCloud(cloud);
+
+                    QObject::connect(combo_field, &QComboBox::currentTextChanged,
+                            sf_panel, &SFDisplayPanel::setField);
+
+                    QObject::connect(combo_cmap, &QComboBox::currentTextChanged,
+                            this, [=](const QString& name) {
+                                sf_panel->setColormap(colormapFromName(name));
+                            });
+
+                    panel_row = m_table->rowCount();
+                    m_table->insertRow(panel_row);
+                    m_table->setSpan(panel_row, 0, 1, 2);
+                    m_table->setCellWidget(panel_row, 0, sf_panel);
+                }
+
+                // 显隐控制
+                auto showSFRows = [=]() {
+                    m_table->setRowHeight(sf_section_row, 28);
+                    m_table->setRowHeight(field_row, 28);
+                    m_table->setRowHeight(cmap_row, 28);
+                    m_table->setRowHeight(panel_row, 320);
+                    sf_panel->reloadField();
+                };
+                auto hideSFRows = [=]() {
+                    m_table->setRowHeight(sf_section_row, 0);
+                    m_table->setRowHeight(field_row, 0);
+                    m_table->setRowHeight(cmap_row, 0);
+                    m_table->setRowHeight(panel_row, 0);
+                    m_cloudview->hideScalarBar();
+                };
+
+                if (currently_sf) {
+                    showSFRows();
+                } else {
+                    hideSFRows();
+                }
+
+                // Color combo 联动
+                connect(color_mode, &QComboBox::currentTextChanged,
+                        this, [=](const QString& text) {
+                            if (text == "Scalar Field") {
+                                showSFRows();
+                                auto cur_fields = cloud->getScalarFieldNames();
+                                if (!cur_fields.empty()) {
+                                    cloud->updateColorByField(cur_fields[0]);
+                                    m_cloudview->addPointCloud(cloud);
+                                }
+                            } else {
+                                hideSFRows();
+                                if (text == "RGB (Default)") {
+                                    m_cloudview->resetPointCloudColor(cloud);
+                                } else if (text == "x" || text == "y" || text == "z") {
+                                    cloud->setCloudColor(text.toLower().toStdString());
+                                    m_cloudview->addPointCloud(cloud);
+                                }
+                            }
+                        });
             }
         }
 

@@ -22,7 +22,6 @@ ViewCube::ViewCube(QWidget* parent) : QWidget(parent)
 {
     setAttribute(Qt::WA_NoSystemBackground);
     setMouseTracking(true);
-    setFixedSize(220, 220);
     buildRegions();
     updateBasis();
 
@@ -45,6 +44,18 @@ void ViewCube::setViewCubeEnabled(bool enabled)
 {
     m_enabled = enabled;
     setVisible(enabled);
+}
+
+void ViewCube::resizeEvent(QResizeEvent* event)
+{
+    if (auto* p = parentWidget()) {
+        int side = std::min(p->width(), p->height());
+        int size = side / 5;
+        size = std::max(size, 120);
+        size = std::min(size, 280);
+        setFixedSize(size, size);
+    }
+    QWidget::resizeEvent(event);
 }
 
 // ============================================================
@@ -414,7 +425,8 @@ void ViewCube::paintEvent(QPaintEvent*)
 void ViewCube::drawAxes(QPainter& p)
 {
     const float axisLen = 1.05f;
-    const float arrowSize = 16.0f;
+    float s = width() / 220.0f;
+    const float arrowSize = 16.0f * s;
     const float labelOffset = 1.15f;
 
     struct Axis { Vector3f dir; QColor color; QString label; };
@@ -432,7 +444,7 @@ void ViewCube::drawAxes(QPainter& p)
         float alpha = dot > 0 ? 240 : 140;
         QColor c = axis.color; c.setAlpha(alpha);
 
-        QPen pen(c, dot > 0 ? 5.0f : 3.0f, dot > 0 ? Qt::SolidLine : Qt::DashLine);
+        QPen pen(c, (dot > 0 ? 5.0f : 3.0f) * s, dot > 0 ? Qt::SolidLine : Qt::DashLine);
         pen.setCapStyle(Qt::RoundCap);
         p.setPen(pen);
         p.drawLine(origin, tip);
@@ -452,7 +464,7 @@ void ViewCube::drawAxes(QPainter& p)
             p.drawPolygon(arrow);
         }
 
-        QFont font("Arial", 15, QFont::Bold);
+        QFont font("Arial", std::max(8, static_cast<int>(15 * s)), QFont::Bold);
         p.setFont(font); p.setPen(c);
         p.drawText(labelPt, axis.label);
     }
@@ -460,6 +472,7 @@ void ViewCube::drawAxes(QPainter& p)
 
 void ViewCube::drawRegion(QPainter& p, const Region& r, bool hovered)
 {
+    float s = width() / 220.0f;
     QPolygonF poly = projectRegion(r);
     if (poly.size() < 3) return;
 
@@ -478,7 +491,7 @@ void ViewCube::drawRegion(QPainter& p, const Region& r, bool hovered)
     // Use same-color outline to cover anti-aliasing gaps between adjacent regions
     QColor outlineColor = fillColor;
     outlineColor.setAlpha(255);
-    p.setPen(QPen(outlineColor, hovered ? 2.5 : 2.0));
+    p.setPen(QPen(outlineColor, (hovered ? 2.5 : 2.0) * s));
     p.setBrush(fillColor);
     p.drawPolygon(poly);
 }
@@ -486,8 +499,9 @@ void ViewCube::drawRegion(QPainter& p, const Region& r, bool hovered)
 void ViewCube::drawFaceLabel(QPainter& p, const Region& r)
 {
     if (r.type != TYPE_FACE) return;
+    float s = width() / 220.0f;
     QPointF center = project(r.viewDir * 0.5f);
-    QFont font("Arial", 10, QFont::Bold);
+    QFont font("Arial", std::max(6, static_cast<int>(10 * s)), QFont::Bold);
     p.setFont(font);
     QFontMetrics fm(font);
     QRect textRect = fm.boundingRect(r.tooltip);
