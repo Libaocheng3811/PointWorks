@@ -376,6 +376,11 @@ namespace ct {
         void showScalarBar(double min_val, double max_val,
                            const QString& title = "",
                            ColormapType colormap = ColormapType::JET);
+        void setScalarBarDisplayRange(double disp_min, double disp_max);
+        void setScalarBarHistogram(const std::vector<int>& bin_counts,
+                                   double data_min, double data_max,
+                                   bool show_grey = true);
+        void setScalarBarShowCurve(bool show);
 
         void hideScalarBar();
         void setScalarBarVisible(bool visible);
@@ -612,7 +617,7 @@ namespace ct {
         unsigned long m_observer_tag = 0; // 回调 ID
         unsigned long m_interaction_tag = 0; //保存交互回调的 ID
 
-        std::unique_ptr<ScalarBarWidget> m_scalar_bar_widget;
+        ScalarBarWidget* m_scalar_bar_widget = nullptr;
 
     };
 } // namespace ct

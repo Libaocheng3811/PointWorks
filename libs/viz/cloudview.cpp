@@ -81,6 +81,8 @@ namespace ct
         m_render(vtkSmartPointer<vtkRenderer>::New()),
         m_renderwindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New())
     {
+        this->setMinimumWidth(400);
+
         m_renderwindow->AddRenderer(m_render);
         m_render->GetActiveCamera()->SetClippingRange(0.01, 10000.0);
         m_viewer.reset(new pcl::visualization::PCLVisualizer(m_render, m_renderwindow, "viewer", false));
@@ -109,12 +111,16 @@ namespace ct
         m_render->SetBackground2(0.05, 0.4, 0.6);
         m_render->SetBackground(0.00, 0.05, 0.08);
 
-        m_scalar_bar_widget = std::make_unique<ScalarBarWidget>(m_render);
+        m_scalar_bar_widget = new ScalarBarWidget(this);
+        m_scalar_bar_widget->lower();
+        m_scalar_bar_widget->setAttribute(Qt::WA_TransparentForMouseEvents);
+        m_scalar_bar_widget->show();
+        m_scalar_bar_widget->raise();
 
         connect(this, &CloudView::sizeChanged, [this](QSize size){
             if (m_show_id && !m_current_id.isEmpty()) {
                 m_viewer->updateText(m_current_id.toStdString(),
-                                     size.width() - m_current_id.length() * 6 - 20,
+                                     10,
                                      size.height() - 25,
                                      12, 1, 1, 1, INFO_CLOUD_ID);
             }
@@ -139,10 +145,13 @@ namespace ct
                 m_view_cube->move(size.width() - cubeSize - 8,
                                   size.height() - cubeSize - 8);
 
-                // 色度条紧贴 cube 上方（Qt y 翻转为 VTK y）
-                double cube_top_vtk = static_cast<double>(cubeSize + 8) / size.height();
-                m_scalar_bar_widget->setBottomMargin(cube_top_vtk);
+                // 色度条底部边距 = cube 区域 + 间距
+                m_scalar_bar_widget->setBottomMargin(cubeSize + 16);
             }
+
+            // 色度条：Qt 子控件，固定像素宽度，仅高度跟随窗口
+            m_scalar_bar_widget->relayout();
+            m_scalar_bar_widget->update();
         });
 
         // ViewCube: 导航立方体（坐标系 + 立方体）
@@ -180,8 +189,7 @@ namespace ct
             m_view_cube->setFixedSize(cubeSize, cubeSize);
             m_view_cube->move(width() - cubeSize - 8, height() - cubeSize - 8);
 
-            double cube_top_vtk = static_cast<double>(cubeSize + 8) / height();
-            m_scalar_bar_widget->setBottomMargin(cube_top_vtk);
+            m_scalar_bar_widget->setBottomMargin(cubeSize + 16);
         }
 
         m_viewer->getRenderWindow()->Render();
@@ -1605,9 +1613,9 @@ namespace ct
         }
         // 如果m_viewer不包含ID为INFO_CLOUD_ID的文本,使用addText函数将点云ID作为文本添加到可视化窗口中,如果存在就更新显示文本
         if (!m_viewer->contains(INFO_CLOUD_ID))
-            m_viewer->addText(id.toStdString(), this->width() - id.length() * 6 - 20, this->height() - 25, 12, 1, 1, 1, INFO_CLOUD_ID);
+            m_viewer->addText(id.toStdString(), 10, this->height() - 25, 12, 1, 1, 1, INFO_CLOUD_ID);
         else
-            m_viewer->updateText(id.toStdString(), this->width() - id.length() *6 - 20, this->height() -25, 12, 1, 1, 1, INFO_CLOUD_ID);
+            m_viewer->updateText(id.toStdString(), 10, this->height() - 25, 12, 1, 1, 1, INFO_CLOUD_ID);
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
@@ -1882,44 +1890,45 @@ namespace ct
     void CloudView::showScalarBar(double min_val, double max_val,
                                   const QString& title, ColormapType colormap)
     {
-        m_scalar_bar_widget->update(min_val, max_val, title, colormap);
-        m_scalar_bar_widget->setVisible(true);
-        if (m_auto_render) {
-            m_viewer->getRenderWindow()->Render();
-            this->update();
-        }
+        m_scalar_bar_widget->updateData(min_val, max_val, title, colormap);
+        m_scalar_bar_widget->setBarVisible(true);
+    }
+
+    void CloudView::setScalarBarDisplayRange(double disp_min, double disp_max)
+    {
+        m_scalar_bar_widget->setDisplayRange(disp_min, disp_max);
+    }
+
+    void CloudView::setScalarBarHistogram(const std::vector<int>& bin_counts,
+                                          double data_min, double data_max,
+                                          bool show_grey)
+    {
+        m_scalar_bar_widget->setHistogramData(bin_counts, data_min, data_max, show_grey);
+    }
+
+    void CloudView::setScalarBarShowCurve(bool show)
+    {
+        m_scalar_bar_widget->setShowCurve(show);
     }
 
     void CloudView::hideScalarBar()
     {
-        m_scalar_bar_widget->setVisible(false);
-        if (m_auto_render) {
-            m_viewer->getRenderWindow()->Render();
-            this->update();
-        }
+        m_scalar_bar_widget->setBarVisible(false);
     }
 
     void CloudView::setScalarBarVisible(bool visible)
     {
-        m_scalar_bar_widget->setVisible(visible);
-        if (m_auto_render) {
-            m_viewer->getRenderWindow()->Render();
-            this->update();
-        }
+        m_scalar_bar_widget->setBarVisible(visible);
     }
 
     bool CloudView::isScalarBarVisible() const
     {
-        return m_scalar_bar_widget->isVisible();
+        return m_scalar_bar_widget->isBarVisible();
     }
 
     void CloudView::setScalarBarShowZero(bool show)
     {
         m_scalar_bar_widget->setShowZeroLine(show);
-        if (m_auto_render) {
-            m_viewer->getRenderWindow()->Render();
-            this->update();
-        }
     }
 
 } // namespace ct

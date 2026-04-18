@@ -5,8 +5,6 @@
 
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
-#include <QtCharts/QBarSeries>
-#include <QtCharts/QBarSet>
 #include <QtCharts/QValueAxis>
 #include <QtCharts/QLineSeries>
 
@@ -30,9 +28,14 @@ public:
     double displayMin() const { return m_display_min; }
     double displayMax() const { return m_display_max; }
     void setFullRange(double min_val, double max_val);
+    void setColorRange(double min_val, double max_val);
 
     void setColormap(ColormapType type);
     void setShowNaNGrey(bool show);
+
+    const std::vector<int>& binCounts() const { return m_bin_counts; }
+    double dataMin() const { return m_data_min; }
+    double dataMax() const { return m_data_max; }
 
 signals:
     void rangeChanged(double min_val, double max_val);
@@ -41,10 +44,13 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
 
 private:
-    void rebuildChart();
+    void rebuildBins();
+    void updateAxes();
     void updateBoundaryLines();
+    QRgb colormapColor(double value) const;
 
     std::vector<float> m_values;
     int m_bin_count = 50;
@@ -52,13 +58,12 @@ private:
     double m_data_max = 1;
     double m_display_min = 0;
     double m_display_max = 1;
+    double m_color_min = 0;
+    double m_color_max = 1;
     ColormapType m_colormap = ColormapType::JET;
     bool m_show_nan_grey = true;
 
     QChart* m_chart = nullptr;
-    QBarSet* m_bar_set_in = nullptr;
-    QBarSet* m_bar_set_out = nullptr;
-    QBarSeries* m_bar_series = nullptr;
     QValueAxis* m_x_axis = nullptr;
     QValueAxis* m_y_axis = nullptr;
 

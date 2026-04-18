@@ -12,8 +12,10 @@
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QLabel>
+#include <QTimer>
 #include <QLocale>
 #include <QVBoxLayout>
+#include <vector>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QSpacerItem>
@@ -38,8 +40,13 @@ public:
 signals:
     void scalarBarRequested(double min_val, double max_val,
                             const QString& title, ColormapType colormap);
+    void scalarBarDisplayRangeChanged(double disp_min, double disp_max);
+    void scalarBarHistogramChanged(const std::vector<int>& bin_counts,
+                                   double data_min, double data_max,
+                                   bool show_grey);
     void scalarBarToggled(bool visible);
     void scalarBarShowZero(bool show);
+    void scalarBarShowCurve(bool show);
 
 private slots:
     void onMinSpinBoxChanged(double val);
@@ -50,12 +57,14 @@ private slots:
     void onShowNaNGreyToggled(bool checked);
     void onAlwaysShowZeroToggled(bool checked);
     void onSymmetricalToggled(bool checked);
+    void onShowCurveToggled(bool checked);
 
 private:
     void setupUi();
     void loadCurrentField();
     void refreshStatistics();
     void updateColorAndRefresh();
+    void applyCloudColorUpdate();
 
     Cloud::Ptr m_cloud;
     QString m_current_field;
@@ -80,6 +89,7 @@ private:
     QCheckBox* m_check_show_nan_grey;
     QCheckBox* m_check_always_show_zero;
     QCheckBox* m_check_symmetrical;
+    QCheckBox* m_check_show_curve;
 };
 
 }  // namespace ct

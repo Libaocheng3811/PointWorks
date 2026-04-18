@@ -49,6 +49,7 @@ namespace ct
         qRegisterMetaType<ct::TxtImportParams>("ct::TxtImportParams");
         qRegisterMetaType<ct::TxtExportParams>("ct::TxtExportParams");
         qRegisterMetaType<ct::TexturedMeshPtr>("ct::TexturedMeshPtr"); // 保留：TexturedMeshPtr 在其他地方可能使用
+        qRegisterMetaType<std::vector<int>>("std::vector<int>");
 
         // move to thread
         m_fileio = new FileIO;
@@ -1238,10 +1239,16 @@ namespace ct
                     };
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarRequested,
                             m_cloudview, &CloudView::showScalarBar);
+                    QObject::connect(sf_panel, &SFDisplayPanel::scalarBarDisplayRangeChanged,
+                            m_cloudview, &CloudView::setScalarBarDisplayRange);
+                    QObject::connect(sf_panel, &SFDisplayPanel::scalarBarHistogramChanged,
+                            m_cloudview, &CloudView::setScalarBarHistogram);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarToggled,
                             m_cloudview, &CloudView::setScalarBarVisible);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarShowZero,
                             m_cloudview, &CloudView::setScalarBarShowZero);
+                    QObject::connect(sf_panel, &SFDisplayPanel::scalarBarShowCurve,
+                            m_cloudview, &CloudView::setScalarBarShowCurve);
 
                     sf_panel->bindCloud(cloud);
 

@@ -89,6 +89,10 @@ void SFDisplayPanel::setupUi()
     m_check_symmetrical = new QCheckBox;
     params_layout->addRow("Symmetrical color scale:", m_check_symmetrical);
 
+    m_check_show_curve = new QCheckBox;
+    m_check_show_curve->setChecked(true);
+    params_layout->addRow("Show distribution curve:", m_check_show_curve);
+
     params_layout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
     m_tab_widget->addTab(params_tab, "Parameters");
@@ -112,6 +116,8 @@ void SFDisplayPanel::setupUi()
             this, &SFDisplayPanel::onAlwaysShowZeroToggled);
     connect(m_check_symmetrical, &QCheckBox::toggled,
             this, &SFDisplayPanel::onSymmetricalToggled);
+    connect(m_check_show_curve, &QCheckBox::toggled,
+            this, &SFDisplayPanel::onShowCurveToggled);
 }
 
 void SFDisplayPanel::bindCloud(Cloud::Ptr cloud)
@@ -178,6 +184,7 @@ void SFDisplayPanel::loadCurrentField()
     m_histogram_chart->setDisplayRange(m_stats.min_val, m_stats.max_val);
     m_histogram_chart->setColormap(m_current_colormap);
     m_histogram_chart->setShowNaNGrey(m_show_nan_grey);
+    m_histogram_chart->setColorRange(m_stats.min_val, m_stats.max_val);
 
     // Update statistics label
     refreshStatistics();
@@ -185,6 +192,10 @@ void SFDisplayPanel::loadCurrentField()
     // Emit scalar bar request
     emit scalarBarRequested(m_stats.min_val, m_stats.max_val,
                             m_current_field, m_current_colormap);
+    emit scalarBarHistogramChanged(m_histogram_chart->binCounts(),
+                                    m_histogram_chart->dataMin(),
+                                    m_histogram_chart->dataMax(),
+                                    m_show_nan_grey);
 }
 
 void SFDisplayPanel::refreshStatistics()
@@ -217,14 +228,43 @@ void SFDisplayPanel::updateColorAndRefresh()
     float dmin = static_cast<float>(m_spin_min->value());
     float dmax = static_cast<float>(m_spin_max->value());
 
+    // Compute effective scalar bar range (for display only)
+    double bar_min = dmin;
+    double bar_max = dmax;
+
+    if (m_symmetrical) {
+        double abs_max = std::max(std::abs(dmin), std::abs(dmax));
+        bar_min = -abs_max;
+        bar_max = abs_max;
+    }
+
+    if (m_always_show_zero) {
+        if (bar_min > 0) bar_min = 0;
+        if (bar_max < 0) bar_max = 0;
+    }
+
+    // Immediate: update light-weight UI (scalar bar, histogram colors)
+    emit scalarBarRequested(bar_min, bar_max, m_current_field, m_current_colormap);
+    emit scalarBarDisplayRangeChanged(dmin, dmax);
+    m_histogram_chart->setColorRange(bar_min, bar_max);
+
+    // Deferred: heavy point cloud color update + VTK render
+    QTimer::singleShot(0, this, &SFDisplayPanel::applyCloudColorUpdate);
+}
+
+void SFDisplayPanel::applyCloudColorUpdate()
+{
+    if (!m_cloud || m_current_field.isEmpty()) return;
+
+    float dmin = static_cast<float>(m_spin_min->value());
+    float dmax = static_cast<float>(m_spin_max->value());
+
     m_cloud->updateColorByField(m_current_field.toStdString(),
                                  dmin, dmax,
                                  m_current_colormap,
                                  m_show_nan_grey);
 
     if (onColorChanged) onColorChanged();
-
-    emit scalarBarRequested(dmin, dmax, m_current_field, m_current_colormap);
 }
 
 void SFDisplayPanel::onMinSpinBoxChanged(double val)
@@ -263,6 +303,11 @@ void SFDisplayPanel::onBinsChanged(int count)
     m_histogram_chart->setData(*sf_data, count);
     m_histogram_chart->setDisplayRange(m_spin_min->value(), m_spin_max->value());
     m_histogram_chart->setColormap(m_current_colormap);
+    m_histogram_chart->setColorRange(m_spin_min->value(), m_spin_max->value());
+    emit scalarBarHistogramChanged(m_histogram_chart->binCounts(),
+                                    m_histogram_chart->dataMin(),
+                                    m_histogram_chart->dataMax(),
+                                    m_show_nan_grey);
 }
 
 void SFDisplayPanel::onShowNaNGreyToggled(bool checked)
@@ -276,12 +321,18 @@ void SFDisplayPanel::onAlwaysShowZeroToggled(bool checked)
 {
     m_always_show_zero = checked;
     emit scalarBarShowZero(checked);
+    updateColorAndRefresh();
 }
 
 void SFDisplayPanel::onSymmetricalToggled(bool checked)
 {
     m_symmetrical = checked;
     updateColorAndRefresh();
+}
+
+void SFDisplayPanel::onShowCurveToggled(bool checked)
+{
+    emit scalarBarShowCurve(checked);
 }
 
 }  // namespace ct
