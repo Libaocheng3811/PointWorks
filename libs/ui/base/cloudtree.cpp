@@ -902,6 +902,28 @@ namespace ct
             }
         }
 
+        // Sync scalar bar visibility with selected+checked state
+        bool anyVisible = false;
+        for (QTreeWidgetItem* sel : getSelectedItems()) {
+            if (sel->checkState(0) != Qt::Unchecked) {
+                anyVisible = true;
+                break;
+            }
+        }
+        if (!anyVisible) {
+            m_cloudview->hideScalarBar();
+        } else {
+            // Re-show scalar bar and refresh SFDisplayPanel if present
+            m_cloudview->setScalarBarVisible(true);
+            for (int row = 0; row < m_table->rowCount(); ++row) {
+                auto* panel = qobject_cast<SFDisplayPanel*>(m_table->cellWidget(row, 0));
+                if (panel) {
+                    panel->reloadField();
+                    break;
+                }
+            }
+        }
+
         m_cloudview->setAutoRender(true);
         m_cloudview->refresh();
         this->blockSignals(wasBlocked);

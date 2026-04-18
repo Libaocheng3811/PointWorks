@@ -254,8 +254,6 @@ void Color::reset()
 
 void Color::closeEvent(QCloseEvent* event)
 {
-    if (!m_applied)
-        reset();
     deinit();
     return QDialog::closeEvent(event);
 }
