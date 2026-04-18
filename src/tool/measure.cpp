@@ -211,7 +211,7 @@ void Measure::onShowArrowsChanged(int state)
     bool show = (state == Qt::Checked);
     for (const auto& m : m_measurements) {
         if (show) {
-            m_cloudview->addArrow(m.start_pt, m.end_pt, arrowId(m.id), false, ct::Color::Green);
+            m_cloudview->addArrow(m.end_pt, m.start_pt, arrowId(m.id), false, ct::Color::Green);
         } else {
             m_cloudview->removeShape(arrowId(m.id));
         }
@@ -374,7 +374,7 @@ void Measure::updatePreview(const ct::PointXYZRGBN& hover_pt)
     float dist = (start_pt.getVector3fMap() - hover_pt.getVector3fMap()).norm();
 
     // Preview arrow (yellow)
-    m_cloudview->addArrow(start_pt, hover_pt, previewArrowId(), false, ct::Color::Yellow);
+    m_cloudview->addArrow(hover_pt, start_pt, previewArrowId(), false, ct::Color::Yellow);
 
     // Preview label at midpoint
     ct::PointXYZRGBN mid;
@@ -407,7 +407,7 @@ void Measure::addMeasurementToScene(const Measurement& m)
 {
     // Arrow (green)
     if (ui->chkShowArrows->isChecked()) {
-        m_cloudview->addArrow(m.start_pt, m.end_pt, arrowId(m.id), false, ct::Color::Green);
+        m_cloudview->addArrow(m.end_pt, m.start_pt, arrowId(m.id), false, ct::Color::Green);
     }
 
     // Label at midpoint

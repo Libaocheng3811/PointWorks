@@ -21,6 +21,7 @@ namespace ct
 
     struct SegmentationResult {
         std::vector<Cloud::Ptr> clouds;
+        std::vector<float> labels;  // per-point cluster label, size == cloud->pointCount()
         float time_ms = 0;
         ModelCoefficients::Ptr coefficients;
     };

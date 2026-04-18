@@ -41,6 +41,7 @@ private:
     QDoubleSpinBox* dspin_spatial_importance_;
     QDoubleSpinBox* dspin_normal_importance_;
     QCheckBox* check_camera_transform_;
+    QCheckBox* check_split_;
 
     // 按钮
     QPushButton* btn_apply_;

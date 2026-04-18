@@ -76,8 +76,8 @@ MainWindow::MainWindow(QWidget *parent) :
     docks.push_back(ui->PropertiesDock);
     docks.push_back(ui->ConsoleDock);
     QList<int> size;
-    size.push_back(300);
-    size.push_back(320);
+    size.push_back(450);
+    size.push_back(450);
     size.push_back(140);
     resizeDocks(docks, size, Qt::Orientation::Vertical);
 

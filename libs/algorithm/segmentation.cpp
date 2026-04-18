@@ -127,7 +127,7 @@ namespace ct
         auto clouds = extractIndices(pcl_cloud, indices, negative);
 
         reportProgress(cancel, on_progress, 100);
-        return {clouds, static_cast<float>(time.toc()), cofes};
+        return {clouds, {}, static_cast<float>(time.toc()), cofes};
     }
 
     SegmentationResult Segmentation::SACSegmentationFromNormals(const Cloud::Ptr& cloud, bool negative,
@@ -172,7 +172,7 @@ namespace ct
         auto clouds = extractIndices(pcl_cloud, indices, negative);
 
         reportProgress(cancel, on_progress, 100);
-        return {clouds, static_cast<float>(time.toc()), cofes};
+        return {clouds, {}, static_cast<float>(time.toc()), cofes};
     }
 
     SegmentationResult Segmentation::EuclideanClusterExtraction(const Cloud::Ptr& cloud, bool negative,
@@ -205,8 +205,16 @@ namespace ct
 
         auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative);
 
+        // Build per-point labels
+        std::vector<float> labels(pcl_cloud->size(), -1.0f);
+        for (size_t ci = 0; ci < clusters->size(); ++ci) {
+            for (int idx : (*clusters)[ci].indices) {
+                labels[idx] = static_cast<float>(ci);
+            }
+        }
+
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, labels, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::DBSCANClusterExtraction(const Cloud::Ptr& cloud, bool negative,
@@ -261,12 +269,22 @@ namespace ct
                 all_indices->indices.insert(all_indices->indices.end(),
                                              it->indices.begin(), it->indices.end());
             }
-            return {extractIndices(pcl_cloud, all_indices, true),
-                    static_cast<float>(time.toc()), nullptr};
+            auto neg_clouds = extractIndices(pcl_cloud, all_indices, true);
+            return {neg_clouds, {}, static_cast<float>(time.toc()), nullptr};
+        }
+
+        // Build per-point labels
+        std::vector<float> labels(pcl_cloud->size(), -1.0f);
+        int ci = 0;
+        for (IndicesClusters::const_iterator it = clusters->begin(); it != clusters->end(); ++it) {
+            if (static_cast<int>(it->indices.size()) < min_cluster_size) continue;
+            if (static_cast<int>(it->indices.size()) > max_cluster_size) continue;
+            for (int idx : it->indices) labels[idx] = static_cast<float>(ci);
+            ++ci;
         }
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, labels, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::KMeansClusterExtraction(const Cloud::Ptr& cloud,
@@ -395,16 +413,20 @@ namespace ct
         }
 
         std::vector<Cloud::Ptr> segmented_clouds;
+        std::vector<float> labels(point_count, -1.0f);
+        int valid_ci = 0;
         for (int c = 0; c < k; c++) {
             if (cluster_indices[c].indices.empty()) continue;
             Cloud::Ptr cluster = Cloud::fromPCL_XYZRGBN(
                 pcl::PointCloud<PointXYZRGBN>(*pcl_cloud, cluster_indices[c].indices));
             cluster->setId("cluster");
             segmented_clouds.push_back(cluster);
+            for (int idx : cluster_indices[c].indices) labels[idx] = static_cast<float>(valid_ci);
+            ++valid_ci;
         }
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, labels, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::RegionGrowing(const Cloud::Ptr& cloud, bool negative,
@@ -446,8 +468,16 @@ namespace ct
 
         auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative);
 
+        // Build per-point labels
+        std::vector<float> labels(pcl_cloud->size(), -1.0f);
+        for (size_t ci = 0; ci < clusters->size(); ++ci) {
+            for (int idx : (*clusters)[ci].indices) {
+                labels[idx] = static_cast<float>(ci);
+            }
+        }
+
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, labels, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::RegionGrowingFromSeed(const Cloud::Ptr& cloud, bool negative,
@@ -509,7 +539,7 @@ namespace ct
         }
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::RegionGrowingRGB(const Cloud::Ptr& cloud, bool negative,
@@ -557,8 +587,16 @@ namespace ct
 
         auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative);
 
+        // Build per-point labels
+        std::vector<float> labels(pcl_cloud->size(), -1.0f);
+        for (size_t ci = 0; ci < clusters->size(); ++ci) {
+            for (int idx : (*clusters)[ci].indices) {
+                labels[idx] = static_cast<float>(ci);
+            }
+        }
+
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, labels, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::SupervoxelClustering(const Cloud::Ptr& cloud,
@@ -593,24 +631,28 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        std::multimap<uint32_t, uint32_t> supervoxel_adjacency;
-        super.getSupervoxelAdjacency(supervoxel_adjacency);
-
         std::vector<Cloud::Ptr> segmented_clouds;
-
-        std::multimap<uint32_t, uint32_t>::iterator label_itr = supervoxel_adjacency.begin();
-        for (; label_itr != supervoxel_adjacency.end();)
+        int sv_idx = 0;
+        for (const auto& [label, supervoxel] : supervoxel_clusters)
         {
-            uint32_t supervoxel_label = label_itr->first;
-            pcl::Supervoxel<pcl::PointXYZRGBA>::Ptr supervoxel = supervoxel_clusters.at(supervoxel_label);
+            if (supervoxel->voxels_->empty()) continue;
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr voxels_rgb(new pcl::PointCloud<pcl::PointXYZRGB>);
             pcl::copyPointCloud(*supervoxel->voxels_, *voxels_rgb);
             segmented_clouds.push_back(Cloud::fromPCL_XYZRGB(*voxels_rgb));
-            label_itr = supervoxel_adjacency.upper_bound(supervoxel_label);
+            ++sv_idx;
+        }
+
+        // Build per-point labels using getLabeledCloud()
+        std::vector<float> labels;
+        auto labeled = super.getLabeledCloud();
+        if (labeled && !labeled->empty()) {
+            labels.resize(labeled->size());
+            for (size_t i = 0; i < labeled->size(); ++i)
+                labels[i] = static_cast<float>(labeled->points[i].label);
         }
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, labels, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::DonSegmentation(const Cloud::Ptr& cloud, bool negative,
@@ -686,7 +728,7 @@ namespace ct
         auto segmented_clouds = extractClusters(pcl_cloud, cluster_indices, negative);
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::MinCutSegmentation(const Cloud::Ptr& cloud,
@@ -729,7 +771,7 @@ namespace ct
         auto segmented_clouds = extractClusters(pcl_cloud, cluster_indices, false);
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::MorphologicalFilter(const Cloud::Ptr& cloud, bool negative,
@@ -765,7 +807,7 @@ namespace ct
         auto segmented_clouds = extractIndices(pcl_cloud, inliers, negative);
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::SeededHueSegmentation(const Cloud::Ptr& cloud, bool negative,
@@ -799,7 +841,7 @@ namespace ct
         auto segmented_clouds = extractIndices(pcl_cloud, indices_out, negative);
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::SegmentDifferences(const Cloud::Ptr& cloud,
@@ -835,7 +877,7 @@ namespace ct
         segmented_clouds.push_back(Cloud::fromPCL_XYZRGBN(*diff));
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
     SegmentationResult Segmentation::ExtractPolygonalPrismData(const Cloud::Ptr& cloud, bool negative,
@@ -869,7 +911,7 @@ namespace ct
         auto segmented_clouds = extractIndices(pcl_cloud, indices, negative);
 
         reportProgress(cancel, on_progress, 100);
-        return {segmented_clouds, static_cast<float>(time.toc()), nullptr};
+        return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
 }  // namespace ct

@@ -904,13 +904,20 @@ namespace ct
 
         // Sync scalar bar visibility with selected+checked state
         bool anyVisible = false;
+        bool anySFSMode = false;
         for (QTreeWidgetItem* sel : getSelectedItems()) {
             if (sel->checkState(0) != Qt::Unchecked) {
                 anyVisible = true;
+                auto cloud = getCloud(sel);
+                if (cloud) {
+                    QString mode = QString::fromStdString(cloud->currentColorMode());
+                    if (!mode.isEmpty() && cloud->hasScalarField(mode.toStdString()))
+                        anySFSMode = true;
+                }
                 break;
             }
         }
-        if (!anyVisible) {
+        if (!anyVisible || !anySFSMode) {
             m_cloudview->hideScalarBar();
         } else {
             // Re-show scalar bar and refresh SFDisplayPanel if present

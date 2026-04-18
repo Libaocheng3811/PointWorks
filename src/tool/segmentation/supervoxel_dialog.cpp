@@ -90,6 +90,10 @@ void SupervoxelDialog::setupUi()
     check_camera_transform_ = new QCheckBox("Camera Transform", this);
     main_layout->addWidget(check_camera_transform_);
 
+    // --- Output ---
+    check_split_ = new QCheckBox("Split into individual clouds", this);
+    main_layout->addWidget(check_split_);
+
     // --- Buttons ---
     auto* btn_row = new QHBoxLayout();
     btn_apply_ = new QPushButton("Apply", this);
@@ -167,6 +171,7 @@ void SupervoxelDialog::onApply()
     // ========== Step 6: 提交算法 ==========
     auto cloud = m_cloud;
     m_canceled.store(false);
+    bool split = check_split_->isChecked();
 
     auto future = QtConcurrent::run([cloud, voxel_resolution, seed_resolution,
                                      color_importance, spatial_importance,
@@ -201,17 +206,27 @@ void SupervoxelDialog::onApply()
                        .arg(result.time_ms)
                        .arg(result.clouds.size()));
 
-            // 添加结果到点云树
-            std::vector<ct::Cloud::Ptr> results;
-            for (size_t i = 0; i < result.clouds.size(); i++) {
-                auto& c = result.clouds[i];
-                c->setId(cloud->id() + "-supervoxel" + std::to_string(i));
-                c->makeAdaptive();
-                results.push_back(c);
+            if (split) {
+                // Split 模式：每个超体素作为单独点云添加到文件树
+                std::vector<ct::Cloud::Ptr> results;
+                for (size_t i = 0; i < result.clouds.size(); i++) {
+                    auto& c = result.clouds[i];
+                    c->setId(cloud->id() + "-supervoxel" + std::to_string(i));
+                    c->makeAdaptive();
+                    results.push_back(c);
+                }
+                QString groupName = QString::fromStdString(cloud->id()) + "_Supervoxel";
+                m_cloudtree->addResultGroup(cloud, results, groupName);
+            } else {
+                // 合并模式：复制原始点云，添加标量字段存储超体素标签
+                auto labeled = cloud->clone();
+                labeled->setId(cloud->id() + "_supervoxel");
+                if (!result.labels.empty())
+                    labeled->addScalarField("supervoxel_label", result.labels);
+                labeled->makeAdaptive();
+                std::vector<ct::Cloud::Ptr> results = {labeled};
+                m_cloudtree->addResultGroup(cloud, results, QString::fromStdString(cloud->id()) + "_Supervoxel");
             }
-
-            QString groupName = QString::fromStdString(cloud->id()) + "_Supervoxel";
-            m_cloudtree->addResultGroup(cloud, results, groupName);
 
             this->accept();
         });

@@ -473,30 +473,13 @@ void RegionGrowingDialog::onApply()
                 QString groupName = QString::fromStdString(cloud->id()) + "_RegionGrowing";
                 m_cloudtree->addResultGroup(cloud, results, groupName);
             } else {
-                // 合并模式：所有簇合并为一个点云，用颜色区分
-                pcl::PointCloud<ct::PointXYZRGBN> merged_pcl;
-
-                std::vector<ct::ColorRGB> palette = {
-                    {255, 0, 0}, {0, 255, 0}, {0, 0, 255},
-                    {255, 255, 0}, {255, 0, 255}, {0, 255, 255},
-                    {128, 0, 0}, {0, 128, 0}, {0, 0, 128}, {128, 128, 0}
-                };
-
-                for (size_t i = 0; i < result.clouds.size(); i++) {
-                    auto c_pcl = result.clouds[i]->toPCL_XYZRGBN();
-                    const auto& color = palette[i % palette.size()];
-                    for (auto& pt : c_pcl->points) {
-                        pt.r = color.r;
-                        pt.g = color.g;
-                        pt.b = color.b;
-                    }
-                    merged_pcl += *c_pcl;
-                }
-
-                auto merged = ct::Cloud::fromPCL_XYZRGBN(merged_pcl);
-                merged->setId(cloud->id() + "_region_growing");
-                merged->makeAdaptive();
-                std::vector<ct::Cloud::Ptr> results = {merged};
+                // 合并模式：复制原始点云，添加标量字段存储分割标签
+                auto labeled = cloud->clone();
+                labeled->setId(cloud->id() + "_region_growing");
+                if (!result.labels.empty())
+                    labeled->addScalarField("segment_label", result.labels);
+                labeled->makeAdaptive();
+                std::vector<ct::Cloud::Ptr> results = {labeled};
                 m_cloudtree->addResultGroup(cloud, results, QString::fromStdString(cloud->id()) + "_RegionGrowing");
             }
 
