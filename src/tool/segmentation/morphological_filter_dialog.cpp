@@ -28,9 +28,6 @@ MorphologicalFilterDialog::MorphologicalFilterDialog(QWidget* parent)
 MorphologicalFilterDialog::~MorphologicalFilterDialog()
 {
     m_canceled.store(true);
-    if (m_watcher && !m_watcher->isFinished()) {
-        m_watcher->waitForFinished();
-    }
 }
 
 // ======================== setupUi ========================
@@ -92,18 +89,15 @@ void MorphologicalFilterDialog::setupUi()
 
     // --- Buttons ---
     auto* btn_row = new QHBoxLayout();
-    btn_preview_ = new QPushButton("Preview", this);
-    btn_apply_ = new QPushButton("Add", this);
-    btn_reset_ = new QPushButton("Reset", this);
-    btn_row->addWidget(btn_preview_);
+    btn_apply_ = new QPushButton("Apply", this);
+    btn_cancel_ = new QPushButton("Cancel", this);
     btn_row->addWidget(btn_apply_);
-    btn_row->addWidget(btn_reset_);
+    btn_row->addWidget(btn_cancel_);
     main_layout->addLayout(btn_row);
 
     // --- Signals ---
-    connect(btn_preview_, &QPushButton::clicked, this, &MorphologicalFilterDialog::onPreview);
     connect(btn_apply_, &QPushButton::clicked, this, &MorphologicalFilterDialog::onApply);
-    connect(btn_reset_, &QPushButton::clicked, this, &MorphologicalFilterDialog::onReset);
+    connect(btn_cancel_, &QPushButton::clicked, this, &MorphologicalFilterDialog::onCancel);
 }
 
 // ======================== Init / Reset ========================
@@ -120,13 +114,6 @@ void MorphologicalFilterDialog::reset()
 {
     m_canceled.store(true);
     m_cloudtree->closeProgress();
-
-    // 清除预览结果
-    for (auto& c : m_preview_clouds) {
-        m_cloudview->removePointCloud(QString::fromStdString(c->id()));
-    }
-    m_preview_clouds.clear();
-    m_cloudview->refresh();
 }
 
 void MorphologicalFilterDialog::deinit()
@@ -136,20 +123,13 @@ void MorphologicalFilterDialog::deinit()
 
 // ======================== Slots ========================
 
-void MorphologicalFilterDialog::runFilter(bool preview)
+void MorphologicalFilterDialog::onApply()
 {
     if (!m_cloud) {
         printW("Please select a cloud.");
         return;
     }
 
-    // 清除上一次预览
-    for (auto& c : m_preview_clouds) {
-        m_cloudview->removePointCloud(QString::fromStdString(c->id()));
-    }
-    m_preview_clouds.clear();
-
-    // 读取参数
     int max_window_size = spin_max_window_size_->value();
     float slope = dspin_slope_->value();
     float max_distance = dspin_max_distance_->value();
@@ -157,6 +137,9 @@ void MorphologicalFilterDialog::runFilter(bool preview)
     float cell_size = dspin_cell_size_->value();
     float base = dspin_base_->value();
     bool negative = check_negative_->isChecked();
+
+    this->hide();
+    QCoreApplication::processEvents();
 
     m_cloudtree->showProgress("Morphological Filter...");
 
@@ -170,17 +153,19 @@ void MorphologicalFilterDialog::runFilter(bool preview)
                     m_cloudtree->closeProgress();
                     progress_closed->store(true);
                     printW("Morphological filter canceled.");
+                    this->reject();
                 });
     }
 
-    auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
-                                  Qt::QueuedConnection, Q_ARG(int, pct));
+    QPointer<ct::ProcessingDialog> dialog = m_cloudtree->m_processing_dialog;
+    auto on_progress = [dialog](int pct) {
+        if (dialog)
+            QMetaObject::invokeMethod(dialog.data(), "setProgress",
+                                      Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
     auto cloud = m_cloud;
     m_canceled.store(false);
-    bool is_preview = preview;
 
     auto future = QtConcurrent::run([cloud, negative, max_window_size, slope,
                                      max_distance, initial_distance, cell_size, base,
@@ -190,13 +175,8 @@ void MorphologicalFilterDialog::runFilter(bool preview)
             cell_size, base, cancel, on_progress);
     });
 
-    if (m_watcher && !m_watcher->isFinished()) {
-        m_canceled.store(true);
-        m_watcher->waitForFinished();
-    }
-
-    m_watcher = new QFutureWatcher<ct::SegmentationResult>(this);
-    connect(m_watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
+    auto* watcher = new QFutureWatcher<ct::SegmentationResult>(this);
+    connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_cloudtree->closeProgress();
@@ -204,9 +184,11 @@ void MorphologicalFilterDialog::runFilter(bool preview)
             delete cancel;
             delete progress_closed;
 
-            auto result = m_watcher->result();
+            auto result = watcher->result();
+            watcher->deleteLater();
 
             if (m_canceled.load() || result.clouds.empty()) {
+                this->reject();
                 return;
             }
 
@@ -215,47 +197,19 @@ void MorphologicalFilterDialog::runFilter(bool preview)
 
             for (size_t i = 0; i < result.clouds.size(); i++) {
                 auto& c = result.clouds[i];
-                if (is_preview) {
-                    c->setId(PREVIEW_PREFIX + std::to_string(i) + "-" + cloud->id());
-                    m_preview_clouds.push_back(c);
-                    m_cloudview->addPointCloud(c);
-                } else {
-                    c->setId("mf-" + cloud->id());
-                    c->makeAdaptive();
-                    m_cloudtree->addResultGroup(cloud, {c},
-                        QString::fromStdString(cloud->id()) + "_MorphologicalFilter");
-                }
+                c->setId("mf-" + cloud->id());
+                c->makeAdaptive();
+                m_cloudtree->addResultGroup(cloud, {c},
+                    QString::fromStdString(cloud->id()) + "_MorphologicalFilter");
             }
-            m_cloudview->refresh();
+
+            this->accept();
         });
 
-    m_watcher->setFuture(future);
+    watcher->setFuture(future);
 }
 
-void MorphologicalFilterDialog::onPreview()
+void MorphologicalFilterDialog::onCancel()
 {
-    runFilter(true);
-}
-
-void MorphologicalFilterDialog::onApply()
-{
-    if (!m_cloud) {
-        printW("Please select a cloud.");
-        return;
-    }
-
-    // 清除预览
-    for (auto& c : m_preview_clouds) {
-        m_cloudview->removePointCloud(QString::fromStdString(c->id()));
-    }
-    m_preview_clouds.clear();
-
-    runFilter(false);
-}
-
-void MorphologicalFilterDialog::onReset()
-{
-    reset();
-    m_cloudview->refresh();
-    printI("Morphological filter reset.");
+    this->close();
 }

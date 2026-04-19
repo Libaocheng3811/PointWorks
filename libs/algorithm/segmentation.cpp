@@ -13,7 +13,6 @@
 #include <pcl/segmentation/supervoxel_clustering.h>
 #include <pcl/segmentation/min_cut_segmentation.h>
 
-#include <pcl/segmentation/impl/progressive_morphological_filter.hpp>
 #include <pcl/features/impl/don.hpp>
 #include <pcl/features/impl/normal_3d.hpp>
 #include <pcl/features/impl/normal_3d_omp.hpp>
@@ -786,23 +785,159 @@ namespace ct
         time.tic();
 
         if (isCanceled(cancel)) return {};
-        reportProgress(cancel, on_progress, 10);
+        reportProgress(cancel, on_progress, 5);
 
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        PointIndicesPtr inliers(new PointIndices);
 
-        pcl::ProgressiveMorphologicalFilter<PointXYZRGBN> pmf;
-        pmf.setInputCloud(pcl_cloud);
-        pmf.setMaxWindowSize(max_window_size);
-        pmf.setSlope(slope);
-        pmf.setMaxDistance(max_distance);
-        pmf.setInitialDistance(initial_distance);
-        pmf.setCellSize(cell_size);
-        pmf.setBase(base);
-        pmf.extract(inliers->indices);
+        if (isCanceled(cancel)) return {};
+        reportProgress(cancel, on_progress, 10);
+
+        // 手动实现 ProgressiveMorphologicalFilter，用网格索引替代 PCL 的 octree
+        // 避免 O(n^2) 的 boxSearch 性能灾难
+
+        const size_t n = pcl_cloud->size();
+        if (n == 0) return {};
+
+        // 1. 建立二维网格索引 (XY 平面)，cell_size 控制网格精度
+        PointXYZRGBN min_pt, max_pt;
+        pcl::getMinMax3D(*pcl_cloud, min_pt, max_pt);
+
+        int grid_w = static_cast<int>(std::ceil((max_pt.x - min_pt.x) / cell_size)) + 1;
+        int grid_h = static_cast<int>(std::ceil((max_pt.y - min_pt.y) / cell_size)) + 1;
+
+        // 每个网格单元存储点索引
+        std::vector<std::vector<int>> grid(grid_w * grid_h);
+        for (size_t i = 0; i < n; i++) {
+            int gx = static_cast<int>((pcl_cloud->at(i).x - min_pt.x) / cell_size);
+            int gy = static_cast<int>((pcl_cloud->at(i).y - min_pt.y) / cell_size);
+            gx = std::max(0, std::min(gx, grid_w - 1));
+            gy = std::max(0, std::min(gy, grid_h - 1));
+            grid[gy * grid_w + gx].push_back(static_cast<int>(i));
+        }
+
+        // 2. 每个网格单元取最小 Z 值（用于形态学操作）
+        std::vector<float> cell_min_z(grid_w * grid_h, std::numeric_limits<float>::max());
+        for (size_t idx = 0; idx < grid.size(); idx++) {
+            if (!grid[idx].empty()) {
+                float minz = std::numeric_limits<float>::max();
+                for (int pi : grid[idx]) {
+                    float z = pcl_cloud->at(pi).z;
+                    if (z < minz) minz = z;
+                }
+                cell_min_z[idx] = minz;
+            }
+        }
+
+        // 3. 计算窗口尺寸序列（与 PCL 实现一致）
+        std::vector<float> window_sizes;
+        std::vector<float> height_thresholds;
+        int iteration = 0;
+        float window_size = 0.0f;
+        while (window_size < static_cast<float>(max_window_size)) {
+            window_size = cell_size * (2.0f * std::pow(base, static_cast<float>(iteration)) + 1.0f);
+            float ht = (iteration == 0) ? initial_distance :
+                slope * (window_size - window_sizes[iteration - 1]) * cell_size + initial_distance;
+            if (ht > max_distance) ht = max_distance;
+            window_sizes.push_back(window_size);
+            height_thresholds.push_back(ht);
+            iteration++;
+        }
+
+        if (isCanceled(cancel)) return {};
+        reportProgress(cancel, on_progress, 15);
+
+        // 4. 维护当前地面点集合（按点级别过滤，与 PCL 一致）
+        std::vector<int> ground;
+        ground.reserve(n);
+        for (size_t i = 0; i < n; i++) ground.push_back(static_cast<int>(i));
+
+        // 5. 逐轮形态学开运算 + 逐点过滤
+        int num_iterations = static_cast<int>(window_sizes.size());
+        for (int iter = 0; iter < num_iterations; iter++) {
+            if (isCanceled(cancel)) return {};
+
+            float ws = window_sizes[iter];
+            float ht = height_thresholds[iter];
+            int half_cells = static_cast<int>(std::ceil(ws / (2.0f * cell_size)));
+
+            // 重建当前地面点的网格（每轮重建，因为地面点在减少）
+            std::vector<float> cur_cell_min(grid_w * grid_h, std::numeric_limits<float>::max());
+            std::vector<int> point_to_cell(n, -1);
+            for (int pi : ground) {
+                int gx = static_cast<int>((pcl_cloud->at(pi).x - min_pt.x) / cell_size);
+                int gy = static_cast<int>((pcl_cloud->at(pi).y - min_pt.y) / cell_size);
+                gx = std::max(0, std::min(gx, grid_w - 1));
+                gy = std::max(0, std::min(gy, grid_h - 1));
+                int idx = gy * grid_w + gx;
+                float z = pcl_cloud->at(pi).z;
+                if (z < cur_cell_min[idx]) cur_cell_min[idx] = z;
+                point_to_cell[pi] = idx;
+            }
+
+            // 侵蚀：对每个有效网格单元，在 half_cells 半径内取最小 Z
+            std::vector<float> eroded(grid_w * grid_h, std::numeric_limits<float>::max());
+            for (int gy = 0; gy < grid_h; gy++) {
+                for (int gx = 0; gx < grid_w; gx++) {
+                    int idx = gy * grid_w + gx;
+                    if (cur_cell_min[idx] == std::numeric_limits<float>::max()) continue;
+                    float minz = std::numeric_limits<float>::max();
+                    int y0 = std::max(0, gy - half_cells);
+                    int y1 = std::min(grid_h - 1, gy + half_cells);
+                    int x0 = std::max(0, gx - half_cells);
+                    int x1 = std::min(grid_w - 1, gx + half_cells);
+                    for (int y = y0; y <= y1; y++) {
+                        for (int x = x0; x <= x1; x++) {
+                            float z = cur_cell_min[y * grid_w + x];
+                            if (z < minz) minz = z;
+                        }
+                    }
+                    eroded[idx] = minz;
+                }
+            }
+
+            // 膨胀：在 half_cells 半径内取最大 Z
+            std::vector<float> dilated(grid_w * grid_h, -std::numeric_limits<float>::max());
+            for (int gy = 0; gy < grid_h; gy++) {
+                for (int gx = 0; gx < grid_w; gx++) {
+                    int idx = gy * grid_w + gx;
+                    if (eroded[idx] == std::numeric_limits<float>::max()) continue;
+                    float maxz = -std::numeric_limits<float>::max();
+                    int y0 = std::max(0, gy - half_cells);
+                    int y1 = std::min(grid_h - 1, gy + half_cells);
+                    int x0 = std::max(0, gx - half_cells);
+                    int x1 = std::min(grid_w - 1, gx + half_cells);
+                    for (int y = y0; y <= y1; y++) {
+                        for (int x = x0; x <= x1; x++) {
+                            float z = eroded[y * grid_w + x];
+                            if (z > maxz) maxz = z;
+                        }
+                    }
+                    dilated[idx] = maxz;
+                }
+            }
+
+            // 逐点过滤：point.z - dilated_z[cell] < threshold → 保留为地面
+            std::vector<int> new_ground;
+            new_ground.reserve(ground.size());
+            for (int pi : ground) {
+                int idx = point_to_cell[pi];
+                float diff = pcl_cloud->at(pi).z - dilated[idx];
+                if (diff < ht) {
+                    new_ground.push_back(pi);
+                }
+            }
+            ground.swap(new_ground);
+
+            int pct = 15 + static_cast<int>(50.0 * (iter + 1) / num_iterations);
+            reportProgress(cancel, on_progress, pct);
+        }
 
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
+
+        // 6. 收集地面点索引
+        PointIndicesPtr inliers(new PointIndices);
+        inliers->indices.swap(ground);
 
         auto segmented_clouds = extractIndices(pcl_cloud, inliers, negative);
 

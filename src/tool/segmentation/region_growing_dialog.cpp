@@ -395,32 +395,33 @@ void RegionGrowingDialog::onApply()
     auto cloud = m_cloud;
     m_canceled.store(false);
 
-    // 如果是 Manual Pick 模式，找种子点索引
-    int seed_index = -1;
-    if (manual_seed && m_has_seed) {
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        double min_dist = std::numeric_limits<double>::max();
-        for (size_t i = 0; i < pcl_cloud->size(); i++) {
-            double dx = pcl_cloud->at(i).x - m_seed_point.x;
-            double dy = pcl_cloud->at(i).y - m_seed_point.y;
-            double dz = pcl_cloud->at(i).z - m_seed_point.z;
-            double dist = dx * dx + dy * dy + dz * dz;
-            if (dist < min_dist) {
-                min_dist = dist;
-                seed_index = static_cast<int>(i);
-            }
-        }
-    }
-
     bool is_manual = manual_seed;
-    int seed_idx = seed_index;
+    ct::PointXYZRGBN seed_pt = m_seed_point;
+    bool has_seed = m_has_seed;
     bool split = check_split_->isChecked();
 
-    auto future = QtConcurrent::run([cloud, is_manual, seed_idx, minClusterSize, maxClusterSize,
+    auto future = QtConcurrent::run([cloud, is_manual, seed_pt, has_seed, minClusterSize, maxClusterSize,
                                      smoothMode, curvatureTest, residualTest,
                                      smoothThreshold, residualThreshold, curvatureThreshold,
                                      neighbours, useColor, ptThresh, reThresh, disThresh,
                                      nghbrNumber, cancel, on_progress]() {
+        // 在后台线程中查找种子点索引
+        int seed_idx = -1;
+        if (is_manual && has_seed) {
+            auto pcl_cloud = cloud->toPCL_XYZRGBN();
+            double min_dist = std::numeric_limits<double>::max();
+            for (size_t i = 0; i < pcl_cloud->size(); i++) {
+                double dx = pcl_cloud->at(i).x - seed_pt.x;
+                double dy = pcl_cloud->at(i).y - seed_pt.y;
+                double dz = pcl_cloud->at(i).z - seed_pt.z;
+                double dist = dx * dx + dy * dy + dz * dz;
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    seed_idx = static_cast<int>(i);
+                }
+            }
+        }
+
         if (is_manual && seed_idx >= 0) {
             return ct::Segmentation::RegionGrowingFromSeed(cloud, false, seed_idx,
                 minClusterSize, maxClusterSize, smoothMode, curvatureTest, residualTest,
