@@ -532,6 +532,12 @@ namespace ct {
         void invalidateCloudRender(const QString& cloud_id);
 
         /**
+         * @brief 增量更新：仅重建脏 block/node 的 Actor，保留干净的 Actor
+         * 用于颜色变更场景，避免全量 Actor 重建
+         */
+        void invalidateCloudRenderDirty(const QString& cloud_id);
+
+        /**
          * @brief 设置纹理 mesh 所有 actor 的透明度
          */
         void setTextureMeshOpacity(const QString& cloud_id, float opacity);

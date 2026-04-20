@@ -79,12 +79,37 @@ namespace ct {
     }
 
     void OctreeRenderer::invalidateCache() {
-        // 强制清理所有 Actor，通常用于颜色改变或点云重置
+        // 强制清理所有 Actor，用于点云重置等结构性变更
         for (auto& pair : m_actor_cache) {
             m_vtk_renderer->RemoveActor(pair.second);
         }
         m_actor_cache.clear();
         m_current_visible_nodes.clear();
+        m_force_update = true;
+    }
+
+    void OctreeRenderer::invalidateDirtyActors() {
+        // 增量清理：仅移除脏 block/node 的 Actor，保留干净的
+        for (auto it = m_actor_cache.begin(); it != m_actor_cache.end(); ) {
+            OctreeNode* node = it->first;
+            bool dirty = false;
+
+            if (node->isLeaf() && node->m_block) {
+                dirty = node->m_block->m_is_dirty;
+                if (dirty) node->m_block->m_is_dirty = false;
+            } else {
+                dirty = node->m_lod_dirty;
+                if (dirty) node->m_lod_dirty = false;
+            }
+
+            if (dirty) {
+                m_vtk_renderer->RemoveActor(it->second);
+                m_current_visible_nodes.erase(node);
+                it = m_actor_cache.erase(it);
+            } else {
+                ++it;
+            }
+        }
         m_force_update = true;
     }
 
@@ -343,7 +368,6 @@ namespace ct {
         cells->SetNumberOfValues(points->GetNumberOfPoints() * 2);
         vtkIdType* ids = cells->GetPointer(0);
 
-        // 这里也可以并行填充
 #pragma omp parallel for
         for (vtkIdType i = 0; i < points->GetNumberOfPoints(); ++i) {
             ids[i*2] = 1;
@@ -358,7 +382,7 @@ namespace ct {
         mapper->SetInputData(polyData);
         mapper->SetScalarModeToUsePointData();
         mapper->SetColorModeToDirectScalars();
-        mapper->StaticOn(); // 开启静态优化
+        mapper->StaticOn();
 
         auto actor = vtkSmartPointer<vtkActor>::New();
         actor->SetMapper(mapper);

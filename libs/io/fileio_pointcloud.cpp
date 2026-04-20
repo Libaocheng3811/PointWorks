@@ -35,10 +35,22 @@ public:
         tokens.clear();
         if (!std::getline(file, buffer)) return;
 
-        // 如果是空行，直接返回
+        parseInternal(separator);
+    }
+
+    // 从字符串解析一行
+    void parseFromString(const QString& str, char separator) {
+        tokens.clear();
+        buffer = str.toStdString();
+
+        parseInternal(separator);
+    }
+
+private:
+    void parseInternal(char separator) {
         if (buffer.empty()) return;
-        // 处理 Windows CR
         if (buffer.back() == '\r') buffer.pop_back();
+        if (buffer.empty()) return;
 
         char* ptr = &buffer[0];
         char* end = ptr + buffer.size();
@@ -464,57 +476,46 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
 
     // 记录数据区起始位置
     std::streampos data_start_pos = file.tellg();
-    long long data_start_offset = (long long)data_start_pos;
 
     // =========================================================
-    // Pass 1: 快速扫描计算 Bounding Box 和 Global Shift
+    // 单遍加载：用 preview 数据估算 Bounding Box
     // =========================================================
     emit progress(1);
 
     PointXYZ min_pt(FLT_MAX, FLT_MAX, FLT_MAX);
     PointXYZ max_pt(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+    // 从已有的 preview_lines 估算 BBox
     FastLineParser parser;
-    long long read_bytes = 0;
-    size_t scanned_points = 0;
-
-    // 寻找最大列索引，用于安全检查
     int max_req_col = std::max({idx_x, idx_y, idx_z});
+    size_t estimated_points = preview_lines.size();
 
-    while (file.good()) {
-        if (m_is_canceled) return false;
+    for (const auto& pl : preview_lines) {
+        parser.parseFromString(pl, params.separator);
+        if (parser.tokens.empty()) continue;
+        if ((int)parser.tokens.size() <= max_req_col) continue;
 
-        parser.parse(file, params.separator);
-        if (parser.tokens.empty()) {
-            if (file.eof()) break;
-            continue;
-        }
+        float x = std::strtof(parser.tokens[idx_x], nullptr);
+        float y = std::strtof(parser.tokens[idx_y], nullptr);
+        float z = std::strtof(parser.tokens[idx_z], nullptr);
 
-        if ((int)parser.tokens.size() > max_req_col) {
-            // 使用 strtof 快速转换
-            float x = std::strtof(parser.tokens[idx_x], nullptr);
-            float y = std::strtof(parser.tokens[idx_y], nullptr);
-            float z = std::strtof(parser.tokens[idx_z], nullptr);
-
-            if (x < min_pt.x) min_pt.x = x;
-            if (x > max_pt.x) max_pt.x = x;
-            if (y < min_pt.y) min_pt.y = y;
-            if (y > max_pt.y) max_pt.y = y;
-            if (z < min_pt.z) min_pt.z = z;
-            if (z > max_pt.z) max_pt.z = z;
-
-            scanned_points++;
-        }
-
-        // 简单的 Pass 1 进度反馈 (1% - 10%)
-        if (scanned_points % 50000 == 0) {
-            read_bytes += parser.buffer.size(); // 近似
-            int p = 1 + (int)(read_bytes * 9 / (file_size - data_start_offset));
-            emit progress(p);
-        }
+        if (x < min_pt.x) min_pt.x = x;
+        if (x > max_pt.x) max_pt.x = x;
+        if (y < min_pt.y) min_pt.y = y;
+        if (y > max_pt.y) max_pt.y = y;
+        if (z < min_pt.z) min_pt.z = z;
+        if (z > max_pt.z) max_pt.z = z;
     }
 
-    if (scanned_points == 0) return false;
+    if (min_pt.x == FLT_MAX) return false;
+
+    // 给估算 BBox 加一定余量，防止实际数据超出
+    float margin_x = (max_pt.x - min_pt.x) * 0.05f;
+    float margin_y = (max_pt.y - min_pt.y) * 0.05f;
+    float margin_z = (max_pt.z - min_pt.z) * 0.05f;
+    if (margin_x < 1.0f) margin_x = 1.0f;
+    if (margin_y < 1.0f) margin_y = 1.0f;
+    if (margin_z < 1.0f) margin_z = 1.0f;
 
     // =========================================================
     // 计算 Global Shift
@@ -522,7 +523,6 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
     Eigen::Vector3d suggested_shift = Eigen::Vector3d::Zero();
     const double THRESHOLD_XY = 10000.0;
 
-    // 检查是否是大坐标
     if (std::abs(min_pt.x) > THRESHOLD_XY || std::abs(min_pt.y) > THRESHOLD_XY) {
         double sx = -std::floor(min_pt.x / 1000.0) * 1000.0;
         double sy = -std::floor(min_pt.y / 1000.0) * 1000.0;
@@ -530,7 +530,6 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
         suggested_shift = Eigen::Vector3d(sx, sy, sz);
 
         bool skipped = false;
-        // 交互询问用户是否应用偏移
         emit requestGlobalShift(Eigen::Vector3d(min_pt.x, min_pt.y, min_pt.z), suggested_shift, skipped);
 
         if (!skipped) cloud->setGlobalShift(-suggested_shift);
@@ -544,11 +543,9 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
     // 初始化八叉树
     // =========================================================
     Box box;
-    // 应用 Shift 后的包围盒大小
-    box.width  = (max_pt.x - min_pt.x) * 1.01;
-    box.height = (max_pt.y - min_pt.y) * 1.01;
-    box.depth  = (max_pt.z - min_pt.z) * 1.01;
-    // 中心点也需要加上 shift (变成局部坐标系下的中心)
+    box.width  = (max_pt.x - min_pt.x + margin_x * 2) * 1.01;
+    box.height = (max_pt.y - min_pt.y + margin_y * 2) * 1.01;
+    box.depth  = (max_pt.z - min_pt.z + margin_z * 2) * 1.01;
     box.translation = Eigen::Vector3f(
             (min_pt.x + max_pt.x) * 0.5f + shift_x,
             (min_pt.y + max_pt.y) * 0.5f + shift_y,
@@ -557,26 +554,23 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
     cloud->initOctree(box);
 
     // =========================================================
-    // Pass 2: 完整读取与流式加载
+    // 单遍读取与流式加载
     // =========================================================
 
-    file.clear(); // 清除 EOF 标志
+    file.clear();
     file.seekg(data_start_pos);
-    read_bytes = 0;
 
-    // 准备属性开关
     bool has_color = (idx_r >= 0 && idx_g >= 0 && idx_b >= 0);
     bool has_normal = (idx_nx >= 0 && idx_ny >= 0 && idx_nz >= 0);
 
     if (has_color) cloud->enableColors();
     if (has_normal) cloud->enableNormals();
 
-    // 准备批处理缓冲区
     CloudBatch batch;
     batch.reserve(BATCH_SIZE);
 
     size_t processed_count = 0;
-    int progress_interval = (scanned_points > 100) ? (scanned_points / 100) : 1000;
+    int progress_interval = (estimated_points > 100) ? (estimated_points / 100) : 1000;
 
     while (file.good()) {
         if (m_is_canceled) return false;
@@ -587,7 +581,6 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
             continue;
         }
 
-        // 解析 XYZ (带 Shift)
         if ((int)parser.tokens.size() > idx_x && (int)parser.tokens.size() > idx_y && (int)parser.tokens.size() > idx_z) {
             float x = std::strtof(parser.tokens[idx_x], nullptr) + shift_x;
             float y = std::strtof(parser.tokens[idx_y], nullptr) + shift_y;
@@ -595,16 +588,13 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
 
             batch.points.emplace_back(x, y, z);
 
-            // 解析 RGB
             if (has_color) {
-                // 安全检查：防止行尾缺少列
                 int r = ((int)parser.tokens.size() > idx_r) ? std::strtof(parser.tokens[idx_r], nullptr) : 0;
                 int g = ((int)parser.tokens.size() > idx_g) ? std::strtof(parser.tokens[idx_g], nullptr) : 0;
                 int b = ((int)parser.tokens.size() > idx_b) ? std::strtof(parser.tokens[idx_b], nullptr) : 0;
                 batch.colors.emplace_back((uint8_t)r, (uint8_t)g, (uint8_t)b);
             }
 
-            // 解析法线
             if (has_normal) {
                 float nx = ((int)parser.tokens.size() > idx_nx) ? std::strtof(parser.tokens[idx_nx], nullptr) : 0;
                 float ny = ((int)parser.tokens.size() > idx_ny) ? std::strtof(parser.tokens[idx_ny], nullptr) : 0;
@@ -615,7 +605,6 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
                 batch.normals.push_back(cn);
             }
 
-            // 解析标量场
             for (const auto& kv : scalar_indices) {
                 int col = kv.first;
                 const QString& name = kv.second;
@@ -628,26 +617,22 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
             }
         }
 
-        // 批次提交 (每 50w 点)
         if (batch.points.size() >= BATCH_SIZE) {
             batch.flushTo(cloud);
         }
 
-        //  进度条 (10% - 100%)
         processed_count++;
         if (processed_count % progress_interval == 0) {
-            int p = 10 + (int)(processed_count * 90 / scanned_points);
+            int p = 10 + (int)(processed_count * 90 / (estimated_points > 0 ? estimated_points : 1));
             if (p > 100) p = 100;
             emit progress(p);
         }
     }
 
-    // 提交剩余点
     if (!batch.empty()) {
         batch.flushTo(cloud);
     }
 
-    // 更新点云统计信息
     cloud->makeAdaptive();
     emit progress(100);
 
@@ -903,53 +888,54 @@ bool FileIO::loadE57(const QString &filename, Cloud::Ptr &cloud) {
         size_t points_loaded = 0;
         int progress_interval = (total_points > 100) ? (size_t)(total_points / 80) : 1;
 
-        // 逐站读取
+        // 逐站分块读取（避免大站文件全量缓冲导致内存峰值）
+        const size_t E57_CHUNK_SIZE = BATCH_SIZE;
         for (int64_t si = 0; si < scan_count; ++si) {
             if (m_is_canceled) return false;
 
-            size_t count = headers[si].pointCount;
-            if (count == 0) continue;
+            size_t remaining = headers[si].pointCount;
+            if (remaining == 0) continue;
 
-            // 配置数据缓冲区（缓冲区由 SetUpData3DPointsData 按 count 大小分配）
-            e57::Data3DPointsFloat data(headers[si]);
+            while (remaining > 0) {
+                size_t chunk = std::min(remaining, E57_CHUNK_SIZE);
 
-            auto cv_reader = reader.SetUpData3DPointsData(si, count, data);
+                e57::Data3DPointsFloat data(headers[si]);
+                auto cv_reader = reader.SetUpData3DPointsData(si, chunk, data);
+                unsigned got = cv_reader.read();
 
-            // read() 一次性读取该站全部点，返回实际读取数
-            unsigned got = cv_reader.read();
+                for (size_t i = 0; i < got; ++i) {
+                    if (data.cartesianInvalidState && data.cartesianInvalidState[i]) continue;
 
-            for (size_t i = 0; i < got; ++i) {
-                // 跳过无效点
-                if (data.cartesianInvalidState && data.cartesianInvalidState[i]) continue;
+                    float x = (float)data.cartesianX[i] + shift_x;
+                    float y = (float)data.cartesianY[i] + shift_y;
+                    float z = (float)data.cartesianZ[i] + shift_z;
 
-                float x = (float)data.cartesianX[i] + shift_x;
-                float y = (float)data.cartesianY[i] + shift_y;
-                float z = (float)data.cartesianZ[i] + shift_z;
+                    batch.points.emplace_back(x, y, z);
 
-                batch.points.emplace_back(x, y, z);
+                    if (has_color && data.colorRed && data.colorGreen && data.colorBlue) {
+                        if (!data.isColorInvalid || !data.isColorInvalid[i]) {
+                            batch.colors.emplace_back(
+                                (uint8_t)(data.colorRed[i] >> 8),
+                                (uint8_t)(data.colorGreen[i] >> 8),
+                                (uint8_t)(data.colorBlue[i] >> 8));
+                        } else {
+                            batch.colors.emplace_back(0, 0, 0);
+                        }
+                    }
 
-                if (has_color && data.colorRed && data.colorGreen && data.colorBlue) {
-                    if (!data.isColorInvalid || !data.isColorInvalid[i]) {
-                        batch.colors.emplace_back(
-                            (uint8_t)(data.colorRed[i] >> 8),
-                            (uint8_t)(data.colorGreen[i] >> 8),
-                            (uint8_t)(data.colorBlue[i] >> 8));
-                    } else {
-                        batch.colors.emplace_back(0, 0, 0);
+                    if (batch.points.size() >= BATCH_SIZE) {
+                        batch.flushTo(cloud);
                     }
                 }
 
-                if (batch.points.size() >= BATCH_SIZE) {
-                    batch.flushTo(cloud);
+                points_loaded += got;
+                remaining -= got;
+                cv_reader.close();
+
+                if (points_loaded % progress_interval < got) {
+                    int pct = 10 + (int)(80 * points_loaded / total_points);
+                    emit progress(pct);
                 }
-            }
-
-            points_loaded += got;
-            cv_reader.close();
-
-            if (points_loaded % progress_interval < got) {
-                int pct = 10 + (int)(80 * points_loaded / total_points);
-                emit progress(pct);
             }
         }
 

@@ -245,7 +245,7 @@ void ChangeDetectPlugin::onApply() {
                     ct::Cloud::Ptr targetCloud = is_changed ? changed : unchanged;
 
                     // 构造标量 map
-                    std::map<std::string, std::vector<float>> scalarMap;
+                    std::unordered_map<std::string, std::vector<float>> scalarMap;
                     scalarMap["C2C_Distance"] = target.dists;
 
                     targetCloud->addPoints(target.pts,
@@ -261,7 +261,7 @@ void ChangeDetectPlugin::onApply() {
         // 提交剩余数据
         auto flushBuffer = [&](CloudBuffer& buf, ct::Cloud::Ptr cloud) {
             if (!buf.pts.empty()) {
-                std::map<std::string, std::vector<float>> scalarMap;
+                std::unordered_map<std::string, std::vector<float>> scalarMap;
                 scalarMap["C2C_Distance"] = buf.dists;
                 cloud->addPoints(buf.pts,
                                  buf.colors.empty() ? nullptr : &buf.colors,

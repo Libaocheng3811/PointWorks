@@ -7,6 +7,8 @@
 #include <random>
 #include <numeric>
 #include <queue>
+#include <algorithm>
+#include <limits>
 #include <omp.h>
 
 namespace ct
@@ -63,7 +65,7 @@ namespace ct
         std::swap(m_cached_xyz, other.m_cached_xyz);
         std::swap(m_cached_xyzrgb, other.m_cached_xyzrgb);
         std::swap(m_cached_xyzrgbn, other.m_cached_xyzrgbn);
-        std::swap(m_cache_valid, other.m_cache_valid);
+        std::swap(m_cache_type, other.m_cache_type);
         std::swap(m_render_cloud, other.m_render_cloud);
         std::swap(m_render_cache_valid, other.m_render_cache_valid);
 
@@ -351,6 +353,7 @@ namespace ct
 
     void Cloud::splitNode(OctreeNode* node)
     {
+        m_last_insert_node = nullptr;
         // 只有叶子节点才能分裂
         if (!node->isLeaf()) return;
 
@@ -519,12 +522,18 @@ namespace ct
         oldBlock->clear();
         // 标记旧块为脏 (虽然它空了，但需要通知 Renderer 移除对应的显存资源)
         oldBlock->m_is_dirty = true;
+
+        // 从全局 block 列表中移除空块，避免 m_all_blocks 膨胀
+        m_all_blocks.erase(
+            std::remove(m_all_blocks.begin(), m_all_blocks.end(), oldBlock),
+            m_all_blocks.end()
+        );
     }
 
     void Cloud::addPoints(const std::vector<PointXYZ>& pts,
                           const std::vector<ColorRGB>* colors,
                           const std::vector<CompressedNormal>* normals,
-                          const std::map<std::string, std::vector<float>>* scalars)
+                          const std::unordered_map<std::string, std::vector<float>>* scalars)
     {
         if (pts.empty()) return;
 
@@ -560,8 +569,40 @@ namespace ct
             const ColorRGB* c = (colors && i < colors->size()) ? &(*colors)[i] : nullptr;
             const CompressedNormal* nm = (normals && i < normals->size()) ? &(*normals)[i] : nullptr;
 
-            // 插入几何数据 (可能触发 split)
-            CloudBlock* targetBlock = insertPointToOctree(m_octree_root.get(), pts[i], c, nm);
+            // 快速路径：如果上一次插入的叶子节点未满且包含当前点，直接插入
+            CloudBlock* targetBlock = nullptr;
+            if (m_last_insert_node && m_last_insert_node->isLeaf()
+                && m_last_insert_node->m_block
+                && m_last_insert_node->m_block->size() < m_config.maxPointsPerBlock
+                && m_last_insert_node->getChildIndex(pts[i]) == m_last_insert_node->getChildIndex(pts[i])) {
+                // 检查点是否在缓存节点的 AABB 内
+                const auto& b = m_last_insert_node->m_box;
+                float cx = b.translation.x(), cy = b.translation.y(), cz = b.translation.z();
+                float hw = b.width * 0.5f, hh = b.height * 0.5f, hd = b.depth * 0.5f;
+                const auto& p = pts[i];
+                if (p.x >= cx - hw && p.x < cx + hw
+                    && p.y >= cy - hh && p.y < cy + hh
+                    && p.z >= cz - hd && p.z < cz + hd) {
+                    m_last_insert_node->m_block->addPoint(p, c, nm, nullptr);
+                    targetBlock = m_last_insert_node->m_block.get();
+                }
+            }
+
+            // 慢速路径：完整递归插入
+            if (!targetBlock) {
+                targetBlock = insertPointToOctree(m_octree_root.get(), pts[i], c, nm);
+                // 更新缓存（仅缓存叶子节点，split 后 m_last_insert_node 会被清空）
+                if (m_last_insert_node && m_last_insert_node->isLeaf()) {
+                    // splitNode 中会清空 m_last_insert_node，所以这里安全
+                }
+                // 找到当前点最终落入的叶子节点
+                OctreeNode* leaf = m_octree_root.get();
+                while (leaf && !leaf->isLeaf()) {
+                    int idx = leaf->getChildIndex(pts[i]);
+                    leaf = leaf->m_children[idx];
+                }
+                m_last_insert_node = leaf;
+            }
 
             // 补充标量数据 (如果有)
             if (scalars && targetBlock) {
@@ -620,9 +661,10 @@ namespace ct
 
     void Cloud::clear()
     {
-        m_octree_root.reset(); // 释放整个树
-        m_all_blocks.clear();  // 清空块列表
+        m_octree_root.reset();
+        m_all_blocks.clear();
         m_point_count = 0;
+        m_last_insert_node = nullptr;
 
         m_has_rgb = false;
         m_has_normals = false;
@@ -689,37 +731,41 @@ namespace ct
     // 清空缓存
     void Cloud::invalidateCache()
     {
-        m_cache_valid = false;
+        m_cache_type = PCLCacheType::None;
         m_render_cache_valid = false;
-        // 释放内存，防止占用过多
         m_cached_xyz.reset();
         m_cached_xyzrgb.reset();
         m_cached_xyzrgbn.reset();
         m_render_cloud.reset();
-        // 标量场缓存也应该清空
         m_scalar_cache.clear();
     }
 
     pcl::PointCloud<PointXYZ>::Ptr Cloud::toPCL_XYZ() const
     {
-        if (m_cache_valid && m_cached_xyz) return m_cached_xyz;
+        if (m_cache_type == PCLCacheType::XYZ && m_cached_xyz) return m_cached_xyz;
+
+        // 互斥：清除其他类型缓存
+        m_cached_xyzrgb.reset();
+        m_cached_xyzrgbn.reset();
 
         m_cached_xyz = std::make_shared<pcl::PointCloud<PointXYZ>>();
         m_cached_xyz->reserve(m_point_count);
 
-        // 线性遍历所有块进行拼接
         for (const auto& block : m_all_blocks) {
             if (block->empty()) continue;
-            // 批量插入
             m_cached_xyz->insert(m_cached_xyz->end(), block->m_points.begin(), block->m_points.end());
         }
 
+        m_cache_type = PCLCacheType::XYZ;
         return m_cached_xyz;
     }
 
     pcl::PointCloud<PointXYZRGB>::Ptr Cloud::toPCL_XYZRGB() const
     {
-        if (m_cache_valid && m_cached_xyzrgb) return m_cached_xyzrgb;
+        if (m_cache_type == PCLCacheType::XYZRGB && m_cached_xyzrgb) return m_cached_xyzrgb;
+
+        m_cached_xyz.reset();
+        m_cached_xyzrgbn.reset();
 
         m_cached_xyzrgb = std::make_shared<pcl::PointCloud<PointXYZRGB>>();
         m_cached_xyzrgb->resize(m_point_count);
@@ -733,7 +779,6 @@ namespace ct
             const auto& pts = block->m_points;
             const auto* cols = block->m_colors.get();
 
-            // 块内并行拷贝
 #pragma omp parallel for if(n > 10000)
             for (int i = 0; i < (int)n; ++i) {
                 auto& dst = m_cached_xyzrgb->points[global_idx + i];
@@ -751,13 +796,16 @@ namespace ct
             global_idx += n;
         }
 
-        m_cache_valid = true;
+        m_cache_type = PCLCacheType::XYZRGB;
         return m_cached_xyzrgb;
     }
 
     pcl::PointCloud<PointXYZRGBN>::Ptr Cloud::toPCL_XYZRGBN() const
     {
-        if (m_cache_valid && m_cached_xyzrgbn) return m_cached_xyzrgbn;
+        if (m_cache_type == PCLCacheType::XYZRGBN && m_cached_xyzrgbn) return m_cached_xyzrgbn;
+
+        m_cached_xyz.reset();
+        m_cached_xyzrgb.reset();
 
         m_cached_xyzrgbn = std::make_shared<pcl::PointCloud<PointXYZRGBN>>();
         m_cached_xyzrgbn->resize(m_point_count);
@@ -796,7 +844,7 @@ namespace ct
             global_idx += n;
         }
 
-        m_cache_valid = true;
+        m_cache_type = PCLCacheType::XYZRGBN;
         return m_cached_xyzrgbn;
     }
 
@@ -1144,10 +1192,9 @@ namespace ct
             block->m_vtk_polydata.reset();
         }
 
-        // 同步更新LOD节点颜色，因为LOD节点不直接存储，所以无法直接生成
+        // 同步更新LOD节点颜色（原地刷新，避免全量重建）
         if (m_octree_root && m_config.enableOctree) {
-            // 重新生成 LOD，它会从 Block 中抓取最新的颜色
-            this->generateLOD();
+            this->refreshLODColorsFromBlocks(m_octree_root.get());
         }
         m_current_color_mode = field_name;
         m_color_modified = true;
@@ -1210,7 +1257,7 @@ namespace ct
         }
 
         if (m_octree_root && m_config.enableOctree) {
-            this->generateLOD();
+            this->refreshLODColorsFromBlocks(m_octree_root.get());
         }
         m_current_color_mode = field_name;
         m_color_modified = true;
@@ -1599,6 +1646,67 @@ namespace ct
         node->m_vtk_lod_polydata.reset();
     }
 
+    // 查找包含目标坐标的叶子 block（递归八叉树查找）
+    static CloudBlock* findLeafBlockForPoint(OctreeNode* node, float x, float y, float z)
+    {
+        if (!node) return nullptr;
+        if (node->isLeaf()) return node->m_block.get();
+
+        int index = 0;
+        if (x >= node->m_box.translation.x()) index |= 1;
+        if (y >= node->m_box.translation.y()) index |= 2;
+        if (z >= node->m_box.translation.z()) index |= 4;
+
+        return findLeafBlockForPoint(node->m_children[index], x, y, z);
+    }
+
+    void Cloud::refreshLODColorsFromBlocks(OctreeNode* node)
+    {
+        if (!node || node->isLeaf()) return;
+
+        if (!node->m_lod_points.empty()) {
+            for (auto& p : node->m_lod_points) {
+                CloudBlock* block = findLeafBlockForPoint(node, p.x, p.y, p.z);
+                if (!block || !block->m_colors || block->empty()) {
+                    p.r = 255; p.g = 255; p.b = 255;
+                    continue;
+                }
+
+                const auto& pts = block->m_points;
+                const auto& cols = *block->m_colors;
+                size_t n = pts.size();
+
+                // 采样搜索：最多检查 256 个点，对 LOD 近似着色足够
+                size_t step = (n > 256) ? (n / 256) : 1;
+                size_t best_idx = 0;
+                float best_dist = std::numeric_limits<float>::max();
+
+                for (size_t i = 0; i < n; i += step) {
+                    float dx = pts[i].x - p.x;
+                    float dy = pts[i].y - p.y;
+                    float dz = pts[i].z - p.z;
+                    float dist = dx*dx + dy*dy + dz*dz;
+                    if (dist < best_dist) {
+                        best_dist = dist;
+                        best_idx = i;
+                    }
+                }
+                p.r = cols[best_idx].r;
+                p.g = cols[best_idx].g;
+                p.b = cols[best_idx].b;
+            }
+
+            node->m_lod_dirty = true;
+            node->m_vtk_lod_polydata.reset();
+        }
+
+        for (int i = 0; i < 8; ++i) {
+            if (node->m_children[i]) {
+                refreshLODColorsFromBlocks(node->m_children[i]);
+            }
+        }
+    }
+
     bool Cloud::isStructureSplit() const {
         if (!m_octree_root) return false;
         // 如果根节点不是叶子（说明有子节点），那就是分裂了
@@ -1620,10 +1728,8 @@ namespace ct
             const std::vector<ColorRGB>* c = (block->m_colors) ? block->m_colors.get() : nullptr;
             const std::vector<CompressedNormal>* n = (block->m_normals) ? block->m_normals.get() : nullptr;
 
-            // 标量场 (std::map 指针)
-            // addPoints 接受的是 const std::map<std::string, vector<float>>*
-            // Block 中存储的正是这个类型，直接取地址即可
-            const std::map<std::string, std::vector<float>>* s =
+            // 标量场 (unordered_map 指针)
+            const std::unordered_map<std::string, std::vector<float>>* s =
                     (!block->m_scalar_fields.empty()) ? &block->m_scalar_fields : nullptr;
 
             // 批量插入

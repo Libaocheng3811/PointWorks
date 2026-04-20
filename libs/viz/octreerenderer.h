@@ -10,7 +10,7 @@
 
 #include <vtkSmartPointer.h>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <unordered_set>
 #include <queue>
 
@@ -35,6 +35,7 @@ namespace ct{
 
         void update();
         void invalidateCache();
+        void invalidateDirtyActors();
 
         // 设置交互状态 (true=正在拖拽/缩放, false=静止)
         void setInteractionState(bool is_interacting);
@@ -83,7 +84,7 @@ namespace ct{
         // 我们不需要区分是 LOD 还是 Block，因为一个 Node 同一时间只显示一种状态
         // 但为了安全，我们可以让 Node 自己持有 Actor (侵入式) 或者这里用 Map (非侵入式)
         // 这里使用 Map 避免修改 OctreeNode 头文件太过频繁
-        std::map<OctreeNode*, vtkSmartPointer<vtkActor>> m_actor_cache;
+        std::unordered_map<OctreeNode*, vtkSmartPointer<vtkActor>> m_actor_cache;
 
         // 记录上一帧显示的节点，用于差量更新
         std::unordered_set<OctreeNode*> m_current_visible_nodes;

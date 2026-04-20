@@ -1220,7 +1220,7 @@ namespace ct
         std::vector<PointXYZ> batch_pts;
         std::vector<ColorRGB> batch_colors;
         std::vector<CompressedNormal> batch_normals;
-        std::map<std::string, std::vector<float>> batch_scalars;
+        std::unordered_map<std::string, std::vector<float>> batch_scalars;
 
         size_t batch_limit = 50000;
         batch_pts.reserve(batch_limit);
@@ -1392,7 +1392,6 @@ namespace ct
 
         QString qid = QString::fromStdString(cloud->id());
         if (m_OctreeRenders.contains(qid)) {
-            // 颜色变了，必须让 Block 变脏，重新生成 PolyData
             m_OctreeRenders[qid]->invalidateCache();
             m_OctreeRenders[qid]->update();
         }
@@ -1740,8 +1739,19 @@ namespace ct
     {
         auto it = m_OctreeRenders.find(cloud_id);
         if (it != m_OctreeRenders.end() && it.value()) {
-            it.value()->invalidateCache();  // 清除 Actor 缓存 + m_force_update = true
-            it.value()->update();           // 重新遍历八叉树，重建可见 Actor
+            it.value()->invalidateCache();
+            it.value()->update();
+        }
+        m_render->ResetCameraClippingRange();
+        m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::invalidateCloudRenderDirty(const QString& cloud_id)
+    {
+        auto it = m_OctreeRenders.find(cloud_id);
+        if (it != m_OctreeRenders.end() && it.value()) {
+            it.value()->invalidateDirtyActors();
+            it.value()->update();
         }
         m_render->ResetCameraClippingRange();
         m_viewer->getRenderWindow()->Render();

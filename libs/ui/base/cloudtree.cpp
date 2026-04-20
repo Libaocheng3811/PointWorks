@@ -619,7 +619,7 @@ namespace ct
 
                 const std::vector<ct::ColorRGB>* colors = (has_color && block->m_colors) ? block->m_colors.get() : nullptr;
                 const std::vector<ct::CompressedNormal>* normals = (has_normal && block->m_normals) ? block->m_normals.get() : nullptr;
-                const std::map<std::string, std::vector<float>>* scalars = (!block->m_scalar_fields.empty()) ? &block->m_scalar_fields : nullptr;
+                const std::unordered_map<std::string, std::vector<float>>* scalars = (!block->m_scalar_fields.empty()) ? &block->m_scalar_fields : nullptr;
 
                 merge_cloud->addPoints(pts, colors, normals, scalars);
             }
@@ -1130,19 +1130,18 @@ namespace ct
 
                 color_mode = new QComboBox;
                 color_mode->addItem("RGB (Default)");
-                color_mode->addItem("x");
-                color_mode->addItem("y");
-                color_mode->addItem("z");
                 if (has_sf) {
                     color_mode->addItem("Scalar Field");
                 }
 
+                color_mode->blockSignals(true);
                 if (currently_sf) {
                     color_mode->setCurrentText("Scalar Field");
                 } else {
                     int idx = color_mode->findText(currentMode);
                     color_mode->setCurrentIndex(idx >= 0 ? idx : 0);
                 }
+                color_mode->blockSignals(false);
                 color_mode->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
                 m_table->setCellWidget(row, 1, color_mode);
@@ -1331,9 +1330,6 @@ namespace ct
                                 hideSFRows();
                                 if (text == "RGB (Default)") {
                                     m_cloudview->resetPointCloudColor(cloud);
-                                } else if (text == "x" || text == "y" || text == "z") {
-                                    cloud->setCloudColor(text.toLower().toStdString());
-                                    m_cloudview->addPointCloud(cloud);
                                 }
                             }
                         });

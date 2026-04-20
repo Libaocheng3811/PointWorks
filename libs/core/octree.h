@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 #include <array>
-#include <map>
+#include <unordered_map>
 #include <string>
 
 namespace ct{
@@ -26,7 +26,7 @@ namespace ct{
         std::unique_ptr<std::vector<ct::ColorRGB>> m_colors;
         std::unique_ptr<std::vector<ct::ColorRGB>> m_backup_colors;
         std::unique_ptr<std::vector<ct::CompressedNormal>> m_normals;
-        std::map<std::string, std::vector<float>> m_scalar_fields;
+        std::unordered_map<std::string, std::vector<float>> m_scalar_fields;
 
         // --- 空间属性 ---
         Box m_box;
@@ -58,7 +58,7 @@ namespace ct{
         void addPoint(const pcl::PointXYZ& pt,
                       const ct::ColorRGB* color,
                       const ct::CompressedNormal* normal,
-                      const std::map<std::string, float>* scalars = nullptr)
+                      const std::unordered_map<std::string, float>* scalars = nullptr)
         {
             m_points.push_back(pt);
 

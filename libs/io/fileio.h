@@ -27,7 +27,7 @@ namespace ct
         std::vector<PointXYZ> points;
         std::vector<ColorRGB> colors;
         std::vector<CompressedNormal> normals;
-        std::map<std::string, std::vector<float>> scalars;
+        std::unordered_map<std::string, std::vector<float>> scalars;
 
         // 预留大小，避免频繁扩容
         void reserve(size_t size) {

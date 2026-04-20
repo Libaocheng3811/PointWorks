@@ -7,7 +7,7 @@
 #include "colormap.h"
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <vector>
 
@@ -54,7 +54,7 @@ namespace ct
         void addPoints(const std::vector<PointXYZ>& pts,
                        const std::vector<ColorRGB>* colors = nullptr,
                        const std::vector<CompressedNormal>* normals = nullptr,
-                       const std::map<std::string, std::vector<float>>* scalars = nullptr);
+                       const std::unordered_map<std::string, std::vector<float>>* scalars = nullptr);
 
         void addPoint(const PointXYZRGBN& pt);
 
@@ -189,6 +189,8 @@ namespace ct
 
         void generateLODRecursive(OctreeNode* node);
 
+        void refreshLODColorsFromBlocks(OctreeNode* node);
+
         bool isStructureSplit() const;
     private:
         // ===== 核心数据（私有）=====
@@ -198,12 +200,15 @@ namespace ct
         size_t m_point_count = 0;
         int m_max_depth = 8;
 
-        mutable std::map<std::string, std::vector<float>> m_scalar_cache;
+        OctreeNode* m_last_insert_node = nullptr;
 
+        mutable std::unordered_map<std::string, std::vector<float>> m_scalar_cache;
+
+        enum class PCLCacheType { None, XYZ, XYZRGB, XYZRGBN };
+        mutable PCLCacheType m_cache_type = PCLCacheType::None;
         mutable pcl::PointCloud<PointXYZ>::Ptr m_cached_xyz;
         mutable pcl::PointCloud<PointXYZRGB>::Ptr m_cached_xyzrgb;
         mutable pcl::PointCloud<PointXYZRGBN>::Ptr m_cached_xyzrgbn;
-        mutable bool m_cache_valid = false;
 
         mutable pcl::PointCloud<PointXYZRGB>::Ptr m_render_cloud;
         mutable bool m_render_cache_valid = false;
