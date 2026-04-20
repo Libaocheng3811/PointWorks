@@ -125,18 +125,18 @@ void ChangeDetectPlugin::onApply() {
     }
 
     this->hide();
-    m_cloudtree->showProgress("Calculating Distance...");
+    m_progress->showProgress("Calculating Distance...");
 
     // 通过 cancelRequested 信号设置取消标志
     auto* cancel = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [cancel]() { *cancel = true; });
     }
 
     // 进度回调：跨线程安全地更新进度条
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -155,7 +155,7 @@ void ChangeDetectPlugin::onApply() {
     auto* watcher = new QFutureWatcher<ct::DistanceResult>(this);
     connect(watcher, &QFutureWatcher<ct::DistanceResult>::finished, this, [=]() {
         auto result = watcher->result();
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
         delete cancel;
 
         if (!result.success) {

@@ -659,6 +659,15 @@ namespace ct
         return m_point_count == 0;
     }
 
+    bool Cloud::getFirstPoint(PointXYZ& out) const
+    {
+        if (m_all_blocks.empty()) return false;
+        const auto& pts = m_all_blocks.front()->m_points;
+        if (pts.empty()) return false;
+        out = pts.front();
+        return true;
+    }
+
     void Cloud::clear()
     {
         m_octree_root.reset();

@@ -16,6 +16,8 @@ target_link_libraries(ct_ui_dialog PUBLIC
 set(Base_Srcs
     base/customtree.cpp
     base/cloudtree.cpp
+    base/dialog_registry.cpp
+    base/progress_manager.cpp
     widgets/sf_histogram_chart.cpp
     widgets/sf_display_panel.cpp
 )
@@ -25,6 +27,8 @@ set(Base_Hdrs
     base/cloudtree.h
     base/customdock.h
     base/customdialog.h
+    base/dialog_registry.h
+    base/progress_manager.h
     base/paramsnapshot.h
     widgets/sf_histogram_chart.h
     widgets/sf_display_panel.h

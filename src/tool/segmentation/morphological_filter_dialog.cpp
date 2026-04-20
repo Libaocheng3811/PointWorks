@@ -4,6 +4,7 @@
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
 #include "viz/console.h"
+#include "base/progress_manager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -113,7 +114,7 @@ void MorphologicalFilterDialog::init()
 void MorphologicalFilterDialog::reset()
 {
     m_canceled.store(true);
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
 }
 
 void MorphologicalFilterDialog::deinit()
@@ -141,23 +142,21 @@ void MorphologicalFilterDialog::onApply()
     this->hide();
     QCoreApplication::processEvents();
 
-    m_cloudtree->showProgress("Morphological Filter...");
+    m_progress->showProgress("Morphological Filter...");
 
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
-                this, [=]() {
-                    *cancel = true;
-                    m_canceled.store(true);
-                    m_cloudtree->closeProgress();
-                    progress_closed->store(true);
-                    printW("Morphological filter canceled.");
-                    this->reject();
-                });
-    }
+    connect(m_progress, &ct::ProgressManager::cancelRequested,
+            this, [=]() {
+                *cancel = true;
+                m_canceled.store(true);
+                m_progress->closeProgress();
+                progress_closed->store(true);
+                printW("Morphological filter canceled.");
+                this->reject();
+            });
 
-    QPointer<ct::ProcessingDialog> dialog = m_cloudtree->m_processing_dialog;
+    QPointer<ct::ProcessingDialog> dialog = m_progress->dialog();
     auto on_progress = [dialog](int pct) {
         if (dialog)
             QMetaObject::invokeMethod(dialog.data(), "setProgress",
@@ -179,7 +178,7 @@ void MorphologicalFilterDialog::onApply()
     connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
             }
             delete cancel;
             delete progress_closed;

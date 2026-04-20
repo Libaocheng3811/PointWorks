@@ -108,28 +108,28 @@ TreeNode TreeNode::fromJson(const QJsonObject& obj)
 }
 
 // ================================================================
-// ViewOptions
+// ViewOptions 序列化（自由函数，供 ProjectFile 使用）
 // ================================================================
 
-QJsonObject ViewOptions::toJson() const
+static QJsonObject viewOptionsToJson(const ViewOptions& opts)
 {
     QJsonObject obj;
-    obj["show_fps"] = show_fps;
-    obj["show_axes"] = show_axes;
-    obj["show_id"] = show_id;
+    obj["show_fps"] = opts.show_fps;
+    obj["show_axes"] = opts.show_axes;
+    obj["show_id"] = opts.show_id;
 
     // 背景色
-    obj["use_gradient_bg"] = use_gradient_bg;
+    obj["use_gradient_bg"] = opts.use_gradient_bg;
     QJsonArray bg, bg2;
-    bg.append(bg_color[0]); bg.append(bg_color[1]); bg.append(bg_color[2]);
-    bg2.append(bg_color2[0]); bg2.append(bg_color2[1]); bg2.append(bg_color2[2]);
+    bg.append(opts.bg_color[0]); bg.append(opts.bg_color[1]); bg.append(opts.bg_color[2]);
+    bg2.append(opts.bg_color2[0]); bg2.append(opts.bg_color2[1]); bg2.append(opts.bg_color2[2]);
     obj["bg_color"] = bg;
     obj["bg_color2"] = bg2;
 
     return obj;
 }
 
-ViewOptions ViewOptions::fromJson(const QJsonObject& obj)
+static ViewOptions viewOptionsFromJson(const QJsonObject& obj)
 {
     ViewOptions o;
     o.show_fps = obj["show_fps"].toBool(true);
@@ -198,7 +198,7 @@ bool ProjectFile::save(const QString& path, const ProjectData& data)
     root["camera"] = cam;
 
     // view options
-    root["view_options"] = data.view_options.toJson();
+    root["view_options"] = viewOptionsToJson(data.view_options);
 
     QJsonDocument doc(root);
     QFile file(path);
@@ -259,7 +259,7 @@ bool ProjectFile::load(const QString& path, ProjectData& data)
     data.camera.clip_far = cam["clip_far"].toDouble(100000.0);
 
     // view options
-    data.view_options = ViewOptions::fromJson(root["view_options"].toObject());
+    data.view_options = viewOptionsFromJson(root["view_options"].toObject());
 
     return true;
 }

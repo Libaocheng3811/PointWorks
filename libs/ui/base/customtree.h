@@ -2,8 +2,6 @@
 #define POINTWORKS_CUSTORMTREE_H
 
 #include "core/exports.h"
-#include "viz/cloudview.h"
-#include "viz/console.h"
 #include "base/scenenodetype.h"
 
 #include <QTreeWidget>
@@ -11,6 +9,9 @@
 
 namespace ct
 {
+    class CloudView;
+    class Console;
+
     class CustomTree : public QTreeWidget
     {
         Q_OBJECT
@@ -106,9 +107,9 @@ namespace ct
         /**
          * @brief 打印日志
          */
-        void printI(const QString& message) {m_console->print(LOG_INFO, message);}
-        void printW(const QString& message) {m_console->print(LOG_WARNING, message);}
-        void printE(const QString& message) {m_console->print(LOG_ERROR, message);}
+        void printI(const QString& message);
+        void printW(const QString& message);
+        void printE(const QString& message);
 
         /**
          * @brief 获取选中的Item

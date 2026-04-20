@@ -92,7 +92,7 @@ void AlignByCentersDialog::reset()
 
 void AlignByCentersDialog::deinit()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     // 防御性清理预览云
     m_cloudview->removePointCloud(PREVIEW_ID);
     if (!m_source_id.isEmpty())
@@ -142,13 +142,13 @@ void AlignByCentersDialog::onAlign()
     m_source_id = QString::fromStdString(source->id());
 
     // 显示模态进度条
-    m_cloudtree->showProgress("Aligning...");
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    m_progress->showProgress("Aligning...");
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [this]() {
                     m_canceled.store(true);
-                    if (m_cloudtree->m_processing_dialog)
-                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                    if (m_progress->dialog())
+                        m_progress->setMessage("Canceling...");
                 });
     }
 
@@ -181,7 +181,7 @@ void AlignByCentersDialog::onAlign()
 void AlignByCentersDialog::onAlignFinished()
 {
     auto* watcher = dynamic_cast<QFutureWatcher<ct::Cloud::Ptr>*>(sender());
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     auto result = watcher->result();
     watcher->deleteLater();
 
@@ -246,7 +246,7 @@ void AlignByCentersDialog::onApply()
 
 void AlignByCentersDialog::onCancel()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）

@@ -319,12 +319,11 @@ void Measure::pickFirstPoint(const ct::PointXYZRGBN& pt3d, const ct::PointXY& sc
 
 void Measure::pickSecondPoint(const ct::PointXYZRGBN& pt3d)
 {
-    const auto& blocks = m_marker_cloud->getBlocks();
-    if (blocks.empty() || blocks.front()->empty()) return;
+    ct::PointXYZ first_pt;
+    if (!m_marker_cloud->getFirstPoint(first_pt)) return;
 
-    const auto& p = blocks.front()->m_points[0];
     ct::PointXYZRGBN start_pt;
-    start_pt.x = p.x; start_pt.y = p.y; start_pt.z = p.z;
+    start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
 
     // Remove preview
     m_cloudview->removeShape(previewArrowId());
@@ -364,12 +363,11 @@ void Measure::pickSecondPoint(const ct::PointXYZRGBN& pt3d)
 
 void Measure::updatePreview(const ct::PointXYZRGBN& hover_pt)
 {
-    const auto& blocks = m_marker_cloud->getBlocks();
-    if (blocks.empty() || blocks.front()->empty()) return;
+    ct::PointXYZ first_pt;
+    if (!m_marker_cloud->getFirstPoint(first_pt)) return;
 
-    const auto& p = blocks.front()->m_points[0];
     ct::PointXYZRGBN start_pt;
-    start_pt.x = p.x; start_pt.y = p.y; start_pt.z = p.z;
+    start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
 
     float dist = (start_pt.getVector3fMap() - hover_pt.getVector3fMap()).norm();
 

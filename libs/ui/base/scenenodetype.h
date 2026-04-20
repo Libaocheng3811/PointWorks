@@ -3,6 +3,8 @@
 
 #include <QtGlobal>
 
+#include <QtCore/qnamespace.h>
+
 namespace ct
 {
 

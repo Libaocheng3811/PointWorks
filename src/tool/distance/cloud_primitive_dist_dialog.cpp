@@ -176,7 +176,7 @@ void CloudPrimitiveDistDialog::init()
 
 void CloudPrimitiveDistDialog::reset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
     m_source_cloud.reset();
 }
@@ -235,17 +235,17 @@ void CloudPrimitiveDistDialog::onCompute()
     QCoreApplication::processEvents();
 
     // ---- Step 2: Show progress ----
-    m_cloudtree->showProgress("Computing C2P distance...");
+    m_progress->showProgress("Computing C2P distance...");
 
     // ---- Step 3: Setup cancel ----
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
-                    m_cloudtree->closeProgress();
+                    m_progress->closeProgress();
                     progress_closed->store(true);
                     printW("C2P distance computation canceled.");
                 });
@@ -253,7 +253,7 @@ void CloudPrimitiveDistDialog::onCompute()
 
     // ---- Step 4: Progress callback ----
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -270,7 +270,7 @@ void CloudPrimitiveDistDialog::onCompute()
     connect(watcher, &QFutureWatcher<ct::DistanceResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
             }
             delete cancel;
             delete progress_closed;

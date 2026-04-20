@@ -1,12 +1,20 @@
 #include "customtree.h"
 
+#include "viz/cloudview.h"
+#include "viz/console.h"
+
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
 
 namespace ct
 {
-    CustomTree::CustomTree(QWidget *parent)
+
+void CustomTree::printI(const QString& message) { m_console->print(LOG_INFO, message); }
+void CustomTree::printW(const QString& message) { m_console->print(LOG_WARNING, message); }
+void CustomTree::printE(const QString& message) { m_console->print(LOG_ERROR, message); }
+
+CustomTree::CustomTree(QWidget *parent)
         : QTreeWidget(parent),
         m_cloudview(nullptr),
         m_console(nullptr),

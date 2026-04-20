@@ -335,7 +335,7 @@ void ReconstructSurfaceDialog::init()
 
 void ReconstructSurfaceDialog::reset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
     m_cloud.reset();
 
@@ -419,17 +419,17 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
     // ========== Step 2: 显示进度条 ==========
     QString algo_names[] = {"Poisson", "Greedy Projection", "Marching Cubes (Hoppe)", "Grid Projection"};
     QString prefix = is_preview ? "Preview: " : "";
-    m_cloudtree->showProgress(prefix + algo_names[algorithm] + "...");
+    m_progress->showProgress(prefix + algo_names[algorithm] + "...");
 
     // ========== Step 3: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
-                    m_cloudtree->closeProgress();
+                    m_progress->closeProgress();
                     progress_closed->store(true);
                     printW(prefix + algo_names[algorithm] + " canceled.");
                 });
@@ -437,7 +437,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
 
     // ========== Step 4: 进度回调 ==========
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -464,6 +464,8 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
 
     m_canceled.store(false);
 
+    auto viz = std::make_shared<ct::SurfaceResultViz>();
+
     // ========== Step 6: 提交算法到工作线程 ==========
     auto future = QtConcurrent::run(
         [work_cloud, algorithm, depth, min_depth, point_weight, scale,
@@ -471,7 +473,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
          search_radius, mu, max_neighbors, min_angle, max_angle, eps_angle, consistent,
          iso_level, grid_res, percentage, epsilon,
          resolution, padding_size, k,
-         cancel, on_progress]() -> ct::SurfaceResult {
+         cancel, on_progress, viz]() -> ct::SurfaceResult {
             ct::SurfaceResult result;
             switch (algorithm) {
             case 0: // Poisson
@@ -503,7 +505,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             }
 
             // 在工作线程中完成所有耗时的数据准备
-            ct::Surface::prepareResult(result);
+            ct::prepareSurfaceForRendering(result.mesh, *viz);
             return result;
         });
 
@@ -515,7 +517,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             watcher->deleteLater();
 
             if (m_canceled.load() || !result.mesh) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
                 delete cancel;
                 delete progress_closed;
                 if (result.mesh == nullptr && !m_canceled.load()) {
@@ -530,9 +532,8 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             }
 
             // 更新进度条提示
-            if (!is_preview && m_cloudtree->m_processing_dialog) {
-                QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setLabelText",
-                    Qt::QueuedConnection, Q_ARG(QString, "Loading result..."));
+            if (!is_preview && m_progress->dialog()) {
+                m_progress->setMessage("Loading result...");
             }
             QCoreApplication::processEvents();
 
@@ -578,20 +579,20 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
             }
 
             if (is_preview) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
                 delete cancel;
                 delete progress_closed;
                 QTimer::singleShot(0, this, [this]() { this->show(); });
             } else {
-                if (result.prepared_cloud) {
-                    result.prepared_cloud->setId(result_id.toStdString());
+                if (viz->prepared_cloud) {
+                    viz->prepared_cloud->setId(result_id.toStdString());
 
                     QTreeWidgetItem* origin_item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-                    m_cloudtree->insertCloud(result.prepared_cloud, origin_item, true, ct::MountStrategy::Sibling,
+                    m_cloudtree->insertCloud(viz->prepared_cloud, origin_item, true, ct::MountStrategy::Sibling,
                                              ct::NodeMesh);
 
-                    if (result.prepared_polydata) {
-                        m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, result.prepared_polydata);
+                    if (viz->prepared_polydata) {
+                        m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, viz->prepared_polydata);
                     } else {
                         m_cloudtree->registerMesh(result_id, result.mesh);
                     }
@@ -601,7 +602,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                         m_cloudtree->registerShape(result_id, boundary_id, "Boundary", result.mesh);
                     }
                 }
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
                 delete cancel;
                 delete progress_closed;
                 this->accept();

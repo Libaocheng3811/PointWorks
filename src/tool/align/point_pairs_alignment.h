@@ -18,7 +18,6 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-#include <vtkSmartPointer.h>
 
 class PointPairsAlignment : public ct::CustomDialog
 {

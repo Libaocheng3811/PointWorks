@@ -4,7 +4,7 @@
 #include "core/cloud.h"
 #include "core/exports.h"
 #include "core/colormap.h"
-#include "io/projectfile.h"
+#include "core/view_params.h"
 #include "octreerenderer.h"
 
 class vtkActor;
@@ -13,7 +13,6 @@ class vtkActor;
 #include <pcl/PolygonMesh.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/range_image/range_image.h>
-#include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkCaptionActor2D.h>
 #include <vtkTextProperty.h>
@@ -24,6 +23,7 @@ class vtkBillboardTextActor3D;
 #include "viewcube.h"
 
 #include <QMap>
+#include <QSet>
 #include <memory>
 #include <vector>
 #include "scalar_bar_widget.h"

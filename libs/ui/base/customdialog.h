@@ -2,6 +2,8 @@
 #define POINTWORKS_CUSTOMDIALOG_H
 
 #include "cloudtree.h"
+#include "progress_manager.h"
+#include "dialog_registry.h"
 
 #include "viz/cloudview.h"
 #include "viz/console.h"
@@ -20,7 +22,7 @@ namespace ct
         Q_OBJECT
     public:
         explicit CustomDialog(QWidget* parent = nullptr)
-            : QDialog(parent), m_cloudview(nullptr), m_cloudtree(nullptr), m_console(nullptr) {}
+            : QDialog(parent), m_cloudview(nullptr), m_cloudtree(nullptr), m_console(nullptr), m_progress(nullptr) {}
 
         ~CustomDialog() {}
 
@@ -29,6 +31,8 @@ namespace ct
         void setCloudTree(CloudTree* cloudtree) {m_cloudtree = cloudtree; }
 
         void setConsole(Console* console) {m_console = console; }
+
+        void setProgressManager(ProgressManager* progress) {m_progress = progress; }
 
         virtual void init() {}
 
@@ -63,10 +67,8 @@ namespace ct
         CloudView* m_cloudview;
         CloudTree* m_cloudtree;
         Console* m_console;
+        ProgressManager* m_progress;
     };
-
-    static std::map<QString, CustomDialog*> registed_dialogs;
-    static std::map<QString, bool> dialogs_visible;
 
     /**
      * @brief 创建弹出窗口
@@ -83,18 +85,15 @@ namespace ct
     {
         if (parent == nullptr) return nullptr;
 
-        if (registed_dialogs.find(label) == registed_dialogs.end()) // register dock
-            registed_dialogs[label] = nullptr;
+        auto& reg = DialogRegistry::instance();
 
-        if (registed_dialogs.find(label)->second == nullptr) // create new dialog
+        if (reg.getDialog(label) == nullptr) // create new dialog
         {
             // 互斥逻辑：已有对话框打开时，不允许打开其他对话框
-            for (auto& dialog : registed_dialogs){
-                if (dialog.first != label && dialog.second != nullptr) return nullptr;
-            }
+            if (reg.hasOpenDialog()) return nullptr;
 
-            registed_dialogs[label] = new T(parent);
-            auto dlg = registed_dialogs[label];
+            reg.registerDialog(label, new T(parent));
+            auto dlg = reg.getDialog(label);
 
             if (cloudview)
                 dlg->setCloudView(cloudview);
@@ -102,6 +101,8 @@ namespace ct
                 dlg->setCloudTree(cloudtree);
             if (console)
                 dlg->setConsole(console);
+            if (cloudtree)
+                dlg->setProgressManager(cloudtree->progressManager());
             dlg->setAttribute(Qt::WA_DeleteOnClose);
 
             if (isToolWidget){
@@ -111,22 +112,22 @@ namespace ct
                 dlg->move(pos.x() + cloudview->width() - dlg->width() - 9, pos.y() + 9);
 
                 // 跟随移动
-                QObject::connect(cloudview, &CloudView::posChanged, [=](const QPoint& pos)
+                QObject::connect(cloudview, &CloudView::posChanged, [&](const QPoint& pos)
                 {
-                    if (registed_dialogs[label] != nullptr) {
-                        int ax = pos.x() + cloudview->width() - registed_dialogs[label]->width() - 9;
+                    if (reg.getDialog(label) != nullptr) {
+                        int ax = pos.x() + cloudview->width() - reg.getDialog(label)->width() - 9;
                         int ay = pos.y() + 9;
-                        registed_dialogs[label]->move(ax, ay);
+                        reg.getDialog(label)->move(ax, ay);
                     }
                 });
 
-                QObject::connect(dlg, &CustomDialog::sizeChanged, [=](const QSize& size)
+                QObject::connect(dlg, &CustomDialog::sizeChanged, [&](const QSize& size)
                 {
-                    if (registed_dialogs[label] != nullptr) {
+                    if (reg.getDialog(label) != nullptr) {
                         QPoint pos = cloudview->mapToGlobal(QPoint(0, 0));
                         int ax = pos.x() + cloudview->width() - size.width() - 9;
                         int ay = pos.y() + 9;
-                        registed_dialogs[label]->move(ax, ay);
+                        reg.getDialog(label)->move(ax, ay);
                     }
                 });
             }
@@ -138,10 +139,9 @@ namespace ct
 
             dlg->init();
 
-            QObject::connect(dlg, &QDialog::destroyed, [=] { registed_dialogs[label] = nullptr;});
+            QObject::connect(dlg, &QDialog::destroyed, [&] { reg.unregisterDialog(label); });
 
             if (isModal){
-//                dlg->exec();
                 dlg->setWindowModality(Qt::ApplicationModal);
                 dlg->show();
             }
@@ -150,25 +150,19 @@ namespace ct
             }
         }
         else{ // update dialog (已存在则关闭，通常用于 toggle)
-            registed_dialogs[label]->close();
+            reg.getDialog(label)->close();
         }
-        return (T*)registed_dialogs[label];
+        return (T*)reg.getDialog(label);
     }
 
     /**
      * @brief 获取窗口指针
      * @param label 窗口标签
      */
-    // 模板函数
     template <class T>
     T* getDialog(const QString& label)
     {
-        // 如果没有找到指定标签，返回空指针，表示没有注册的对话框
-        if (registed_dialogs.find(label) == registed_dialogs.end())
-            return nullptr;
-        else
-            // 否则返回与标签关联的对话框指针，强制转换为T类型的指针
-            return (T*)registed_dialogs.find(label)->second;
+        return (T*)DialogRegistry::instance().getDialog(label);
     }
 }
 #endif //POINTWORKS_CUSTOMDIALOG_H

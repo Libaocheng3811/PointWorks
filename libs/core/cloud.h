@@ -64,6 +64,12 @@ namespace ct
         const std::vector<CloudBlock::Ptr>& getBlocks() const { return m_all_blocks; }
         OctreeNode* getOctreeRoot() const { return m_octree_root.get(); }
 
+        /**
+         * @brief 获取第一个点坐标（安全访问，无需了解 block 布局）
+         * @return true 成功获取，false 点云为空
+         */
+        bool getFirstPoint(PointXYZ& out) const;
+
         // ===== 容量接口 =====
         size_t size() const;
         bool empty() const;

@@ -229,7 +229,7 @@ void FineRegistrationDialog::reset()
 
 void FineRegistrationDialog::deinit()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     // 防御性清理预览云
     m_cloudview->removePointCloud(PREVIEW_ID);
     if (!m_source_id.isEmpty())
@@ -354,19 +354,19 @@ void FineRegistrationDialog::onCompute()
     m_canceled.store(false);
 
     // 显示模态进度条
-    m_cloudtree->showProgress("Fine Registration...");
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    m_progress->showProgress("Fine Registration...");
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [this]() {
                     m_canceled.store(true);
-                    if (m_cloudtree->m_processing_dialog)
-                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                    if (m_progress->dialog())
+                        m_progress->setMessage("Canceling...");
                 });
     }
 
     // 跨线程进度更新回调
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -404,7 +404,7 @@ void FineRegistrationDialog::onCompute()
     auto* watcher = new QFutureWatcher<ct::RegistrationResult>(this);
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ct::RegistrationResult>::finished, this, [=]() {
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
         auto result = watcher->result();
         watcher->deleteLater();
 
@@ -483,7 +483,7 @@ void FineRegistrationDialog::onApply()
 
 void FineRegistrationDialog::onReset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
 
     m_cloudview->removePointCloud(PREVIEW_ID);
@@ -504,7 +504,7 @@ void FineRegistrationDialog::onReset()
 
 void FineRegistrationDialog::onCancel()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）

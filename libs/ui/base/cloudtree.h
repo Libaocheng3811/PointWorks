@@ -2,9 +2,10 @@
 #define POINTWORKS_CLOUDTREE_H
 
 #include "customtree.h"
-#include "dialog/processingdialog.h"
-#include "dialog/globalshiftdialog.h"
+#include "core/cloud.h"
 #include "io/fileio.h"
+#include "base/progress_manager.h"
+#include "dialog/globalshiftdialog.h"
 
 #include <QMenu>
 #include <QMap>
@@ -21,6 +22,8 @@
 
 namespace ct
 {
+    class FileIO;
+
     /// 点云挂载策略
     enum class MountStrategy
     {
@@ -164,6 +167,11 @@ namespace ct
          * @brief 将任意后台 Worker (如 FileIO, GroundFilter) 绑定到当前进度条
          */
         void bindWorker(QObject* worker);
+
+        /**
+         * @brief 获取进度管理器
+         */
+        ProgressManager* progressManager() { return m_progress; }
 
         /**
          * @brief 添加点云处理后，得到的新结果数据项
@@ -361,13 +369,10 @@ namespace ct
         QMap<QString, QTreeWidgetItem*> m_pending_parents;  // filepath → 目标父节点（恢复模式）
 
     public:
-        ProcessingDialog* m_processing_dialog = nullptr;
+        ProgressManager* m_progress = nullptr;
 
         Eigen::Vector3d m_last_shift = Eigen::Vector3d::Zero();
         bool m_hasLastShift = false;
-
-        // 用于记录加载队列中的点云数量
-        int m_loading_queue_count = 0;
 
         // 被脚本使用中的点云 ID 集合（删除保护）
         QSet<QString> m_clouds_in_use;

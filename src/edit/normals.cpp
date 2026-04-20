@@ -50,16 +50,16 @@ Normals::~Normals()
 void Normals::runNormals(const std::string& source_id, const ct::Cloud::Ptr& cloud,
                          float vpx, float vpy, float vpz)
 {
-    m_cloudtree->showProgress("Normals Estimation...");
+    m_progress->showProgress("Normals Estimation...");
 
     m_cancel = false;
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [this]() { m_cancel = true; }, Qt::UniqueConnection);
     }
 
     auto progress_cb = [this](int value) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, value));
     };
 
@@ -77,7 +77,7 @@ void Normals::runNormals(const std::string& source_id, const ct::Cloud::Ptr& clo
 
     connect(m_watcher, &QFutureWatcher<ct::NormalsResult>::finished, this,
         [this, source_id]() {
-            m_cloudtree->closeProgress();
+            m_progress->closeProgress();
             handleNormalsResult(source_id);
         }, Qt::UniqueConnection);
 

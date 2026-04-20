@@ -38,6 +38,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 
 #include <QDropEvent>
 #include <QMimeData>
+#include <QRegularExpression>
 #include <QUrl>
 #include <QFileInfo>
 #include <QDir>

@@ -32,9 +32,11 @@ namespace ct{
         Box m_box;
 
         // --- 渲染状态 ---
-        std::shared_ptr<void> m_vtk_polydata;
+        // DESIGN NOTE: 以下字段由渲染层（ct_viz）管理，存放在核心层是为了实现 O(1) 查找性能。
+        // 使用 shared_ptr<void> 类型擦除，避免核心层对 VTK 的编译依赖。
+        std::shared_ptr<void> m_vtk_polydata;  // VTK 缓存（由 OctreeRenderer 管理）
         bool m_is_visible = true;
-        bool m_is_dirty = true;
+        bool m_is_dirty = true;                 // 标记是否需要重新构建 VTK 缓存
         size_t m_gpu_handle = 0;
 
         // --- 辅助方法 ---
@@ -156,7 +158,7 @@ namespace ct{
 
         std::vector<pcl::PointXYZRGB> m_lod_points;
 
-        std::shared_ptr<void> m_vtk_lod_polydata;
+        std::shared_ptr<void> m_vtk_lod_polydata;  // VTK LOD 缓存（由 OctreeRenderer 管理）
         bool m_lod_dirty = true;
 
         void clearLOD() {

@@ -367,7 +367,7 @@ void GlobalRegistrationDialog::reset()
 
 void GlobalRegistrationDialog::deinit()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     // 防御性清理预览云（Cancel/closeEvent 可能已处理）
     m_cloudview->removePointCloud(PREVIEW_ID);
     if (!m_source_id.isEmpty())
@@ -522,19 +522,19 @@ void GlobalRegistrationDialog::onCompute()
     m_cancel_flag = cancel_flag;
 
     // 显示模态进度条
-    m_cloudtree->showProgress("Global Registration...");
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    m_progress->showProgress("Global Registration...");
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [this]() {
                     if (m_cancel_flag) m_cancel_flag->store(true);
-                    if (m_cloudtree->m_processing_dialog)
-                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                    if (m_progress->dialog())
+                        m_progress->setMessage("Canceling...");
                 });
     }
 
     // 跨线程进度更新回调
     auto setProgress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -665,7 +665,7 @@ void GlobalRegistrationDialog::onCompute()
     auto* watcher = new QFutureWatcher<PipelineResult>(this);
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<PipelineResult>::finished, this, [=]() {
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
 
         // 忽略过期计算的结果（例如用户 Reset 后重新 Compute）
         if (cancel_flag != m_cancel_flag) {
@@ -805,7 +805,7 @@ void GlobalRegistrationDialog::onApply()
 
 void GlobalRegistrationDialog::onReset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     if (m_cancel_flag) m_cancel_flag->store(true);
 
     // 移除预览云，恢复源点云可见
@@ -831,7 +831,7 @@ void GlobalRegistrationDialog::onReset()
 
 void GlobalRegistrationDialog::onCancel()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     if (m_cancel_flag) m_cancel_flag->store(true);
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）

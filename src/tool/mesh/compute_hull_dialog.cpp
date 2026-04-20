@@ -130,7 +130,7 @@ void ComputeHullDialog::init()
 
 void ComputeHullDialog::reset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
     m_cloud.reset();
 }
@@ -162,17 +162,17 @@ void ComputeHullDialog::onCompute()
 
     // ========== Step 3: 显示进度条 ==========
     QString algo_name = is_convex ? "Convex Hull" : "Concave Hull";
-    m_cloudtree->showProgress(algo_name + "...");
+    m_progress->showProgress(algo_name + "...");
 
     // ========== Step 4: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
-                    m_cloudtree->closeProgress();
+                    m_progress->closeProgress();
                     progress_closed->store(true);
                     printW(algo_name + " canceled.");
                 });
@@ -180,16 +180,17 @@ void ComputeHullDialog::onCompute()
 
     // ========== Step 5: 进度回调 ==========
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
     // ========== Step 6: 提交算法到工作线程 ==========
     auto cloud = m_cloud;
     m_canceled.store(false);
+    auto viz = std::make_shared<ct::SurfaceResultViz>();
 
     auto future = QtConcurrent::run([cloud, is_convex, alpha, keep_info, dimension,
-                                     cancel, on_progress]() -> ct::SurfaceResult {
+                                     cancel, on_progress, viz]() -> ct::SurfaceResult {
         ct::SurfaceResult result;
         if (is_convex) {
             result = ct::Surface::ConvexHull(cloud, keep_info, dimension, cancel, on_progress);
@@ -198,7 +199,7 @@ void ComputeHullDialog::onCompute()
         }
 
         // 在工作线程中完成所有耗时的数据准备，主线程只做轻量渲染
-        ct::Surface::prepareResult(result);
+        ct::prepareSurfaceForRendering(result.mesh, *viz);
         return result;
     });
 
@@ -210,7 +211,7 @@ void ComputeHullDialog::onCompute()
             watcher->deleteLater();
 
             if (m_canceled.load() || !result.mesh) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
                 delete cancel;
                 delete progress_closed;
                 if (result.mesh == nullptr && !m_canceled.load()) {
@@ -222,10 +223,9 @@ void ComputeHullDialog::onCompute()
             }
 
             // 更新进度条提示，让用户知道正在加载结果
-            if (m_cloudtree->m_processing_dialog) {
-                m_cloudtree->m_processing_dialog->setProgress(100);
-                QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setLabelText",
-                    Qt::QueuedConnection, Q_ARG(QString, "Loading result..."));
+            if (m_progress->dialog()) {
+                m_progress->setProgress(100);
+                m_progress->setMessage("Loading result...");
             }
             QCoreApplication::processEvents();
 
@@ -233,24 +233,24 @@ void ComputeHullDialog::onCompute()
             QString result_id = QString::fromStdString(cloud->id()) + suffix;
 
             // 使用工作线程中预处理好的数据，主线程只做轻量 UI 操作
-            if (result.prepared_cloud) {
-                result.prepared_cloud->setId(result_id.toStdString());
+            if (viz->prepared_cloud) {
+                viz->prepared_cloud->setId(result_id.toStdString());
 
                 QTreeWidgetItem* origin_item = m_cloudtree->getItemById(
                     QString::fromStdString(cloud->id()));
-                m_cloudtree->insertCloud(result.prepared_cloud, origin_item, true,
+                m_cloudtree->insertCloud(viz->prepared_cloud, origin_item, true,
                                          ct::MountStrategy::Sibling,
                                          ct::NodeMesh);
 
                 // 使用预构建的 polydata，跳过主线程的 VTK 重计算
-                if (result.prepared_polydata) {
-                    m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, result.prepared_polydata);
+                if (viz->prepared_polydata) {
+                    m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, viz->prepared_polydata);
                 } else {
                     m_cloudtree->registerMesh(result_id, result.mesh);
                 }
             }
 
-            m_cloudtree->closeProgress();
+            m_progress->closeProgress();
             delete cancel;
             delete progress_closed;
 

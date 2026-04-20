@@ -67,11 +67,6 @@ namespace ct
         CloudTree* m_cloudtree;
         Console* m_console;
     };
-    static std::map<QString, CustomDock*> registed_docks;
-    static std::set<QString> left_label;
-    static std::set<QString> right_label;
-    static std::map<QString, bool> docks_visible;
-
     /**
      * @brief 创建停靠窗口
      * @param parent 主窗口,停靠的窗口将被添加到这个主窗口中
@@ -85,58 +80,54 @@ namespace ct
                    Qt::DockWidgetArea area = Qt::LeftDockWidgetArea, QDockWidget* dock = nullptr)
     {
         if (parent == nullptr) return;
-        if (registed_docks.find(label) == registed_docks.end())  //register dock
-            registed_docks[label] = nullptr;
-        if (registed_docks.find(label)->second == nullptr)  // creat new dock
+
+        auto& reg = DialogRegistry::instance();
+        if (reg.getDock(label) == nullptr)  // create new dock
         {
-            registed_docks[label] = new T(parent);
+            reg.registerDock(label, new T(parent));
             if (cloudview)
-                registed_docks[label]->setCloudView(cloudview);
+                reg.getDock(label)->setCloudView(cloudview);
             if (cloudtree)
-                registed_docks[label]->setCloudTree(cloudtree);
+                reg.getDock(label)->setCloudTree(cloudtree);
             if (console)
-                registed_docks[label]->setConsole(console);
-            registed_docks[label]->init();
-            QObject::connect(registed_docks[label], &QDockWidget::visibilityChanged, [=](bool state)
-                            {docks_visible[label] = !state; });
-            parent->addDockWidget(area, registed_docks[label]);
+                reg.getDock(label)->setConsole(console);
+            reg.getDock(label)->init();
+            QObject::connect(reg.getDock(label), &QDockWidget::visibilityChanged, [=](bool state)
+                            { /* visibility tracked internally if needed */ });
+            parent->addDockWidget(area, reg.getDock(label));
             if (area == Qt::LeftDockWidgetArea)
-                left_label.insert(label);
+                reg.addLeftLabel(label);
             else
-                right_label.insert(label);
+                reg.addRightLabel(label);
             if (dock == nullptr)
-                for (auto& dock : registed_docks)
+            {
+                const auto& labels = (area == Qt::LeftDockWidgetArea) ? reg.leftLabels() : reg.rightLabels();
+                for (const auto& lbl : labels)
                 {
-                    if (dock.first != label && (left_label.count(dock.first) > 0) &&
-                        area == Qt::LeftDockWidgetArea && dock.second != nullptr)
-                    {
-                        parent->tabifyDockWidget(dock.second, registed_docks[label]);
-                        break;
-                    }
-                    // right
-                    if (dock.first != label && (right_label.count(dock.first) > 0) &&
-                        area == Qt::RightDockWidgetArea && dock.second != nullptr)
-                    {
-                        parent->tabifyDockWidget(dock.second, registed_docks[label]);
-                        break;
+                    if (lbl != label) {
+                        auto* existing = reg.getDock(lbl);
+                        if (existing) {
+                            parent->tabifyDockWidget(existing, reg.getDock(label));
+                            break;
+                        }
                     }
                 }
+            }
             else
-                parent->tabifyDockWidget(dock, registed_docks[label]);
-            registed_docks[label]->setVisible(true);
-            registed_docks[label]->raise();
+                parent->tabifyDockWidget(dock, reg.getDock(label));
+            reg.getDock(label)->setVisible(true);
+            reg.getDock(label)->raise();
         }
         else // update dock
         {
-            if (docks_visible.find(label) == docks_visible.end()) return;
-            if (docks_visible.find(label)->second)
+            if (reg.isDockVisible(label))
             {
-                registed_docks[label]->show();
-                registed_docks[label]->raise();
+                reg.getDock(label)->show();
+                reg.getDock(label)->raise();
             }
             else
             {
-                registed_docks[label]->hide();
+                reg.getDock(label)->hide();
             }
         }
     }
@@ -147,10 +138,7 @@ namespace ct
     template <class T>
     T* getDock(const QString& label)
     {
-        if (registed_docks.find(label) == registed_docks.end())
-            return nullptr;
-        else
-            return (T*)registed_docks.find(label)->second;
+        return (T*)DialogRegistry::instance().getDock(label);
     }
 }
 #endif //POINTWORKS_CUSTOMDOCK_H

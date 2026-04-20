@@ -340,11 +340,9 @@ void PickPoints::mouseLeftReleased(const ct::PointXY &pt)
         m_cloudview->setPointCloudColor(m_pick_cloud, ct::Color::Red);
 
         ct::PointXYZRGBN start_pt;
-        if (!m_pick_cloud->getBlocks().empty() && !m_pick_cloud->getBlocks().front()->empty()) {
-            auto& block = m_pick_cloud->getBlocks().front();
-            const auto& p = block->m_points[0];
-            start_pt.x = p.x; start_pt.y = p.y; start_pt.z = p.z;
-            // 颜色等属性如果需要也可以从 block->m_colors[0] 获取，但在计算距离时不需要
+        ct::PointXYZ first_pt;
+        if (m_pick_cloud->getFirstPoint(first_pt)) {
+            start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
         }
 
         m_cloudview->addArrow(end_pt, start_pt, ARROW_ID, true, ct::Color::Green);
@@ -396,9 +394,9 @@ void PickPoints::mouseMoved(const ct::PointXY &pt)
         if (m_pick_cloud->empty()) return;
 
         ct::PointXYZRGBN start_pt;
-        if (!m_pick_cloud->getBlocks().empty() && !m_pick_cloud->getBlocks().front()->empty()) {
-            const auto& p = m_pick_cloud->getBlocks().front()->m_points[0];
-            start_pt.x = p.x; start_pt.y = p.y; start_pt.z = p.z;
+        ct::PointXYZ first_pt;
+        if (m_pick_cloud->getFirstPoint(first_pt)) {
+            start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
         }
         m_cloudview->addArrow(current_hover_pt, start_pt, ARROW_ID, true, ct::Color::Green);
     }

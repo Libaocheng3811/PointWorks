@@ -405,7 +405,7 @@ void PointPairsAlignment::stopPicking()
 
 void PointPairsAlignment::onReset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     reset();
 }
 
@@ -456,13 +456,13 @@ void PointPairsAlignment::onAlign()
     label_status_->setText("Computing...");
 
     // 显示模态进度条
-    m_cloudtree->showProgress("Computing...");
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    m_progress->showProgress("Computing...");
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [this]() {
                     m_canceled.store(true);
-                    if (m_cloudtree->m_processing_dialog)
-                        m_cloudtree->m_processing_dialog->setMessage("Canceling...");
+                    if (m_progress->dialog())
+                        m_progress->setMessage("Canceling...");
                 });
     }
 
@@ -511,7 +511,7 @@ void PointPairsAlignment::onAlign()
     watcher->setFuture(future);
     connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this,
         [this, watcher, result_ptr]() mutable {
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
         auto transformed = watcher->result();
         watcher->deleteLater();
 
@@ -613,7 +613,7 @@ void PointPairsAlignment::onApply()
 
 void PointPairsAlignment::onCancel()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     if (!m_has_preview) return;
 
     // 移除预览云，恢复源点云可见（源点云从未被修改）

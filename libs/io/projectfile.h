@@ -2,6 +2,7 @@
 #define POINTWORKS_PROJECTFILE_H
 
 #include "exports.h"
+#include "core/view_params.h"
 #include <QString>
 #include <QStringList>
 #include <QJsonObject>
@@ -48,32 +49,6 @@ struct CT_IO_EXPORT TreeNode
 
     QJsonObject toJson() const;
     static TreeNode fromJson(const QJsonObject& obj);
-};
-
-/// 相机参数（纯 struct，无 JSON 依赖放在 viz 层）
-struct CT_IO_EXPORT CameraParams
-{
-    double position[3] = {0, 0, 0};
-    double focal_point[3] = {0, 0, 0};
-    double view_up[3] = {0, 0, 1};
-    double clip_near = 0.01;
-    double clip_far = 100000.0;
-};
-
-/// 视图选项
-struct CT_IO_EXPORT ViewOptions
-{
-    bool show_fps = true;
-    bool show_axes = true;
-    bool show_id = true;
-
-    // 背景色
-    bool use_gradient_bg = true;
-    double bg_color[3] = {0.0, 0.05, 0.08};
-    double bg_color2[3] = {0.05, 0.4, 0.6};
-
-    QJsonObject toJson() const;
-    static ViewOptions fromJson(const QJsonObject& obj);
 };
 
 /// 项目数据

@@ -5,8 +5,6 @@
 
 #include <string>
 #include <vector>
-#include <QString>
-#include <QStringList>
 
 namespace ct {
 
@@ -24,7 +22,7 @@ enum class ColormapType {
     COUNT
 };
 
-inline QStringList colormapNames()
+inline std::vector<std::string> colormapNames()
 {
     return {
         "jet",
@@ -40,7 +38,7 @@ inline QStringList colormapNames()
     };
 }
 
-inline QString colormapName(ColormapType type)
+inline std::string colormapName(ColormapType type)
 {
     const char* names[] = {
         "jet", "turbo", "hot", "cool",
@@ -49,15 +47,16 @@ inline QString colormapName(ColormapType type)
     };
     int idx = static_cast<int>(type);
     if (idx >= 0 && idx < static_cast<int>(ColormapType::COUNT))
-        return QString(names[idx]);
+        return names[idx];
     return "jet";
 }
 
-inline ColormapType colormapFromName(const QString& name)
+inline ColormapType colormapFromName(const std::string& name)
 {
     auto names = colormapNames();
-    int idx = names.indexOf(name);
-    if (idx >= 0) return static_cast<ColormapType>(idx);
+    for (size_t i = 0; i < names.size(); ++i) {
+        if (names[i] == name) return static_cast<ColormapType>(i);
+    }
     return ColormapType::JET;
 }
 

@@ -58,20 +58,20 @@ void Sampling::onOkClicked()
         return;
     }
 
-    m_cloudtree->showProgress("Sampling PointCloud...");
+    m_progress->showProgress("Sampling PointCloud...");
 
     // 取消标志
     auto* cancel = new std::atomic<bool>(false);
     m_cancel = false;
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [cancel]() { *cancel = true; }, Qt::UniqueConnection);
     }
 
     // 进度回调
     auto on_progress = [this](int pct) {
-        if (m_cloudtree->m_processing_dialog) {
-            QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        if (m_progress->dialog()) {
+            QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                       Qt::QueuedConnection, Q_ARG(int, pct));
         }
     };
@@ -122,7 +122,7 @@ void Sampling::onOkClicked()
     auto* watcher = new QFutureWatcher<ct::FilterResult>(this);
     connect(watcher, &QFutureWatcher<ct::FilterResult>::finished, this, [=]() {
         auto result = watcher->result();
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
         delete cancel;
         handleSamplingResult(result);
         watcher->deleteLater();
@@ -141,7 +141,7 @@ void Sampling::handleSamplingResult(const ct::FilterResult& result)
 
     if (!cloud || !m_current_cloud || !m_cloudtree || !m_cloudview)
     {
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
         reject();
         return;
     }
@@ -165,7 +165,7 @@ void Sampling::handleSamplingResult(const ct::FilterResult& result)
     m_cloudtree->setCloudChecked(cloud, true);
 
     // 关闭进度条
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
 
     // 关闭对话框
     accept();

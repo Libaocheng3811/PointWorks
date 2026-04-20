@@ -3,6 +3,7 @@
 
 #include "ui/base/customdialog.h"
 #include "algorithm/surface.h"
+#include "viz/surface_viz_helper.h"
 
 #include <QRadioButton>
 #include <QDoubleSpinBox>

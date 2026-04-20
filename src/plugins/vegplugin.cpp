@@ -84,18 +84,18 @@ void VegPlugin::onIndexChanged(int index) {
 void VegPlugin::onApply() {
     this->hide();
 
-    m_cloudtree->showProgress("Vegetation Filter...");
+    m_progress->showProgress("Vegetation Filter...");
 
     // 通过 cancelRequested 信号设置取消标志
     auto* cancel = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [cancel]() { *cancel = true; });
     }
 
     // 进度回调：跨线程安全地更新进度条
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -110,7 +110,7 @@ void VegPlugin::onApply() {
     auto* watcher = new QFutureWatcher<ct::VegResult>(this);
     connect(watcher, &QFutureWatcher<ct::VegResult>::finished, this, [=]() {
         auto result = watcher->result();
-        m_cloudtree->closeProgress();
+        m_progress->closeProgress();
         delete cancel;
         printI(QString("Vegetation Filter Finished in %1 s").arg(result.time_ms));
 

@@ -223,20 +223,20 @@ Filters::~Filters() {
 void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_progress)
 {
     if (show_progress) {
-        m_cloudtree->showProgress("Filtering PointCloud...");
+        m_progress->showProgress("Filtering PointCloud...");
 
         // 通过 cancelRequested 信号设置取消标志
         m_cancel = false;
-        if (m_cloudtree->m_processing_dialog) {
-            connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+        if (m_progress->dialog()) {
+            connect(m_progress, &ct::ProgressManager::cancelRequested,
                     this, [this]() { m_cancel = true; }, Qt::UniqueConnection);
         }
     }
 
     // 进度回调：跨线程安全地更新进度条
     auto on_progress = [this](int pct) {
-        if (m_cloudtree->m_processing_dialog) {
-            QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        if (m_progress->dialog()) {
+            QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                       Qt::QueuedConnection, Q_ARG(int, pct));
         }
     };
@@ -247,7 +247,7 @@ void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_pr
         auto future = QtConcurrent::run(filterFn);
         auto* watcher = new QFutureWatcher<ct::FilterResult>(this);
         connect(watcher, &QFutureWatcher<ct::FilterResult>::finished, this, [=]() {
-            m_cloudtree->closeProgress();
+            m_progress->closeProgress();
             auto result = watcher->result();
             handleFilterResult(result);
             watcher->deleteLater();
@@ -292,8 +292,8 @@ void Filters::preview()
     {
         // 进度回调（用于异步模式）
         auto on_progress = [this](int pct) {
-            if (m_cloudtree->m_processing_dialog) {
-                QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+            if (m_progress->dialog()) {
+                QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                           Qt::QueuedConnection, Q_ARG(int, pct));
             }
         };

@@ -1,5 +1,7 @@
 #include "cloudtree.h"
 
+#include "viz/cloudview.h"
+
 #include "core/field_types.h"
 #include "core/colormap.h"
 #include "widgets/sf_display_panel.h"
@@ -7,6 +9,9 @@
 #include "dialog/fieldmappingdialog.h"
 #include "dialog/txtimportdialog.h"
 #include "dialog/txtexportdialog.h"
+
+#include <vtkPolyData.h>
+#include <vtkSmartPointer.h>
 
 #include <cfloat>
 #include <QMetaType>
@@ -37,7 +42,8 @@ namespace ct
         : CustomTree(parent),
         m_path(ROOT_PATH),
         m_thread(this),
-        m_tree_menu(nullptr)
+        m_tree_menu(nullptr),
+        m_progress(new ProgressManager(this))
     {
         // register meat type
         // qRegisterMetaType 函数用于注册一个自定义类型，以便它可以被用于 Qt 的元对象系统
@@ -110,7 +116,7 @@ namespace ct
         QStringList filePathList = QFileDialog::getOpenFileNames(this, tr("Open Files"), m_path, filter);
         if (filePathList.isEmpty()) return;
 
-        m_loading_queue_count = filePathList.size();
+        m_progress->setLoadingQueueCount(filePathList.size());
 
         showProgress("Loading Point Cloud...");
 
@@ -125,7 +131,7 @@ namespace ct
         m_pending_parents.clear();
         showProgress("Loading Point Cloud...");
         bindWorker(m_fileio);
-        m_loading_queue_count = 1;
+        m_progress->setLoadingQueueCount(1);
         emit loadPointCloud(filepath);
     }
 
@@ -134,7 +140,7 @@ namespace ct
         m_pending_parents[QFileInfo(filepath).absoluteFilePath()] = targetParent;
         showProgress("Loading Point Cloud...");
         bindWorker(m_fileio);
-        m_loading_queue_count = 1;
+        m_progress->setLoadingQueueCount(1);
         emit loadPointCloud(filepath);
     }
 
@@ -723,19 +729,16 @@ namespace ct
                 printI(QString("Mesh detected: %1 polygons").arg(mesh->polygons.size()));
             }
         }
-        m_loading_queue_count--;
-        if (m_loading_queue_count <= 0) {
-            // 所有任务都完成了，关闭进度条
-            m_loading_queue_count = 0; // 归零防守
+        m_progress->setLoadingQueueCount(m_progress->loadingQueueCount() - 1);
+        if (m_progress->loadingQueueCount() <= 0) {
+            m_progress->setLoadingQueueCount(0);
             closeProgress();
         } else {
             // 还有任务在队列中，更新界面提示，而不是关闭
-            if (m_processing_dialog) {
-                // 重置进度条为 0，准备显示下一个文件的进度
-                m_processing_dialog->setProgress(0);
-                // 更新提示文字
-                QString msg = QString("Loading Point Cloud... (%1 remaining)").arg(m_loading_queue_count);
-                m_processing_dialog->setMessage(msg);
+            if (m_progress->dialog()) {
+                m_progress->dialog()->setProgress(0);
+                QString msg = QString("Loading Point Cloud... (%1 remaining)").arg(m_progress->loadingQueueCount());
+                m_progress->dialog()->setMessage(msg);
             }
         }
     }
@@ -1250,7 +1253,8 @@ namespace ct
                     m_table->setItem(row, 0, labelItem);
 
                     combo_cmap = new QComboBox;
-                    combo_cmap->addItems(colormapNames());
+                    for (const auto& n : colormapNames())
+                        combo_cmap->addItem(QString::fromStdString(n));
                     combo_cmap->setCurrentText("jet");
                     combo_cmap->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
                     m_table->setCellWidget(row, 1, combo_cmap);
@@ -1285,7 +1289,7 @@ namespace ct
 
                     QObject::connect(combo_cmap, &QComboBox::currentTextChanged,
                             this, [=](const QString& name) {
-                                sf_panel->setColormap(colormapFromName(name));
+                                sf_panel->setColormap(colormapFromName(name.toStdString()));
                             });
 
                     panel_row = m_table->rowCount();
@@ -1415,46 +1419,13 @@ namespace ct
         m_cloudview->refresh();
     }
 
-    void CloudTree::showProgress(const QString &message) {
-        if (m_script_mode) return;  // 脚本模式：跳过进度条弹窗
-        if (!m_processing_dialog){
-            // 寻找最顶层的窗口作为父窗口，确保模态对话框居中显示
-            QWidget* topLevel = this->window();
-            m_processing_dialog = new ProcessingDialog(topLevel);
-            m_processing_dialog->setWindowModality(Qt::WindowModal);
-        }
+    void CloudTree::showProgress(const QString &message) { m_progress->showProgress(message); }
 
-        m_processing_dialog->reset();
-        m_processing_dialog->setMessage(message);
-        m_processing_dialog->show();
-        QApplication::processEvents(); // 强制刷新UI
-    }
+    void CloudTree::closeProgress() { m_progress->closeProgress(); }
 
-    void CloudTree::closeProgress() {
-        m_loading_queue_count = 0;
-        if (m_processing_dialog){
-            m_processing_dialog->close();
-            delete m_processing_dialog;
-            m_processing_dialog = nullptr;
-        }
-    }
+    void CloudTree::setProgress(int percent) { m_progress->setProgress(percent); }
 
-    void CloudTree::setProgress(int percent) {
-        if (m_processing_dialog)
-            m_processing_dialog->setProgress(percent);
-    }
-
-    void CloudTree::bindWorker(QObject *worker) {
-        if (!m_processing_dialog || !worker) return;
-
-        // Worker -> Dialog (进度更新)
-        connect(worker, SIGNAL(progress(int)), m_processing_dialog, SLOT(setProgress(int)), Qt::UniqueConnection);
-
-        // Dialog -> Worker (取消请求),信号和槽连接方式为直接连接，确保能够快速响应取消请求
-        connect(m_processing_dialog, SIGNAL(cancelRequested()), worker, SLOT(cancel()), Qt::DirectConnection);
-
-        connect(m_processing_dialog, &ProcessingDialog::cancelRequested, this, &CloudTree::closeProgress);
-    }
+    void CloudTree::bindWorker(QObject *worker) { m_progress->bindWorker(worker); }
 
     void CloudTree::addResultGroup(const Cloud::Ptr &originCloud, const std::vector<Cloud::Ptr> &results,
                                    const QString &groupName) {

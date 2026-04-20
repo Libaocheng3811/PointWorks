@@ -106,7 +106,7 @@ void ExtractBoundaryDialog::init()
 
 void ExtractBoundaryDialog::reset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
     m_cloud.reset();
 }
@@ -141,17 +141,17 @@ void ExtractBoundaryDialog::onExtract()
     QCoreApplication::processEvents();
 
     // ========== Step 2: 显示进度条 ==========
-    m_cloudtree->showProgress("Extract Boundary...");
+    m_progress->showProgress("Extract Boundary...");
 
     // ========== Step 3: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
-                    m_cloudtree->closeProgress();
+                    m_progress->closeProgress();
                     progress_closed->store(true);
                     printW("Extract Boundary canceled.");
                 });
@@ -159,7 +159,7 @@ void ExtractBoundaryDialog::onExtract()
 
     // ========== Step 4: 进度回调 ==========
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -176,7 +176,7 @@ void ExtractBoundaryDialog::onExtract()
     connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
             }
             delete cancel;
             delete progress_closed;

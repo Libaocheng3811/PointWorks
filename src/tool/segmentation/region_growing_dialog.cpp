@@ -5,6 +5,7 @@
 #include "viz/cloudview.h"
 #include "base/cloudtree.h"
 #include "viz/console.h"
+#include "base/progress_manager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -243,7 +244,7 @@ void RegionGrowingDialog::init()
 
 void RegionGrowingDialog::reset()
 {
-    m_cloudtree->closeProgress();
+    m_progress->closeProgress();
     m_canceled.store(true);
     m_cloud.reset();
     m_picking = false;
@@ -369,25 +370,23 @@ void RegionGrowingDialog::onApply()
     QCoreApplication::processEvents();
 
     // ========== Step 3: 显示进度对话框 ==========
-    m_cloudtree->showProgress("Region Growing...");
+    m_progress->showProgress("Region Growing...");
 
     // ========== Step 4: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    if (m_cloudtree->m_processing_dialog) {
-        connect(m_cloudtree->m_processing_dialog, &ct::ProcessingDialog::cancelRequested,
-                this, [=]() {
-                    *cancel = true;
-                    m_canceled.store(true);
-                    m_cloudtree->closeProgress();
-                    progress_closed->store(true);
-                    printW("Region growing canceled.");
-                });
-    }
+    connect(m_progress, &ct::ProgressManager::cancelRequested,
+            this, [=]() {
+                *cancel = true;
+                m_canceled.store(true);
+                m_progress->closeProgress();
+                progress_closed->store(true);
+                printW("Region growing canceled.");
+            });
 
     // ========== Step 5: 进度回调 ==========
     auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_cloudtree->m_processing_dialog, "setProgress",
+        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
                                   Qt::QueuedConnection, Q_ARG(int, pct));
     };
 
@@ -445,7 +444,7 @@ void RegionGrowingDialog::onApply()
     connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
-                m_cloudtree->closeProgress();
+                m_progress->closeProgress();
             }
             delete cancel;
             delete progress_closed;
