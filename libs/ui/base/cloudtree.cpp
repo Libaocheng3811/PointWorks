@@ -892,10 +892,10 @@ namespace ct
             int row = m_table->rowCount();
             m_table->insertRow(row);
             QTableWidgetItem* labelItem = new QTableWidgetItem(label);
-            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
             m_table->setItem(row, 0, labelItem);
             QTableWidgetItem* valueItem = new QTableWidgetItem(value);
-            valueItem->setFlags(valueItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            valueItem->setFlags(valueItem->flags() & ~Qt::ItemIsEditable);
             m_table->setItem(row, 1, valueItem);
             if (rowHeight > 0) m_table->setRowHeight(row, rowHeight);
             return row;
@@ -906,7 +906,7 @@ namespace ct
             int row = m_table->rowCount();
             m_table->insertRow(row);
             QTableWidgetItem* headerItem = new QTableWidgetItem(title);
-            headerItem->setFlags(headerItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            headerItem->setFlags(headerItem->flags() & ~Qt::ItemIsEditable);
             headerItem->setBackground(QColor("#E0E4E8"));
             QFont boldFont;
             boldFont.setBold(true);
@@ -962,7 +962,7 @@ namespace ct
             int row = m_table->rowCount();
             m_table->insertRow(row);
             QTableWidgetItem* labelItem = new QTableWidgetItem("Opacity");
-            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+            labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
             m_table->setItem(row, 0, labelItem);
 
             QDoubleSpinBox* opacity = new QDoubleSpinBox;
@@ -1010,7 +1010,7 @@ namespace ct
                 int row = m_table->rowCount();
                 m_table->insertRow(row);
                 QTableWidgetItem* labelItem = new QTableWidgetItem("Color");
-                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                 m_table->setItem(row, 0, labelItem);
 
                 color_mode = new QComboBox;
@@ -1037,7 +1037,7 @@ namespace ct
                 int row = m_table->rowCount();
                 m_table->insertRow(row);
                 QTableWidgetItem* labelItem = new QTableWidgetItem("PointSize");
-                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                 m_table->setItem(row, 0, labelItem);
 
                 QSpinBox* point_size = new QSpinBox;
@@ -1058,7 +1058,7 @@ namespace ct
                 int row = m_table->rowCount();
                 m_table->insertRow(row);
                 QTableWidgetItem* labelItem = new QTableWidgetItem("Normals");
-                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                 m_table->setItem(row, 0, labelItem);
 
                 QWidget* normals_widget = new QWidget;
@@ -1107,7 +1107,7 @@ namespace ct
                     field_row = row;
                     m_table->insertRow(row);
                     QTableWidgetItem* labelItem = new QTableWidgetItem("Field");
-                    labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                    labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                     m_table->setItem(row, 0, labelItem);
 
                     combo_field = new QComboBox;
@@ -1131,7 +1131,7 @@ namespace ct
                     cmap_row = row;
                     m_table->insertRow(row);
                     QTableWidgetItem* labelItem = new QTableWidgetItem("Color Scale");
-                    labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                    labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                     m_table->setItem(row, 0, labelItem);
 
                     combo_cmap = new QComboBox;
@@ -1243,7 +1243,7 @@ namespace ct
                 int row = m_table->rowCount();
                 m_table->insertRow(row);
                 QTableWidgetItem* labelItem = new QTableWidgetItem("Texture");
-                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                 m_table->setItem(row, 0, labelItem);
 
                 QCheckBox* showTex = new QCheckBox;
@@ -1273,7 +1273,7 @@ namespace ct
                 int row = m_table->rowCount();
                 m_table->insertRow(row);
                 QTableWidgetItem* labelItem = new QTableWidgetItem("Representation");
-                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
                 m_table->setItem(row, 0, labelItem);
 
                 QComboBox* repr = new QComboBox;
