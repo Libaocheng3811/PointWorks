@@ -11,6 +11,7 @@ PointWorks 的核心数据结构、文件 I/O 与渲染系统。分布在 `libs/
 - 支持多种点类型：XYZ、XYZRGB、XYZNormal、XYZRGBNormal
 - 标量字段管理 (`m_scalar_cache`)，支持自定义属性
 - PCL 互操作性：`toPCL_XYZRGB()`、`fromPCL_XYZRGB()` 等方法
+- 提供 `forEachPoint()`、`getFirstPoint()` 等 API 避免外部直接访问 CloudBlock 内部
 
 **核心数据成员**:
 ```cpp
@@ -40,10 +41,13 @@ class CloudBlock {
     QMap<QString, std::vector<float>> m_scalar_fields;  // 标量场
 
     Box m_box;                               // 包围盒
-    std::shared_ptr<void> m_vtk_polydata;    // VTK 缓存
+    std::shared_ptr<void> m_vtk_polydata;    // VTK 缓存（类型擦除，设计权衡）
     bool m_is_dirty = true;                  // 脏标记
 };
 ```
+
+> `m_vtk_polydata` 使用 `shared_ptr<void>` 类型擦除避免核心层对 VTK 的编译依赖。
+> 这使得渲染缓存与 block 共存可实现 O(1) 查找，是可接受的务实权衡。
 
 ## Octree (libs/core/octree.h)
 
@@ -84,31 +88,7 @@ if (node->m_lod_points.size() < capacity) {
 - **视锥剔除** (Frustum Culling)：只渲染可见节点
 - **动态阈值**：交互时降低质量，静止时提高质量
 - **Actor 对象池**：复用 VTK Actor（最多 500 个），减少 GPU 资源创建开销
-
-**渲染流程**:
-```cpp
-void OctreeRenderer::update() {
-    // 1. 检查相机是否移动
-    if (!camChanged && !m_force_update) return;
-
-    // 2. 优先队列遍历（SSE 策略）
-    std::priority_queue<PriorityNode> pq;
-    pq.push({root, projectSize(root->m_box)});
-
-    while (!pq.empty()) {
-        auto node = pq.top().node;
-        float screenSize = projectSize(node->m_box);
-
-        // 判断是否需要细分
-        if (screenSize > m_base_threshold && node->hasChildren()) {
-            // 继续细分子节点
-        } else {
-            // 渲染此节点（LOD 或 Block）
-            vtkActor* actor = getOrCreateActor(node, isLOD);
-        }
-    }
-}
-```
+- **增量脏标记清理**：`invalidateDirtyActors()` 仅重建脏节点，保留干净节点
 
 ## FileIO (libs/io/)
 
@@ -118,86 +98,74 @@ void OctreeRenderer::update() {
 ```
 libs/io/
 ├── fileio.h              # FileIO 类声明（信号、槽、公共接口）
-├── fileio.cpp            # 调度器 + 辅助函数 + saveMeshFile + parseOBJMaterialTexture (~280行)
-├── fileio_pointcloud.cpp # 点云格式加载/保存（LAS, PLY, PCD, TXT, E57）(~1580行)
-├── fileio_mesh.cpp       # 模型格式加载（OBJ, STL, VTK, IFS）(~170行)
-├── textured_mesh.h       # 纹理网格数据结构
+├── fileio.cpp            # 调度器 + 辅助函数 + saveMeshFile + parseOBJMaterialTexture
+├── fileio_pointcloud.cpp # 点云格式加载/保存（LAS, PLY, PCD, TXT, E57）
+├── fileio_mesh.cpp       # 模型格式加载（OBJ, STL, VTK, IFS）
+├── textured_mesh.h       # (已移至 libs/core/)
 └── projectfile.h/cpp     # 项目文件保存/加载
 ```
+
+> `textured_mesh.h` 已从 `libs/io/` 移至 `libs/core/`，因为 TexturedMesh 是核心数据类型。
+> 注意：`textured_mesh.h` 仍依赖 `pcl/PolygonMesh.h`，这是 `ct_core` 中唯一的 PCL
+> 类型依赖。短期内保持现状，长期可通过 `shared_ptr<void>` 类型擦除移除。
 
 **支持格式**:
 - 点云: LAS/LAZ（LASlib）、PLY、PCD、TXT/XYZ/ASC、E57（E57Format）
 - 模型: OBJ（带纹理检测）、STL、VTK、IFS
 
-**方法拆分策略**:
-方法保持为 `FileIO` 成员函数（声明在 fileio.h），实现分布在各 .cpp 中。调度器只负责格式分发和公共逻辑。
-
 **流式加载流程**:
 ```cpp
 bool FileIO::loadLAS(const QString& filename, Cloud::Ptr& cloud) {
     // 1. 读取 Header 获取包围盒
-    LASreader* lasreader = lasreadopener.open(filename);
-
     // 2. 初始化八叉树
-    cloud->initOctree(globalBox);
-
     // 3. 流式读取（每批 50 万点）
-    CloudBatch batch;
-    batch.reserve(BATCH_SIZE);
-
-    while (lasreader->read_point()) {
-        batch.points.push_back(pt);
-        if (batch.points.size() >= BATCH_SIZE) {
-            batch.flushTo(cloud);
-            emit progress(percent);
-        }
-    }
-
     // 4. 生成 LOD
     cloud->generateLOD();
 }
 ```
 
-**全局坐标偏移**:
-```cpp
-// 问题：UTM 坐标 (x=500000) 导致 GPU 精度丢失
-// 解决：渲染前减去质心，保存时加回
-Eigen::Vector3d shift = calculateCentroid(cloud);
-cloud->setGlobalShift(shift);
-```
-
-## ProjectFile (libs/io/projectfile.h)
-
-项目文件保存/加载，管理多点云工作区状态。
-
 ## CloudView (libs/viz/cloudview.h)
 
-基于 VTK 的三维可视化控件。
+基于 VTK 的三维可视化控件。通过 `view_params.h`（ct_core）获取相机参数，不再直接依赖 `projectfile.h`。
 
 **功能**:
 - 交互式点拾取（单点和多边形区域选择）
 - 相机控制和视口管理
 - 支持添加形状、箭头、标签、对应关系
 - 多点云渲染管理
-
-## Console (libs/viz/console.h)
-
-日志输出控件，提供 GUI 控制台输出功能。
+- 增量脏标记渲染（`invalidateCloudRenderDirty`）
 
 ## CloudType (libs/core/cloudtype.h)
 
-点类型定义与数据结构。
+点类型定义与数据结构。依赖 PCL 点类型和 Eigen（项目基石类型，短期内无法移除）。
 
-**类型定义**:
 ```cpp
-using RGB = pcl::RGB;
-struct PointXYZ { float x, y, z; };
+typedef pcl::PointXYZ PointXYZ;
+typedef pcl::PointXYZRGB PointXYZRGB;
+typedef pcl::PointXYZRGBNormal PointXYZRGBN;
+typedef pcl::Normal PointNormal;
 
-// 压缩法线（节省内存）
-struct CompressedNormal {
-    int nx : 11;  // [-1, 1] -> [0, 2047]
-    int ny : 11;
-    int nz : 10;
+struct ColorRGB { uint8_t r, g, b; };
+struct CompressedNormal { uint16_t data; }; // 球面坐标编码，2 bytes
+```
+
+## Colormap (libs/core/colormap.h)
+
+色图定义。使用 `std::string` / `std::vector<std::string>`，**无 Qt 依赖**。UI 层使用 `QString::fromStdString()` 转换。
+
+## ViewParams (libs/core/view_params.h)
+
+相机参数和视图选项，从 `projectfile.h` 移出，使 `ct_viz` 不再依赖 `ct_io`。
+
+## SurfaceVizHelper (libs/viz/surface_viz_helper.h/cpp)
+
+曲面重建的 VTK 渲染预处理，从 `libs/algorithm/surface` 移入 `libs/viz/`，实现算法层与可视化层彻底解耦。
+
+```cpp
+class SurfaceVizHelper {
+public:
+    static vtkSmartPointer<vtkPolyData> prepareForRendering(
+        const pcl::PolygonMesh& mesh);
 };
 ```
 
@@ -206,24 +174,13 @@ struct CompressedNormal {
 ### 1. 八叉树分区
 - 空间递归划分为 8 个子空间
 - 叶子节点最多存储 6 万个点（可配置）
-- 非连续内存分配
 
 ### 2. 流式 I/O
 - 批量加载（每批 50 万点）
 - 实时进度反馈
-- 内存峰值控制
 
 ### 3. 全局坐标偏移
-```cpp
-// 问题：UTM 坐标 (x=500000) 导致 GPU 精度丢失
-// 解决：渲染前减去质心
-pt.x -= shift.x();
-pt.y -= shift.y();
-pt.z -= shift.z();
-
-// 保存时加回
-pt.x += shift.x();
-```
+- 渲染前减去质心，保存时加回，解决 GPU 精度问题
 
 ### 4. 动态 LOD
 - 交互态：降低阈值，渲染粗糙 LOD
@@ -231,26 +188,4 @@ pt.x += shift.x();
 - SSE 策略：根据屏幕投影大小动态选择
 
 ### 5. 视锥剔除
-```cpp
-bool isBoxInFrustum(const Box& box, const double* planes) {
-    for (int i = 0; i < 6; ++i) {  // 6 个裁剪面
-        // 检查 8 个顶点是否都在平面外侧
-    }
-}
-```
-
-## 重要实现说明
-
-### 全局坐标偏移
-**问题**: 大坐标（如 UTM）导致 GPU 精度问题（抖动/卡顿）
-**解决方案**: 渲染前减去质心，保存时加回
-**配置**: `GlobalShiftDialog` 允许用户配置/记忆偏移值
-
-### PCL 集成
-- 内部使用 PCL 点云进行算法处理
-- 完整的 PCL 转换在大点云下可能导致内存问题，需选择性使用
-- 自定义 `Cloud` 类封装 PCL，添加八叉树索引
-
-### AOS vs SOA
-- **旧版本 (SOA)**: `std::vector<float> x, y, z;` - 多次内存跳转
-- **新版本 (AOS)**: `std::vector<PointXYZ> points;` - 连续内存访问
+- 6 个裁剪面检测 8 个顶点

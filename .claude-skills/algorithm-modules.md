@@ -2,6 +2,30 @@
 
 所有算法位于 `libs/algorithm/` 目录，编译为 `ct_algorithm` 静态库。核心原则：**耗时算法严禁在主线程执行**，必须通过 `QThread` 或 `QtConcurrent::run` 放入后台。
 
+## 重要约束
+
+- **零 VTK 依赖**: `libs/algorithm/` 中无任何 `#include <vtk...>`，CMakeLists 中无 `${VTK_LIBRARIES}` 链接
+- **渲染解耦**: 曲面重建的 VTK 渲染预处理由 `libs/viz/surface_viz_helper.cpp` 负责，算法层仅返回纯 PCL 数据
+
+## 异步执行规范
+
+工具/插件应使用 `ProgressManager::runAsync()` 统一执行异步任务：
+
+```cpp
+m_progress->runAsync("任务名称",
+    [=]() -> ResultType {
+        // 后台线程：执行耗时算法
+        return Algorithm::compute(params);
+    },
+    [=](ResultType result) {
+        // 主线程：处理结果、更新 UI
+        m_cloudtree->addResultGroup(...);
+    }
+);
+```
+
+**旧方式（已废弃）**: 手动创建 `QAtomicInt` + `QtConcurrent::run` + `QFutureWatcher` + `ProcessingDialog`。
+
 ## PCL 开发规范
 
 1. **智能指针**: 严禁裸指针。所有 PCL 对象必须使用其自带的 `Ptr` 类型
@@ -24,113 +48,46 @@
 
 ## Features (libs/algorithm/features.h)
 
-支持的特征描述符：
-
-| 描述符 | 全称 |
-|--------|------|
-| PFH | Point Feature Histogram |
-| FPFH | Fast Point Feature Histograms |
-| VFH | Viewpoint Feature Histogram |
-| SHOT | Signature of Histograms of OrienTations |
-| ESF | Ensemble of Shape Functions |
-| GASD | Globally Aligned Spatial Distribution |
+支持的描述符：PFH, FPFH, VFH, SHOT, ESF, GASD
 
 ## Registration (libs/algorithm/registration.h)
 
-配准算法：
-
-| 算法 | 说明 |
-|------|------|
-| ICP | 迭代最近点算法 |
-| ICPWithNormals | 带法线的 ICP |
-| ICPNonLinear | 非线性 ICP |
-| IA-RANSAC | SampleConsensusInitialAlignment |
-| SCPR | SampleConsensusPrerejective |
-| FPCS | FPCSInitialAlignment |
-| KFPCS | KFPCSInitialAlignment |
-| NDT | Normal Distributions Transform |
+配准算法：ICP, ICPWithNormals, ICPNonLinear, IA-RANSAC, SCPR, FPCS, KFPCS, NDT
 
 ## Keypoints (libs/algorithm/keypoints.h)
 
-关键点检测算法：
+关键点检测：ISS, Harris3D, SIFT3D, NARF
 
-| 算法 | 说明 |
-|------|------|
-| ISS | Intrinsic Shape Signatures |
-| Harris3D | Harris 3D 关键点 |
-| SIFT3D | SIFT 3D |
-| NARF | Normal Aligned Radial Features |
-
-## Normals (libs/algorithm/normals.h) — NEW
+## Normals (libs/algorithm/normals.h)
 
 法线估计模块。
 
-**功能**:
-- 点云法线估计与计算
-- 支持多种搜索半径和邻域策略
+## Segmentation (libs/algorithm/segmentation.h)
 
-## Segmentation (libs/algorithm/segmentation.h) — NEW
+点云分割：区域生长、平面分割、欧式聚类、RANSAC
 
-点云分割模块。
+## Surface (libs/algorithm/surface.h)
 
-**功能**:
-- 区域生长分割
-- 平面分割
-- 欧式聚类分割
-- RANSAC 分割
+曲面重建模块。**仅含纯 PCL 数据，不含 VTK 类型**。
 
-## Surface (libs/algorithm/surface.h) — NEW
-
-曲面重建模块。
-
-**功能**:
-- 点云到网格转换
-- 三角化与曲面拟合
+```cpp
+struct SurfaceResult {
+    pcl::PolygonMesh mesh;
+    // 渲染预处理由 SurfaceVizHelper（libs/viz/）负责
+};
+```
 
 ## CSFFilter (libs/algorithm/csffilter.h)
 
-布料模拟地面滤波器。
-
-**参数**:
-- `bSloopSmooth` - 坡度平滑
-- `time_step` - 时间步长
-- `class_threshold` - 分类阈值
-- `cloth_resolution` - 布料分辨率
-- `rigidness` - 布料硬度 (1-3)
-- `iterations` - 迭代次数
+布料模拟地面滤波器。参数：bSloopSmooth, time_step, class_threshold, cloth_resolution, rigidness, iterations
 
 ## VegFilter (libs/algorithm/vegfilter.h)
 
-植被分割滤波器。
-
-**植被指数类型**:
-```cpp
-enum class VegIndexType {
-    ExG_ExR,  // Excess Green - Excess Red
-    ExG,      // Excess Green: 2g - r - b
-    NGRDI,    // (g - r) / (g + r)
-    CIVE      // 0.441r - 0.811g + 0.385b + 18.787
-};
-```
-
-**阈值策略**:
-- 用户手动设置
-- Otsu 自动阈值（大津法）
+植被分割滤波器。支持 ExG_ExR, ExG, NGRDI, CIVE 四种植被指数。
 
 ## DistanceCalculator (libs/algorithm/distancecalculator.h)
 
-点云距离计算（变化检测）。
-
-**距离计算方法**:
-```cpp
-enum Method {
-    C2C_NEAREST = 0,      // 最近邻距离
-    C2C_KNN_MEAN = 1,     // K 近邻平均距离
-    C2C_RADIUS_MEAN = 2,  // 半径内平均距离
-    C2M_SIGNED = 3,       // 点到网格有符号距离（预留）
-    M3C2 = 4              // M3C2 算法（预留）
-};
-```
+点云距离计算（变化检测）。支持 C2C、C2M、C2P、CPS 等距离方法。参数类型定义在 `libs/core/field_types.h`。
 
 ## utils.h (libs/algorithm/utils.h)
 

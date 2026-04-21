@@ -22,25 +22,11 @@ cmake --build build --config Release
 
 ## 编译器标志 (MSVC)
 
-- `/MP` - 多处理器编译（根据 CPU 核心数自动设置）
+- `/MP` - 多处理器编译
 - `/fp:precise` - 精确浮点运算
 - `/bigobj` - 支持大对象文件
 - `/wd4996` - 禁用 CRT 安全警告
 - `/source-charset:utf-8` - 源文件 UTF-8 编码
-
-## CMake 配置选项
-
-```cmake
-# Qt 路径（如需要手动指定）
-set(CMAKE_PREFIX_PATH "D:/Qt5.15/5.15.2/msvc2019_64")
-
-# OpenMP 支持
-option(WITH_OPENMP "Build with parallelization using OpenMP" TRUE)
-
-# Python 3.9（硬编码路径，需根据本地环境修改）
-set(MY_NATIVE_PYTHON_DIR "F:/Program Files/Python39")
-set(Python3_ROOT_DIR ${MY_NATIVE_PYTHON_DIR})
-```
 
 ## 库结构
 
@@ -50,17 +36,18 @@ set(Python3_ROOT_DIR ${MY_NATIVE_PYTHON_DIR})
 ```cmake
 add_library(ct_core SHARED ...)
 target_link_libraries(ct_core
-    PUBLIC Qt5::Widgets ${PCL_LIBRARIES}
+    PUBLIC ${PCL_LIBRARIES}
     PRIVATE LASlib OpenMP::OpenMP_CXX)
-target_compile_definitions(ct_core PRIVATE CT_LIBRARY)
 ```
 
 ### ct_viz (libs/viz/CMakeLists.txt) — SHARED
 ```cmake
 add_library(ct_viz SHARED ...)
 target_link_libraries(ct_viz
-    PRIVATE ct_core ct_io Qt5::Widgets ${VTK_LIBRARIES} ${PCL_LIBRARIES})
+    PUBLIC ct_core ct_io Qt5::Widgets ${VTK_LIBRARIES} ${PCL_LIBRARIES})
 ```
+
+> `ct_viz` 仍 PUBLIC 依赖 `ct_io`（因为部分渲染功能需要文件路径解析）。
 
 ### ct_io (libs/io/CMakeLists.txt) — SHARED
 ```cmake
@@ -68,30 +55,35 @@ add_library(ct_io SHARED ...)
 target_link_libraries(ct_io
     PUBLIC ct_core Qt5::Widgets
     PRIVATE LASlib E57Format)
-target_compile_definitions(ct_io PRIVATE CT_BUILDING_CT_IO)
 ```
 
-> ct_io 使用 `file(GLOB *.cpp)` 自动收集源文件，新增 .cpp 无需手动注册。
+> `textured_mesh.h` 已从 `libs/io/` 移至 `libs/core/`。
 
 ### ct_algorithm (libs/algorithm/CMakeLists.txt) — STATIC
 ```cmake
 add_library(ct_algorithm STATIC ...)
 target_link_libraries(ct_algorithm
-    PRIVATE ct_core CSF_Lib ${PCL_LIBRARIES} ${VTK_LIBRARIES} OpenMP::OpenMP_CXX)
+    PUBLIC ct_core
+    PRIVATE ${PCL_LIBRARIES} CSF_Lib OpenMP::OpenMP_CXX)
 ```
+
+> **零 VTK 依赖**。VTK 渲染预处理已移至 `libs/viz/surface_viz_helper.cpp`。
 
 ### ct_ui_dialog (libs/ui/CMakeLists.txt) — STATIC
 ```cmake
 add_library(ct_ui_dialog STATIC ...)
-target_link_libraries(ct_ui_dialog PRIVATE ct_core Qt5::Widgets)
+target_link_libraries(ct_ui_dialog PUBLIC ct_core Qt5::Widgets)
 ```
 
 ### ct_ui_base (libs/ui/CMakeLists.txt) — STATIC
 ```cmake
 add_library(ct_ui_base STATIC ...)
 target_link_libraries(ct_ui_base
-    PUBLIC ct_ui_dialog ct_core ct_viz ct_io Qt5::Widgets)
+    PUBLIC ct_ui_dialog ct_core ct_viz
+    PRIVATE ct_io Qt5::Widgets Qt5::Charts)
 ```
+
+> **`ct_io` 为 PRIVATE**：仅 `cloud_io_controller.cpp` 使用。所有 `ct_ui_base` 公共头文件不含 `io/` 路径引用。
 
 ### ct_python (libs/python/CMakeLists.txt) — OBJECT
 ```cmake
@@ -113,44 +105,37 @@ target_link_libraries(pointworks PRIVATE
 
 ### LAStools
 ```cmake
-set(LASZIP_BUILD_STATIC ON CACHE BOOL "Build static laszip" FORCE)
-set(LASLIB_BUILD_STATIC ON CACHE BOOL "Build static laslib" FORCE)
+set(LASZIP_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(LASLIB_BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(3rdparty/LAStools)
 target_link_libraries(ct_core PRIVATE LASlib)
 ```
 
 ### CSF
 ```cmake
-# 3rdparty/CSF/CMakeLists.txt:
-file(GLOB CSF_Srcs "src/*.cpp")
-file(GLOB CSF_Hdrs "src/*.h")
-add_library(CSF_Lib STATIC ${CSF_Srcs} ${CSF_Hdrs})
-target_link_libraries(CSF_Lib PRIVATE OpenMP::OpenMP_CXX)
-
-# 链接
+add_library(CSF_Lib STATIC ...)
 target_link_libraries(ct_algorithm PRIVATE CSF_Lib)
 ```
 
 ### pybind11
 ```cmake
 add_subdirectory(3rdparty/pybind11)
-# ct_python 通过 pybind11::embed 链接
 ```
 
 ## 文件格式支持
 
 | 格式 | 扩展名 | 读取 | 写入 | 说明 |
 |------|--------|------|------|------|
-| LAS | .las | √ | √ | ASPRS LAS 格式（LASlib） |
-| LAZ | .laz | √ | √ | 压缩 LAS 格式（LASlib） |
-| E57 | .e57 | √ | √ | 工业扫描格式（E57Format） |
-| PLY | .ply | √ | √ | Stanford PLY 格式（点云+网格） |
-| PCD | .pcd | √ | √ | PCL 点云格式 |
-| TXT | .txt/.xyz/.asc | √ | √ | 文本格式（支持字段映射和交互式配置） |
-| OBJ | .obj | √ | √ | Wavefront OBJ 格式（支持纹理检测） |
-| STL | .stl | √ | √ | STL 网格格式 |
-| VTK | .vtk | √ | √ | VTK PolyData 格式 |
-| IFS | .ifs | √ | - | IFS 网格格式 |
+| LAS | .las | Y | Y | ASPRS LAS 格式（LASlib） |
+| LAZ | .laz | Y | Y | 压缩 LAS 格式（LASlib） |
+| E57 | .e57 | Y | Y | 工业扫描格式（E57Format） |
+| PLY | .ply | Y | Y | Stanford PLY 格式（点云+网格） |
+| PCD | .pcd | Y | Y | PCL 点云格式 |
+| TXT | .txt/.xyz/.asc | Y | Y | 文本格式（支持字段映射和交互式配置） |
+| OBJ | .obj | Y | Y | Wavefront OBJ 格式（支持纹理检测） |
+| STL | .stl | Y | Y | STL 网格格式 |
+| VTK | .vtk | Y | Y | VTK PolyData 格式 |
+| IFS | .ifs | Y | - | IFS 网格格式 |
 
 ## 预处理器定义
 
@@ -159,4 +144,6 @@ add_subdirectory(3rdparty/pybind11)
 | `ROOT_PATH` | 项目根目录 | 项目源码路径 |
 | `DATA_PATH` | data/ | 数据文件路径 |
 | `PYTHON_HOME` | Python 安装目录 | 嵌入式 Python 解释器路径 |
-| `CT_LIBRARY` | - | 标记库导出（用于 Windows DLL） |
+| `CT_BUILDING_CT_CORE` | - | 标记 ct_core 库构建 |
+| `CT_BUILDING_CT_IO` | - | 标记 ct_io 库构建 |
+| `CT_BUILDING_CT_VIZ` | - | 标记 ct_viz 库构建 |

@@ -1,42 +1,105 @@
 # UI 组件、工具与插件系统
 
+## 架构概述
+
+CloudTree 上帝类已拆分为 4 个专注组件：
+
+```
+CloudTree（精简）
+├── CloudRegistry      — 云/网格/形状注册表
+├── CloudIOController  — 文件 I/O 编排（PRIVATE ct_io）
+└── ProgressManager    — 进度/取消/异步执行统一接口
+```
+
+## DialogRegistry (libs/ui/base/dialog_registry.h)
+
+单例类，替代原有的 `static` 全局变量，管理所有对话框和停靠栏。
+
+**API**:
+```cpp
+DialogRegistry& reg = DialogRegistry::instance();
+reg.registerDialog("Filters", dlg);
+reg.getDialog("Filters");
+reg.hasOpenDialog();       // 互斥检查
+reg.unregisterDialog("Filters");  // destroyed 信号自动调用
+```
+
+## ProgressManager (libs/ui/base/progress_manager.h)
+
+统一进度管理，替代 20+ 处重复的并发样板代码。
+
+**统一异步执行**:
+```cpp
+// 旧方式：15 行样板代码（QAtomicInt + QtConcurrent + QFutureWatcher + closeProgress）
+// 新方式：
+m_progress->runAsync("CSF 地面分割",
+    [=]() -> CSFResult {
+        return CSFFilter::apply(cloud, params, progress);
+    },
+    [=](CSFResult result) {
+        // 完成回调（主线程）
+    }
+);
+```
+
+**获取方式**: 通过 `CustomDialog` 基类的 `m_progress` 成员，`createDialog<T>` 自动注入。
+
+## CloudRegistry (libs/ui/base/cloudregistry.h)
+
+云/网格/形状注册表，从 CloudTree 提取的数据管理组件。
+
+**管理内容**:
+- `m_cloud_map`: QTreeWidgetItem* → Cloud::Ptr
+- `m_mesh_map`: cloudId → PolygonMesh::Ptr
+- `m_textured_mesh_map`: cloudId → TexturedMeshPtr
+- `m_shape_map`: shapeId → PolygonMesh::Ptr
+- `m_cloud_polyline_map`: shapeId → Cloud::Ptr
+- `m_clouds_in_use`: 脚本删除保护
+
+**获取方式**: 通过 `CloudTree::registry()` 或 `m_cloudtree->registry()`。
+
+## CloudIOController (libs/ui/base/cloud_io_controller.h)
+
+文件 I/O 编排，从 CloudTree 提取。头文件仅使用 `ct_core` 类型和前向声明 `class FileIO`，**不依赖 ct_io 头文件**。`ct_io` 仅在 `.cpp` 中链接（PRIVATE）。
+
+**获取方式**: 通过 `CloudTree::ioController()` 或 `m_cloudtree->ioController()`。
+
+## CloudTree (libs/ui/base/cloudtree.h)
+
+精简后的点云树 UI 控件，仅负责：
+- 树节点管理（插入、删除、克隆、合并）
+- 右键菜单
+- 复选框/拖放
+- 通过组合持有 `CloudRegistry`、`CloudIOController`、`ProgressManager`
+
+```cpp
+class CloudTree : public CustomTree {
+    CloudRegistry* m_registry;
+    CloudIOController* m_io;
+    ProgressManager* m_progress;
+    QMenu* m_tree_menu;
+};
+```
+
 ## CustomDialog (libs/ui/base/customdialog.h)
 
 对话框基类。
 
 **特性**:
-- 依赖注入模式（通过构造函数注入 CloudView、CloudTree、Console）
+- 依赖注入（CloudView、CloudTree、Console、ProgressManager）
 - 自动位置管理（工具浮窗跟随 CloudView）
-- 单例管理（`registed_dialogs` 全局注册表）
+- `DialogRegistry` 单例管理
+- `Qt::WA_DeleteOnClose` 自动清理
 
 **使用模式**:
 ```cpp
-// 创建工具浮窗（无边框、跟随视图）
-createDialog<Filters>(parent, "Filters", cloudview, cloudtree, console,
-                      true, false);
+// 工具浮窗（无边框、跟随视图）
+ct::createDialog<Filters>(parent, "Filters", cloudview, cloudtree, console,
+                           true, false);
 
-// 创建模态对话框（阻塞、居中）
-createModalDialog<GlobalShiftDialog>(parent, "Global Shift", ...);
-```
-
-## CloudTree (libs/ui/base/cloudtree.h)
-
-点云树管理控件。
-
-**核心功能**:
-- 点云添加/删除/保存
-- 节点克隆/合并
-- 右键菜单管理
-- 进度条绑定
-
-**数据结构**:
-```cpp
-class CloudTree {
-    QMap<QTreeWidgetItem*, Cloud::Ptr> m_cloud_map;  // Item -> Cloud 映射
-    QThread m_thread;                                 // 文件 I/O 线程
-    FileIO* m_fileio;                                 // 文件 I/O 实例
-    ProcessingDialog* m_processing_dialog;            // 进度对话框
-};
+// 模态对话框（阻塞、居中）
+ct::createDialog<DisplaySettingsDialog>(parent, "Display Settings",
+    cloudview, cloudtree, console, false, true);
 ```
 
 ## 通用对话框 (libs/ui/dialog/)
@@ -57,10 +120,8 @@ class CloudTree {
 | Cutting | src/tool/cutting.h | 包围盒裁剪、多边形裁剪 |
 | PickPoints | src/tool/pickpoints.h | 单点拾取、多边形区域选择 |
 | RangeImage | src/tool/rangeimage.h | 深度图、边界提取、法线估计 |
-| Segmentation | src/tool/segmentation.h | 点云分割 |
-| Surface | src/tool/surface.h | 曲面重建 |
-| Boundary | src/tool/boundary.h | 边界提取 |
 | Sampling | src/tool/sampling.h | 点云采样 |
+| Measure | src/tool/measure.h | 距离测量 |
 | AlignByCenters | src/tool/align_by_centers.h | 中心对齐 |
 | GlobalRegistration | src/tool/global_registration.h | 全局配准 |
 | FineRegistration | src/tool/fine_registration.h | 精配准 |
@@ -79,42 +140,7 @@ class CloudTree {
 
 ## 选项设置 (src/options/)
 
-采用 QListWidget 侧栏 + QStackedWidget 的模块化设置页面架构，便于后续扩展。
-
-### DisplaySettingsDialog (src/options/displaysettings.h)
-
-Display Settings 容器对话框，位于 Options 菜单栏。
-
-**架构**:
-```cpp
-class DisplaySettingsDialog : public ct::CustomDialog {
-    void addPage(const QString& name, DisplaySettingsPage* page);
-    QListWidget* m_sidebar;    // 左侧页面选择
-    QStackedWidget* m_pages;   // 右侧页面内容
-};
-```
-
-**设置页面基类**:
-```cpp
-class DisplaySettingsPage : public QWidget {
-    virtual void apply() = 0;
-    virtual void reset() = 0;
-};
-```
-
-### ColorsPage (src/options/displaysettings_colors_page.h)
-
-软件显示颜色设置（背景色 + 包围盒色），非数据颜色。数据颜色通过 Edit > Colors 设置。
-
-| 设置项 | 说明 |
-|--------|------|
-| 背景色 | 3D 视图背景颜色（可选预设或自定义） |
-| 包围盒色 | 选中节点的包围盒显示颜色 |
-
-**添加新设置页**:
-1. 创建 `src/options/xxx_page.h/cpp`，继承 `DisplaySettingsPage`
-2. 实现 `apply()` / `reset()`
-3. 在 `DisplaySettingsDialog::init()` 中调用 `addPage("名称", new XxxPage(...))`
+采用 QListWidget 侧栏 + QStackedWidget 的模块化设置页面架构。
 
 ## 插件系统
 
@@ -124,20 +150,11 @@ class DisplaySettingsPage : public QWidget {
 
 ```cpp
 class Plugin : public ct::CustomDialog {
-    QThread m_thread;           // 工作线程
-    Worker* m_worker;           // 算法实例
-    ct::Cloud::Ptr m_cloud;     // 输入点云
-
     void init() override;       // 设置 UI 连接
-    void onApply();             // 开始处理
-    void onDone(Result);        // 处理完成
+    void onApply();             // 使用 m_progress->runAsync() 执行
+    void onDone(Result);        // 完成回调
 };
 ```
-
-**工作线程模式**: 耗时操作在 `QThread` 中运行：
-- `progress(int percent)` 信号用于进度跟踪
-- 原子标志 `m_is_canceled` 用于协作式取消
-- 模态对话框 `ProcessingDialog` 提供用户反馈
 
 ### 已有插件 (src/plugins/)
 
@@ -146,3 +163,6 @@ class Plugin : public ct::CustomDialog {
 | CSFPlugin | src/plugins/csfplugin.h | 地面点分割 |
 | VegPlugin | src/plugins/vegplugin.h | 植被分割（4 种植被指数 + Otsu） |
 | ChangeDetectPlugin | src/plugins/changedetectplugin.h | 变化检测（多种距离方法 + Jet 色带） |
+
+> 注意：`changedetectplugin.cpp` 仍直接访问 `CloudBlock` 内部（`->m_points` 等），
+> 因为该文件使用 block 批量遍历模式，`forEachPoint` 无法直接替代，需后续迭代处理。
