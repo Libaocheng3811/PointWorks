@@ -139,7 +139,7 @@ namespace ct
 
             dlg->init();
 
-            QObject::connect(dlg, &QDialog::destroyed, [&] { reg.unregisterDialog(label); });
+            QObject::connect(dlg, &QDialog::destroyed, [=] { DialogRegistry::instance().unregisterDialog(label); });
 
             if (isModal){
                 dlg->setWindowModality(Qt::ApplicationModal);

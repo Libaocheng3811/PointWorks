@@ -2,19 +2,13 @@
 
 #include "viz/cloudview.h"
 
-#include "core/field_types.h"
 #include "core/colormap.h"
 #include "widgets/sf_display_panel.h"
-
-#include "dialog/fieldmappingdialog.h"
-#include "dialog/txtimportdialog.h"
-#include "dialog/txtexportdialog.h"
 
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
 
 #include <cfloat>
-#include <QMetaType>
 
 #include <QCheckBox>
 #include <QFileDialog>
@@ -37,122 +31,54 @@
 
 namespace ct
 {
-    // ROOT_PATH指向程序根目录路径
     CloudTree::CloudTree(QWidget *parent)
         : CustomTree(parent),
-        m_path(ROOT_PATH),
-        m_thread(this),
         m_tree_menu(nullptr),
-        m_progress(new ProgressManager(this))
+        m_progress(new ProgressManager(this)),
+        m_registry(new CloudRegistry(this)),
+        m_io(new CloudIOController(this))
     {
-        // register meat type
-        // qRegisterMetaType 函数用于注册一个自定义类型，以便它可以被用于 Qt 的元对象系统
-        qRegisterMetaType<Cloud::Ptr>("Cloud::Ptr &");
-        qRegisterMetaType<Cloud::Ptr>("Cloud::Ptr");
-        qRegisterMetaType<pcl::PolygonMesh::Ptr>("pcl::PolygonMesh::Ptr");
-        qRegisterMetaType<QList<ct::FieldInfo>>("QList<ct::FieldInfo>");
-        qRegisterMetaType<QMap<QString, QString>>("QMap<QString, QString>&");
-        qRegisterMetaType<ct::TxtImportParams>("ct::TxtImportParams");
-        qRegisterMetaType<ct::TxtExportParams>("ct::TxtExportParams");
-        qRegisterMetaType<ct::TexturedMeshPtr>("ct::TexturedMeshPtr"); // 保留：TexturedMeshPtr 在其他地方可能使用
-        qRegisterMetaType<std::vector<int>>("std::vector<int>");
-
-        // move to thread
-        m_fileio = new FileIO;
-        m_fileio->moveToThread(&m_thread);
-        connect(&m_thread, &QThread::finished, m_fileio, &QObject::deleteLater);
-        connect(m_fileio, &FileIO::loadCloudResult, this, &CloudTree::loadCloudResult);
-        connect(m_fileio, &FileIO::loadTexturedMeshResult, this, &CloudTree::loadTexturedMeshResult);
-        connect(m_fileio, &FileIO::saveCloudResult, this, &CloudTree::saveCloudResult);
-        connect(m_fileio, &FileIO::saveMeshResult, this, &CloudTree::saveMeshResult);
-
-        connect(this, &CloudTree::loadPointCloud, m_fileio, &FileIO::loadPointCloud);
-        connect(this, &CloudTree::savePointCloud, m_fileio, &FileIO::savePointCloud);
-        connect(this, &CloudTree::saveMeshFile, m_fileio, &FileIO::saveMesh);
+        m_io->init(this, m_progress);
+        connect(m_io, &CloudIOController::cloudLoaded, this, &CloudTree::handleCloudLoaded);
+        connect(m_io, &CloudIOController::texturedMeshLoaded, this, &CloudTree::handleTexturedMeshLoaded);
+        connect(m_io, &CloudIOController::saveComplete, this, &CloudTree::handleSaveComplete);
+        connect(m_io, &CloudIOController::meshSaveComplete, this, &CloudTree::handleMeshSaveComplete);
         connect(this, &QTreeWidget::itemChanged, this, &CloudTree::itemChangedEvent);
         connect(this, &CloudTree::itemSelectionChanged, this, &CloudTree::itemSelectionChangedEvent);
-
-        connect(m_fileio, &FileIO::requestFieldMapping, this, &CloudTree::onFieldMappingRequested, Qt::BlockingQueuedConnection);
-        connect(m_fileio, &FileIO::requestTxtImportSetup, this, &CloudTree::onTxtImportRequested, Qt::BlockingQueuedConnection);
-        connect(m_fileio, &FileIO::requestTxtExportSetup, this, &CloudTree::onTxtExportRequested, Qt::BlockingQueuedConnection);
-        connect(m_fileio, &FileIO::requestGlobalShift, this, &CloudTree::onGlobalFilterRequested, Qt::BlockingQueuedConnection);
-        // 设置窗口部件接受拖放操作
         this->setAcceptDrops(true);
-
-        m_thread.start();
     }
 
     CloudTree::~CloudTree()
     {
-        m_thread.quit();
-        if (!m_thread.wait(3000))
-        {
-            m_thread.terminate();
-            m_thread.wait();
-        }
-        m_cloud_map.clear();
+        m_registry->clear();
     }
 
     Cloud::Ptr CloudTree::getCloud(QTreeWidgetItem *item) {
-        return m_cloud_map.value(item, nullptr);
+        return m_registry->getCloud(item);
     }
 
     void CloudTree::addCloud()
     {
-        /**
-         * @note 文件过滤器
-         * 文件过滤器的写法遵循一定的格式，filter = "filterName(pattern1 pattern2 ...)";
-         * filterName 是一个描述性的名字，用于在文件对话框中显示给用户。如 all, ply
-         * pattern1 pattern2 ... 是一个或多个文件模式，它们定义了过滤器匹配的文件类型, 如 *.*, *.ply
-         */
-        // 点云格式
-        QString pointCloudFilters = "Point Cloud Files (*.ply *.pcd *.las *.laz *.e57 *.txt *.asc *.xyz);;"
-                                   "PLY (*.ply);;PCD (*.pcd);;LAS (*.las);;LAZ (*.laz);;E57 (*.e57);;TXT (*.txt *.asc *.xyz)";
-        // 模型格式
-        QString meshFilters = "Mesh Files (*.obj *.stl *.vtk *.ifs);;"
-                             "OBJ (*.obj);;STL (*.stl);;VTK (*.vtk);;IFS (*.ifs)";
-        QString filter = pointCloudFilters + ";;" + meshFilters + ";;All Supported(*.ply *.pcd *.las *.laz *.e57 *.txt *.asc *.xyz *.obj *.stl *.vtk *.ifs);;All Files(*.*)";
-        // 打开文件对话框,可以选择多个文件
-        QStringList filePathList = QFileDialog::getOpenFileNames(this, tr("Open Files"), m_path, filter);
-        if (filePathList.isEmpty()) return;
-
-        m_progress->setLoadingQueueCount(filePathList.size());
-
-        showProgress("Loading Point Cloud...");
-
-        bindWorker(m_fileio);
-
-        for (auto& i : filePathList)
-            emit loadPointCloud(i);
+        m_io->addCloud();
     }
 
     void CloudTree::loadCloudFile(const QString& filepath)
     {
-        m_pending_parents.clear();
-        showProgress("Loading Point Cloud...");
-        bindWorker(m_fileio);
-        m_progress->setLoadingQueueCount(1);
-        emit loadPointCloud(filepath);
+        m_io->loadCloudFile(filepath);
     }
 
     void CloudTree::loadCloudFile(const QString& filepath, QTreeWidgetItem* targetParent)
     {
-        m_pending_parents[QFileInfo(filepath).absoluteFilePath()] = targetParent;
-        showProgress("Loading Point Cloud...");
-        bindWorker(m_fileio);
-        m_progress->setLoadingQueueCount(1);
-        emit loadPointCloud(filepath);
+        m_io->loadCloudFile(filepath, targetParent);
     }
 
     void CloudTree::saveCloudFile(const Cloud::Ptr& cloud, const QString& filepath, bool isBinary)
     {
-        showProgress("Saving Point Cloud...");
-        bindWorker(m_fileio);
-        emit savePointCloud(cloud, filepath, isBinary);
+        m_io->saveCloudFile(cloud, filepath, isBinary);
     }
 
     QTreeWidgetItem* CloudTree::getItemById(const QString &id) {
-        return m_item_by_id.value(id, nullptr);
+        return m_registry->getItemById(id);
     }
 
 
@@ -223,8 +149,7 @@ namespace ct
         QTreeWidgetItem* newItem = addItem(actualParent, QString::fromStdString(cloud->id()), nodeType, false);
         this->blockSignals(wasBlocked);
 
-        m_cloud_map.insert(newItem, cloud);
-        m_item_by_id.insert(QString::fromStdString(cloud->id()), newItem);
+        m_registry->registerCloud(newItem, cloud);
 
         // Mesh 节点由 registerMesh 通过 addMeshActor 渲染，不添加点云散点
         if (nodeType != NodeMesh) {
@@ -316,7 +241,7 @@ namespace ct
         // 删除保护：检查是否有被脚本使用的点云
         for (QTreeWidgetItem* c : allChildren){
             Cloud::Ptr cloud = getCloud(c);
-            if (cloud && m_clouds_in_use.contains(QString::fromStdString(cloud->id()))) {
+            if (cloud && m_registry->isCloudInUse(QString::fromStdString(cloud->id()))) {
                 printW(QString("Cloud[%1] is in use by script, cannot delete").arg(QString::fromStdString(cloud->id())));
                 return;
             }
@@ -332,12 +257,11 @@ namespace ct
                 m_cloudview->removePointCloud(cid);
                 m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
                 m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
-                m_cloud_map.remove(c);
-                m_item_by_id.remove(cid);
+                m_registry->unregisterCloud(c);
                 // 清理关联的 PolygonMesh / TexturedMesh
-                if (m_textured_mesh_map.contains(cid)) {
+                if (m_registry->getTexturedMesh(cid) != nullptr) {
                     unregisterTexturedMesh(cid);
-                } else if (m_mesh_map.contains(cid)) {
+                } else if (m_registry->hasMesh(cid)) {
                     unregisterMesh(cid);
                 }
             } else {
@@ -345,8 +269,8 @@ namespace ct
                 QString shape_id = c->data(0, NodeShapeIdRole).toString();
                 if (!shape_id.isEmpty()) {
                     m_cloudview->removeShape(shape_id);
-                    m_shape_map.remove(shape_id);
-                    m_cloud_polyline_map.remove(shape_id);
+                    m_registry->unregisterShape(shape_id);
+                    m_registry->unregisterCloudPolyline(shape_id);
                 }
             }
         }
@@ -361,8 +285,8 @@ namespace ct
     void CloudTree::removeAllClouds()
     {
         // 检查是否有任何点云正在被脚本使用
-        if (!m_clouds_in_use.isEmpty()) {
-            printW(QString("Cannot remove all: %1 cloud(s) in use by script").arg(m_clouds_in_use.size()));
+        if (!m_registry->cloudsInUse().isEmpty()) {
+            printW(QString("Cannot remove all: %1 cloud(s) in use by script").arg(m_registry->cloudsInUse().size()));
             return;
         }
 
@@ -375,8 +299,7 @@ namespace ct
 
         m_cloudview->removeAllPointClouds();
         m_cloudview->removeAllShapes();
-        m_cloud_map.clear();
-        m_item_by_id.clear();
+        m_registry->clear();
 
         m_cloudview->setAutoRender(true);
         m_cloudview->refresh();
@@ -389,7 +312,9 @@ namespace ct
 
         // 检查节点是否有关联的 mesh
         QString cloudId = QString::fromStdString(cloud->id());
-        bool has_mesh = m_mesh_map.contains(cloudId) && !m_mesh_map[cloudId]->polygons.empty();
+        bool has_mesh = false;
+        auto _save_mesh = m_registry->getMesh(cloudId);
+        if (_save_mesh && !_save_mesh->polygons.empty()) has_mesh = true;
 
         // 根据是否有关联 mesh 构建不同的保存过滤器
         QString filter;
@@ -414,13 +339,13 @@ namespace ct
         if (save_as_mesh) {
             // Mesh 保存路径（PLY 也会保存面片信息）
             showProgress("Saving Mesh...");
-            bindWorker(m_fileio);
-            emit saveMeshFile(m_mesh_map[cloudId], filepath);
+            bindWorker(m_io);
+            m_io->saveMeshFile(_save_mesh, filepath);
         } else if (suffix == "e57") {
             // E57 无需选择 binary/ascii（自带压缩）
             showProgress("Saving E57...");
-            bindWorker(m_fileio);
-            emit savePointCloud(cloud, filepath, true);
+            bindWorker(m_io);
+            m_io->saveCloudFile(cloud, filepath, true);
         } else {
             // 点云保存路径（PLY mesh 也走这里，让用户选择 binary/ascii）
             QMessageBox message_box(QMessageBox::NoIcon, "Saved format", tr("Save in binary or ascii format?"),
@@ -436,8 +361,8 @@ namespace ct
             }
 
             showProgress("Saving Point Cloud...");
-            bindWorker(m_fileio);
-            emit savePointCloud(cloud, filepath, k);
+            bindWorker(m_io);
+            m_io->saveCloudFile(cloud, filepath, k);
         }
     }
 
@@ -459,9 +384,8 @@ namespace ct
         m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
         m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
 
-        m_item_by_id.remove(QString::fromStdString(cloud->id()));
+        m_registry->updateItemId(QString::fromStdString(cloud->id()), name, item);
         cloud->setId(name.toStdString());
-        m_item_by_id.insert(name, item);
         printI(QString("Rename done."));
     }
 
@@ -479,11 +403,7 @@ namespace ct
 
     std::vector<Cloud::Ptr> CloudTree::getAllClouds()
     {
-        std::vector<Cloud::Ptr> clouds;
-        QList<Cloud::Ptr> values = m_cloud_map.values();
-
-        for (const auto& c : values) clouds.push_back(c);
-        return clouds;
+        return m_registry->getAllClouds();
     }
 
     void CloudTree::removeSelectedClouds() {
@@ -683,90 +603,53 @@ namespace ct
         item->setSelected(selected);
     }
 
-    void CloudTree::loadCloudResult(bool success, const Cloud::Ptr &cloud, const pcl::PolygonMesh::Ptr &mesh, float time)
+    void CloudTree::handleCloudLoaded(const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh,
+                                       QTreeWidgetItem* targetParent, float time)
     {
-        if (!success)
+        if (!cloud) {
             printE("load the file failed!");
-        else
-        {
-            printI(QString("Load the file [path:%1] done, take time %2 ms.").arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
-            m_path = QFileInfo(QString::fromStdString(cloud->filepath())).path();
-
-            // 判断是否为 mesh 文件（含面片数据）
-            bool isMesh = mesh && !mesh->polygons.empty();
-            SceneNodeType nodeType = isMesh ? NodeMesh : NodeCloud;
-
-            if (!m_pending_parents.isEmpty())
-            {
-                // 恢复模式：查找对应的目标父节点（不创建 FileNode）
-                QString fp = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
-                QTreeWidgetItem* parent = m_pending_parents.value(fp, nullptr);
-                if (parent) {
-                    insertCloud(cloud, parent, true, MountStrategy::Auto, nodeType);
-                    m_pending_parents.remove(fp);
-                } else {
-                    // fallback：未找到匹配的父节点，按普通模式处理
-                    QString folderName = QFileInfo(fp).fileName();
-                    QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fp + ")", NodeFile);
-                    fileNode->setData(0, NodeFilePathRole, fp);
-                    insertCloud(cloud, fileNode, true, MountStrategy::Auto, nodeType);
-                }
-            }
-            else
-            {
-                // 普通加载模式：创建 FileNode 作为根节点
-                QString folderName = QFileInfo(QString::fromStdString(cloud->filepath())).fileName();
-                QString fullPath = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
-                QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fullPath + ")", NodeFile);
-                fileNode->setData(0, NodeFilePathRole, fullPath);
-                insertCloud(cloud, fileNode, true, MountStrategy::Auto, nodeType);
-            }
-
-            // 如果加载了 mesh（含面片），注册到视图
-            if (mesh && !mesh->polygons.empty()) {
-                QString cloudId = QString::fromStdString(cloud->id());
-                registerMesh(cloudId, mesh);
-                printI(QString("Mesh detected: %1 polygons").arg(mesh->polygons.size()));
-            }
+            m_progress->closeProgress();
+            return;
         }
-        m_progress->setLoadingQueueCount(m_progress->loadingQueueCount() - 1);
-        if (m_progress->loadingQueueCount() <= 0) {
-            m_progress->setLoadingQueueCount(0);
-            closeProgress();
+
+        printI(QString("Load the file [path:%1] done, take time %2 ms.").arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
+
+        bool isMesh = mesh && !mesh->polygons.empty();
+        SceneNodeType nodeType = isMesh ? NodeMesh : NodeCloud;
+
+        if (targetParent) {
+            // 恢复模式
+            insertCloud(cloud, targetParent, true, MountStrategy::Auto, nodeType);
         } else {
-            // 还有任务在队列中，更新界面提示，而不是关闭
-            if (m_progress->dialog()) {
-                m_progress->dialog()->setProgress(0);
-                QString msg = QString("Loading Point Cloud... (%1 remaining)").arg(m_progress->loadingQueueCount());
-                m_progress->dialog()->setMessage(msg);
-            }
+            // 普通加载模式
+            QString folderName = QFileInfo(QString::fromStdString(cloud->filepath())).fileName();
+            QString fullPath = QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath();
+            QTreeWidgetItem* fileNode = addItem(nullptr, folderName + "  (" + fullPath + ")", NodeFile);
+            fileNode->setData(0, NodeFilePathRole, fullPath);
+            insertCloud(cloud, fileNode, true, MountStrategy::Auto, nodeType);
+        }
+
+        if (mesh && !mesh->polygons.empty()) {
+            QString cloudId = QString::fromStdString(cloud->id());
+            registerMesh(cloudId, mesh);
+            printI(QString("Mesh detected: %1 polygons").arg(mesh->polygons.size()));
         }
     }
 
-    void CloudTree::saveCloudResult(bool success, const QString &path, float time)
+    void CloudTree::handleSaveComplete(bool success, const QString& path, float time)
     {
         if (!success)
             printE("Save the file failed!");
         else
-        {
-            m_path = path;
             printI(QString("Save the file [path:%1] done, take time %2 ms.").arg(path).arg(time));
-        }
-
-        closeProgress();
     }
 
-    void CloudTree::saveMeshResult(bool success, const QString &path, float time)
+    void CloudTree::handleMeshSaveComplete(bool success, const QString& path, float time)
     {
         if (!success)
             printE("Save mesh file failed!");
         else
-        {
-            m_path = path;
             printI(QString("Save mesh file [path:%1] done, take time %2 ms.").arg(path).arg(time));
-        }
-
-        closeProgress();
     }
 
     // TODO: 对于文件树的修改，目前只验证了添加点云、选点、CSF和植被滤波功能，其他功能还未验证是否正常
@@ -827,13 +710,13 @@ namespace ct
                     if (show) {
                         if (!m_cloudview->contains(shape_id)) {
                             // 优先从 mesh 提取折线，其次从 cloud 绘制折线
-                            auto mesh_it = m_shape_map.find(shape_id);
-                            if (mesh_it != m_shape_map.end() && mesh_it.value()) {
-                                m_cloudview->addPolylineFromPolygonMesh(mesh_it.value(), shape_id);
+                            auto _shape_mesh = m_registry->getShape(shape_id);
+                            if (_shape_mesh) {
+                                m_cloudview->addPolylineFromPolygonMesh(_shape_mesh, shape_id);
                             } else {
-                                auto cloud_it = m_cloud_polyline_map.find(shape_id);
-                                if (cloud_it != m_cloud_polyline_map.end() && cloud_it.value()) {
-                                    m_cloudview->addPolylineFromCloud(cloud_it.value(), shape_id);
+                                auto _polyline_cloud = m_registry->getCloudPolyline(shape_id);
+                                if (_polyline_cloud) {
+                                    m_cloudview->addPolylineFromCloud(_polyline_cloud, shape_id);
                                 }
                             }
                         }
@@ -883,18 +766,17 @@ namespace ct
                     if (m_cloudview->contains(mesh_id)) {
                         m_cloudview->setShapeVisibility(mesh_id, true);
                     } else {
-                        auto tex_it = m_textured_mesh_map.find(mesh_id);
-                        if (tex_it != m_textured_mesh_map.end() && *tex_it &&
-                            !tex_it.value()->objFilePath.empty()) {
+                        auto _tex_mesh = m_registry->getTexturedMesh(mesh_id);
+                        if (_tex_mesh && !_tex_mesh->objFilePath.empty()) {
                             // 纹理 mesh：隐藏点云散点，移除无纹理 mesh，显示带纹理 mesh 表面
                             m_cloudview->setPointCloudVisibility(mesh_id, false);
-                            m_cloudview->addTexturedMesh(QString::fromStdString(tex_it.value()->objFilePath), mesh_id);
+                            m_cloudview->addTexturedMesh(QString::fromStdString(_tex_mesh->objFilePath), mesh_id);
                         } else {
                             // 无纹理 mesh 或算法生成的 mesh：用 VTK actor 渲染
-                            auto mesh_it = m_mesh_map.find(mesh_id);
-                            if (mesh_it != m_mesh_map.end() && mesh_it.value()) {
+                            auto _mesh_actor = m_registry->getMesh(mesh_id);
+                            if (_mesh_actor) {
                                 m_cloudview->setPointCloudVisibility(mesh_id, false);
-                                m_cloudview->addMeshActor(mesh_it.value(), mesh_id);
+                                m_cloudview->addMeshActor(_mesh_actor, mesh_id);
                             }
                         }
                     }
@@ -946,11 +828,11 @@ namespace ct
         // ============================================================
         // Phase 1: 更新3D视图中的包围盒
         // ============================================================
-        QList<QTreeWidgetItem*> allItems = m_cloud_map.keys();
+        QList<QTreeWidgetItem*> allItems = m_registry->getAllItems();
         QList<QTreeWidgetItem*> selectedItems = getSelectedItems();
 
         for (QTreeWidgetItem* item : allItems){
-            Cloud::Ptr cloud = m_cloud_map.value(item);
+            Cloud::Ptr cloud = m_registry->getCloud(item);
             if (!cloud) continue;
 
             bool isSelected = selectedItems.contains(item);
@@ -1003,7 +885,7 @@ namespace ct
 
         QString cloudId = QString::fromStdString(cloud->id());
         bool isMesh = (nodeType == NodeMesh);
-        bool hasTexture = m_textured_mesh_map.contains(cloudId);
+        bool hasTexture = m_registry->getTexturedMesh(cloudId) != nullptr;
 
         // 辅助 lambda：创建一个文本行
         auto addTextRow = [&](const QString& label, const QString& value, int rowHeight = 0) -> int {
@@ -1348,12 +1230,12 @@ namespace ct
 
             // Face Count
             int faceCount = 0;
-            auto meshIt = m_mesh_map.find(cloudId);
-            if (meshIt != m_mesh_map.end() && meshIt.value())
-                faceCount = meshIt.value()->polygons.size();
-            auto texIt = m_textured_mesh_map.find(cloudId);
-            if (texIt != m_textured_mesh_map.end() && *texIt)
-                faceCount = texIt.value()->mesh->polygons.size();
+            auto _face_mesh = m_registry->getMesh(cloudId);
+            if (_face_mesh)
+                faceCount = _face_mesh->polygons.size();
+            auto _face_tex = m_registry->getTexturedMesh(cloudId);
+            if (_face_tex)
+                faceCount = _face_tex->mesh->polygons.size();
             addTextRow("Faces", QString::number(faceCount));
 
             // Texture（所有模型节点都显示，无纹理时禁用）
@@ -1371,17 +1253,16 @@ namespace ct
                         this, [=](int state){
                             if (state) {
                                 // 切换到纹理模式：用 VTK OBJ reader 重新加载带纹理的 mesh
-                                auto tIt = m_textured_mesh_map.find(cloudId);
-                                if (tIt != m_textured_mesh_map.end() && *tIt &&
-                                    !tIt.value()->objFilePath.empty())
+                                auto _tex_cb = m_registry->getTexturedMesh(cloudId);
+                                if (_tex_cb && !_tex_cb->objFilePath.empty())
                                     m_cloudview->addTexturedMesh(
-                                        QString::fromStdString(tIt.value()->objFilePath), cloudId);
+                                        QString::fromStdString(_tex_cb->objFilePath), cloudId);
                             } else {
                                 // 切换到无纹理模式：用 VTK actor 渲染（支持透明度等属性）
                                 m_cloudview->removeTexturedMesh(cloudId);
-                                auto mIt = m_mesh_map.find(cloudId);
-                                if (mIt != m_mesh_map.end() && mIt.value())
-                                    m_cloudview->addMeshActor(mIt.value(), cloudId);
+                                auto _mesh_cb = m_registry->getMesh(cloudId);
+                                if (_mesh_cb)
+                                    m_cloudview->addMeshActor(_mesh_cb, cloudId);
                             }
                         });
                 m_table->setCellWidget(row, 1, showTex);
@@ -1458,8 +1339,7 @@ namespace ct
                         m_cloudview->removePointCloud(QString::fromStdString(c->id()));
                         m_cloudview->removeShape(QString::fromStdString(c->id()));
                     }
-                    m_cloud_map.remove(ch);
-                    m_item_by_id.remove(ch->text(0));
+                    m_registry->unregisterCloud(ch);
                 }
                 if (parentFolder) {
                     parentFolder->removeChild(child);
@@ -1505,7 +1385,7 @@ namespace ct
 
     void CloudTree::registerMesh(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh)
     {
-        m_mesh_map[cloudId] = mesh;
+        m_registry->registerMesh(cloudId, mesh);
 
         QTreeWidgetItem* item = getItemById(cloudId);
         if (item) {
@@ -1536,7 +1416,7 @@ namespace ct
     void CloudTree::registerMeshPrebuilt(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh,
                                            vtkSmartPointer<vtkPolyData> polydata)
     {
-        m_mesh_map[cloudId] = mesh;
+        m_registry->registerMesh(cloudId, mesh);
 
         QTreeWidgetItem* item = getItemById(cloudId);
         if (item) {
@@ -1563,7 +1443,7 @@ namespace ct
 
     void CloudTree::unregisterMesh(const QString& cloudId)
     {
-        m_mesh_map.remove(cloudId);
+        m_registry->unregisterMesh(cloudId);
         m_cloudview->removeTexturedMesh(cloudId);
         m_cloudview->removePolygonMesh(cloudId);
         m_cloudview->removeShape(cloudId);
@@ -1588,7 +1468,7 @@ namespace ct
         shapeItem->setData(0, NodeShapeIdRole, shapeId);
 
         if (mesh) {
-            m_shape_map[shapeId] = mesh;
+            m_registry->registerShape(shapeId, mesh);
         }
     }
 
@@ -1603,7 +1483,7 @@ namespace ct
         this->blockSignals(wasBlocked);
 
         shapeItem->setData(0, NodeShapeIdRole, shapeId);
-        m_cloud_polyline_map[shapeId] = cloud;
+        m_registry->registerCloudPolyline(shapeId, cloud);
 
         // 立即绘制折线
         m_cloudview->addPolylineFromCloud(cloud, shapeId);
@@ -1611,8 +1491,8 @@ namespace ct
 
     void CloudTree::registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh)
     {
-        m_textured_mesh_map[cloudId] = texturedMesh;
-        m_mesh_map[cloudId] = texturedMesh->mesh; // 兼容保存等非纹理功能
+        m_registry->registerTexturedMesh(cloudId, texturedMesh);
+        m_registry->registerMesh(cloudId, texturedMesh->mesh); // 兼容保存等非纹理功能
 
         QTreeWidgetItem* item = getItemById(cloudId);
         if (item) {
@@ -1631,11 +1511,11 @@ namespace ct
 
     void CloudTree::unregisterTexturedMesh(const QString& cloudId)
     {
-        m_textured_mesh_map.remove(cloudId);
+        m_registry->unregisterTexturedMesh(cloudId);
         m_cloudview->removeTexturedMesh(cloudId);
 
         // 同时清理普通 mesh 引用
-        m_mesh_map.remove(cloudId);
+        m_registry->unregisterMesh(cloudId);
         m_cloudview->removePolygonMesh(cloudId);
         m_cloudview->removeShape(cloudId);
 
@@ -1645,45 +1525,34 @@ namespace ct
         }
     }
 
-    void CloudTree::loadTexturedMeshResult(const QString& cloudId,
-                                           const QString& objFilePath)
+    void CloudTree::handleTexturedMeshLoaded(const QString& cloudId, const QString& objFilePath)
     {
         if (cloudId.isEmpty() || objFilePath.isEmpty()) return;
 
-        // 从 m_mesh_map 获取已注册的 mesh（由 loadCloudResult → registerMesh 写入）
-        auto meshIt = m_mesh_map.find(cloudId);
-        if (meshIt == m_mesh_map.end() || !meshIt.value() || meshIt.value()->polygons.empty()) {
-            printW("Textured mesh result received but mesh not found in map for: " + cloudId);
+        auto _ltm_mesh = m_registry->getMesh(cloudId);
+        if (!_ltm_mesh || _ltm_mesh->polygons.empty()) {
+            printW("Textured mesh result received but mesh not found in registry for: " + cloudId);
             return;
         }
 
-        printI(QString("Textured mesh detected: %1 polygons, obj: %2")
-               .arg(meshIt.value()->polygons.size())
-               .arg(objFilePath));
+        printI(QString("Textured mesh detected: %1 polygons, obj: %2").arg(_ltm_mesh->polygons.size()).arg(objFilePath));
 
-        // 构建 TexturedMesh 并注册
         TexturedMeshPtr texturedMesh = std::make_shared<TexturedMesh>();
-        texturedMesh->mesh = meshIt.value();
+        texturedMesh->mesh = _ltm_mesh;
         texturedMesh->objFilePath = objFilePath.toStdString();
 
         registerTexturedMesh(cloudId, texturedMesh);
-
-        // 纹理异步加载完成，刷新属性栏以更新 Texture 复选框状态
         itemSelectionChangedEvent();
     }
 
     QList<QPair<QString, pcl::PolygonMesh::Ptr>> CloudTree::getLoadedMeshes() const
     {
-        QList<QPair<QString, pcl::PolygonMesh::Ptr>> result;
-        for (auto it = m_mesh_map.constBegin(); it != m_mesh_map.constEnd(); ++it) {
-            result.append(qMakePair(it.key(), it.value()));
-        }
-        return result;
+        return m_registry->getLoadedMeshes();
     }
 
     bool CloudTree::hasMesh(const QString& cloudId) const
     {
-        return m_mesh_map.contains(cloudId);
+        return m_registry->hasMesh(cloudId);
     }
 
     void CloudTree::zoomToSelected() {
@@ -1732,110 +1601,17 @@ namespace ct
 
     void CloudTree::markCloudInUse(const QString& id)
     {
-        m_clouds_in_use.insert(id);
+        m_registry->markInUse(id);
     }
 
     void CloudTree::unmarkCloudInUse(const QString& id)
     {
-        m_clouds_in_use.remove(id);
+        m_registry->unmarkInUse(id);
     }
 
     void CloudTree::releaseAllInUse()
     {
-        m_clouds_in_use.clear();
-    }
-
-    void CloudTree::onFieldMappingRequested(const QList<ct::FieldInfo>& fields, std::map<std::string, std::string>& result)
-    {
-        if (m_script_mode) {
-            // 脚本模式：智能默认映射（与 FieldMappingDialog 预选逻辑一致）
-            for (const auto& f : fields) {
-                QString name = QString::fromStdString(f.name).toLower();
-                if (name == "x" || name == "y" || name == "z") {
-                    result[f.name] = "Axis " + QString::fromStdString(f.name).toUpper().toStdString();
-                } else if (name == "rgba" || name == "rgb") {
-                    result[f.name] = "Color(Packed)";
-                } else if (name.contains("red") || name == "r") {
-                    result[f.name] = "Red";
-                } else if (name.contains("green") || name == "g") {
-                    result[f.name] = "Green";
-                } else if (name.contains("blue") || name == "b") {
-                    result[f.name] = "Blue";
-                } else if (name == "normal_x" || name == "nx") {
-                    result[f.name] = "Normal X";
-                } else if (name == "normal_y" || name == "ny") {
-                    result[f.name] = "Normal Y";
-                } else if (name == "normal_z" || name == "nz") {
-                    result[f.name] = "Normal Z";
-                } else if (name == "curvature") {
-                    result[f.name] = "Curvature";
-                } else if (name == "intensity") {
-                    result[f.name] = "Intensity";
-                } else {
-                    result[f.name] = "Scalar Field";
-                }
-            }
-            return;
-        }
-        // 这个函数运行在主线程 (UI线程)
-        FieldMappingDialog dlg(fields, this);
-        if (dlg.exec() == QDialog::Accepted) {
-            // 用户点击 OK，获取结果
-            ct::MappingResult res = dlg.getMapping();
-            result = std::move(res.field_map);
-        } else {
-            // 用户取消，返回空结果
-            result.clear();
-        }
-    }
-
-    void CloudTree::onTxtImportRequested(const QStringList& preview_lines, ct::TxtImportParams& params){
-        if (m_script_mode) {
-            // 脚本模式：使用默认 TXT 导入参数
-            return;
-        }
-        TxtImportDialog dlg(preview_lines, this);
-        if (dlg.exec() == QDialog::Accepted) {
-            params = dlg.getParams();
-        } else{
-            params.col_map.clear();
-        }
-    }
-
-    void CloudTree::onTxtExportRequested(const QStringList &available_fields, ct::TxtExportParams &params) {
-        if (m_script_mode) {
-            return;
-        }
-        TxtExportDialog dlg(available_fields, this);
-        if (dlg.exec() == QDialog::Accepted){
-            params = dlg.getParams();
-        }
-        else{
-            params.selected_fields.clear(); //标志取消
-        }
-    }
-
-    void CloudTree::onGlobalFilterRequested(const Eigen::Vector3d &min_pt, Eigen::Vector3d &suggested_shift,
-                                            bool &skipped) {
-        if (m_script_mode) {
-            // 脚本模式：直接使用建议的偏移值
-            m_last_shift = suggested_shift;
-            m_hasLastShift = true;
-            skipped = false;
-            return;
-        }
-        GlobalShiftDialog dlg(min_pt, suggested_shift, m_last_shift, m_hasLastShift, this->window());
-
-        if (dlg.exec() == QDialog::Accepted){
-            suggested_shift = dlg.getShiftValue();
-            m_last_shift = suggested_shift;
-            m_hasLastShift = true;
-            skipped = false;
-        }
-        else{
-            skipped = dlg.isSkipped();
-            if (!skipped && dlg.result() == QDialog::Rejected) skipped = true;
-        }
+        m_registry->releaseAllInUse();
     }
 
     // ================================================================

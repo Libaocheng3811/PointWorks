@@ -6,7 +6,7 @@
 #include "core/exports.h"
 
 #include <pcl/PolygonMesh.h>
-#include "textured_mesh.h"
+#include "core/textured_mesh.h"
 
 #include <atomic>
 #include <QObject>

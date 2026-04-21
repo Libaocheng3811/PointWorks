@@ -10,7 +10,6 @@ target_link_libraries(ct_algorithm
         ct_core
     PRIVATE
         ${PCL_LIBRARIES}
-        ${VTK_LIBRARIES}
         CSF_Lib
         OpenMP::OpenMP_CXX
 )

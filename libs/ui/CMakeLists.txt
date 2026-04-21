@@ -16,6 +16,8 @@ target_link_libraries(ct_ui_dialog PUBLIC
 set(Base_Srcs
     base/customtree.cpp
     base/cloudtree.cpp
+    base/cloud_io_controller.cpp
+    base/cloudregistry.cpp
     base/dialog_registry.cpp
     base/progress_manager.cpp
     widgets/sf_histogram_chart.cpp
@@ -25,6 +27,8 @@ set(Base_Srcs
 set(Base_Hdrs
     base/customtree.h
     base/cloudtree.h
+    base/cloud_io_controller.h
+    base/cloudregistry.h
     base/customdock.h
     base/customdialog.h
     base/dialog_registry.h
@@ -43,8 +47,8 @@ target_link_libraries(ct_ui_base
         ct_ui_dialog
         ct_core
         ct_viz
-        ct_io
     PRIVATE
+        ct_io
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Charts
 )
