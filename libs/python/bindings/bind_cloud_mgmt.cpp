@@ -99,6 +99,13 @@ void registerCloudMgmtBindings(py::module_& m)
         bridge->removeAllClouds();
     }, "Remove all clouds from the scene");
 
+    // 清理所有 Python 生成的数据（点云+网格）
+    m.def("clear_all", []() {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (!bridge) throw std::runtime_error("Python bridge not initialized");
+        bridge->requestClearAll();
+    }, "Clear all Python-generated data (clouds and meshes) from the scene");
+
     // 克隆点云
     m.def("clone_cloud", [](const std::string& name) -> py::object {
         auto* bridge = ct::PythonManager::instance().bridge();

@@ -527,6 +527,12 @@ void PythonEditor::keyPressEvent(QKeyEvent* event)
 
 void PythonEditor::closeEvent(QCloseEvent* event)
 {
+    // 脚本模式下清理所有数据
+    auto* bridge = PythonManager::instance().bridge();
+    if (bridge && bridge->isScriptMode()) {
+        bridge->clearScriptSession();
+    }
+
     // 同步主窗口工具栏按钮状态
     if (auto* mw = qobject_cast<QMainWindow*>(parentWidget())) {
         if (auto* action = mw->findChild<QAction*>("actionPythonEditor")) {

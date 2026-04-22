@@ -21,6 +21,7 @@
 #include "bindings/bind_surface.h"
 #include "bindings/bind_normals.h"
 #include "bindings/bind_keypoints.h"
+#include "bindings/bind_transform.h"
 
 namespace py = pybind11;
 
@@ -41,4 +42,5 @@ PYBIND11_EMBEDDED_MODULE(ct, m)
     registerSurfaceBindings(m);
     registerNormalBindings(m);
     registerKeypointBindings(m);
+    registerTransformBindings(m);
 }

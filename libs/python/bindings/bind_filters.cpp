@@ -153,4 +153,16 @@ void registerFilterBindings(py::module_& m)
     }, py::arg("name"), py::arg("sample") = 1000, py::arg("seed") = 42,
        py::arg("bin") = 10, py::arg("negative") = false,
        "Normal space sampling, returns new ct.Cloud");
+
+    m.def("sampling_surface_normal", [insertFilterResult](const std::string& name,
+                                       int sample, int seed, float ratio,
+                                       bool negative) -> py::object {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+        auto fr = ct::Filters::SamplingSurfaceNormal(cloud, sample, seed, ratio, negative);
+        return insertFilterResult(fr, "ssn-" + name);
+    }, py::arg("name"), py::arg("sample") = 10000, py::arg("seed") = 42,
+       py::arg("ratio") = 0.5f, py::arg("negative") = false,
+       "Sampling using surface normal information (requires normals), returns new ct.Cloud");
 }

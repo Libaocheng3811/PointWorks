@@ -12,7 +12,7 @@
 // 辅助：从 FeatureType 中提取描述子数据为 numpy 数组
 // PCL 描述子类型都是 pcl::PointCloud<Descriptor>，每个 point 有 .histogram[] 数组
 // 通过 pcl::PCLPointCloud2 泛型提取 float 数据
-static py::object extractDescriptor(const ct::FeatureType::Ptr& feature)
+py::object extractDescriptorToPy(const ct::FeatureType::Ptr& feature)
 {
     if (!feature) return py::none();
 
@@ -138,7 +138,7 @@ void registerFeatureBindings(py::module_& m)
         auto fr = ct::Features::FPFHEstimation(cloud, k, radius, surface_cloud);
 
         py::dict dict;
-        dict["descriptor"] = extractDescriptor(fr.feature);
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
         dict["time_ms"] = fr.time_ms;
         return dict;
     }, py::arg("name"),
@@ -157,7 +157,7 @@ void registerFeatureBindings(py::module_& m)
         auto fr = ct::Features::SHOTEstimation(cloud, nullptr, radius, surface_cloud);
 
         py::dict dict;
-        dict["descriptor"] = extractDescriptor(fr.feature);
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
         dict["time_ms"] = fr.time_ms;
         return dict;
     }, py::arg("name"),
@@ -175,7 +175,7 @@ void registerFeatureBindings(py::module_& m)
         auto fr = ct::Features::SHOTColorEstimation(cloud, nullptr, radius, surface_cloud);
 
         py::dict dict;
-        dict["descriptor"] = extractDescriptor(fr.feature);
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
         dict["time_ms"] = fr.time_ms;
         return dict;
     }, py::arg("name"),
@@ -222,15 +222,12 @@ void registerFeatureBindings(py::module_& m)
         dict["time_ms"] = lr.time_ms;
 
         if (lr.lrf && !lr.lrf->empty()) {
-            // LRF (ReferenceFrame) 每个点包含一个 3x3 旋转矩阵
-            // 提取为 (N, 3, 3) 的 float numpy 数组
             int n = static_cast<int>(lr.lrf->size());
             auto arr = py::array_t<float>({n, 3, 3});
             auto buf = arr.request();
             float* dst = static_cast<float*>(buf.ptr);
             for (int i = 0; i < n; ++i) {
                 const auto& rf = lr.lrf->at(i);
-                // 每列是一个轴：x_axis, y_axis, z_axis
                 for (int row = 0; row < 3; ++row) {
                     dst[i * 9 + row * 3 + 0] = rf.x_axis[row];
                     dst[i * 9 + row * 3 + 1] = rf.y_axis[row];
@@ -246,4 +243,286 @@ void registerFeatureBindings(py::module_& m)
     }, py::arg("name"),
        py::arg("radius") = 0.05f,
        "Compute SHOT Local Reference Frame. Returns dict with 'lrf' (numpy array of shape N x 3 x 3) and 'time_ms'.");
+
+    // ========== 补充缺失的特征描述子 ==========
+
+    m.def("pfh", [](const std::string& name, int k, double radius,
+                     bool surface) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = ct::Features::PFHEstimation(cloud, k, radius, surface_cloud);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("k") = 30,
+       py::arg("radius") = 0.05,
+       py::arg("surface") = false,
+       "Compute PFH (Point Feature Histograms) descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("vfh", [](const std::string& name,
+                     double dir_x, double dir_y, double dir_z,
+                     bool surface) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
+        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = ct::Features::VFHEstimation(cloud, dir, surface_cloud);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("dir_x") = 0.0, py::arg("dir_y") = 0.0, py::arg("dir_z") = 0.0,
+       py::arg("surface") = false,
+       "Compute VFH (Viewpoint Feature Histogram) descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("esf", [](const std::string& name) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto fr = ct::Features::ESFEstimation(cloud);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       "Compute ESF (Ensemble of Shape Functions) descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("gasd", [](const std::string& name,
+                      double dir_x, double dir_y, double dir_z,
+                      int shgs, int shs, int interp) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
+        auto fr = ct::Features::GASDEstimation(cloud, dir, shgs, shs, interp);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("dir_x") = 0.0, py::arg("dir_y") = 0.0, py::arg("dir_z") = 0.0,
+       py::arg("shgs") = 5, py::arg("shs") = 3, py::arg("interp") = 0,
+       "Compute GASD descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("gasd_color", [](const std::string& name,
+                            double dir_x, double dir_y, double dir_z,
+                            int shgs, int shs, int interp,
+                            int chgs, int chs, int cinterp) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
+        auto fr = ct::Features::GASDColorEstimation(cloud, dir, shgs, shs, interp, chgs, chs, cinterp);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("dir_x") = 0.0, py::arg("dir_y") = 0.0, py::arg("dir_z") = 0.0,
+       py::arg("shgs") = 5, py::arg("shs") = 3, py::arg("interp") = 0,
+       py::arg("chgs") = 5, py::arg("chs") = 3, py::arg("cinterp") = 0,
+       "Compute GASD Color descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("rsd", [](const std::string& name, int nr_subdiv, double plane_radius) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto fr = ct::Features::RSDEstimation(cloud, nr_subdiv, plane_radius);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("nr_subdiv") = 5,
+       py::arg("plane_radius") = 0.1,
+       "Compute RSD (RoPS) descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("grsd", [](const std::string& name) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto fr = ct::Features::GRSDEstimation(cloud);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       "Compute GRSD descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("crh", [](const std::string& name,
+                     double dir_x, double dir_y, double dir_z) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
+        auto fr = ct::Features::CRHEstimation(cloud, dir);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("dir_x") = 0.0, py::arg("dir_y") = 0.0, py::arg("dir_z") = 0.0,
+       "Compute CRH (Camera Roll Histogram) descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("cvfh", [](const std::string& name,
+                      double dir_x, double dir_y, double dir_z,
+                      float radius_normals, float d1, float d2, float d3,
+                      int min_points, bool normalize) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
+        auto fr = ct::Features::CVFHEstimation(cloud, dir, radius_normals, d1, d2, d3, min_points, normalize);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("dir_x") = 0.0, py::arg("dir_y") = 0.0, py::arg("dir_z") = 0.0,
+       py::arg("radius_normals") = 0.05f,
+       py::arg("d1") = 0.02f, py::arg("d2") = 0.04f, py::arg("d3") = 0.06f,
+       py::arg("min_points") = 50,
+       py::arg("normalize") = true,
+       "Compute CVFH descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("shape_context_3d", [](const std::string& name,
+                                  double min_radius, double radius) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto fr = ct::Features::ShapeContext3DEstimation(cloud, min_radius, radius);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("min_radius") = 0.005,
+       py::arg("radius") = 0.05,
+       "Compute 3D Shape Context descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("unique_shape_context", [](const std::string& name,
+                                      double lrf_radius, double radius,
+                                      double loc_radius) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto fr = ct::Features::UniqueShapeContext(cloud, nullptr, lrf_radius, radius, loc_radius);
+
+        py::dict dict;
+        dict["descriptor"] = extractDescriptorToPy(fr.feature);
+        dict["time_ms"] = fr.time_ms;
+        return dict;
+    }, py::arg("name"),
+       py::arg("lrf_radius") = 0.015,
+       py::arg("radius") = 0.025,
+       py::arg("loc_radius") = 0.075,
+       "Compute Unique Shape Context descriptor. Returns dict with 'descriptor' (numpy array) and 'time_ms'.");
+
+    m.def("board_lrf", [](const std::string& name,
+                            float radius, bool find_holes,
+                            float margin_thresh, int size,
+                            float prob_thresh, float steep_thresh) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto lr = ct::Features::BOARDLocalReferenceFrameEstimation(
+            cloud, radius, find_holes, margin_thresh, size, prob_thresh, steep_thresh);
+
+        py::dict dict;
+        dict["time_ms"] = lr.time_ms;
+
+        if (lr.lrf && !lr.lrf->empty()) {
+            int n = static_cast<int>(lr.lrf->size());
+            auto arr = py::array_t<float>({n, 3, 3});
+            auto buf = arr.request();
+            float* dst = static_cast<float*>(buf.ptr);
+            for (int i = 0; i < n; ++i) {
+                const auto& rf = lr.lrf->at(i);
+                for (int row = 0; row < 3; ++row) {
+                    dst[i * 9 + row * 3 + 0] = rf.x_axis[row];
+                    dst[i * 9 + row * 3 + 1] = rf.y_axis[row];
+                    dst[i * 9 + row * 3 + 2] = rf.z_axis[row];
+                }
+            }
+            dict["lrf"] = py::object(arr);
+        } else {
+            dict["lrf"] = py::none();
+        }
+
+        return dict;
+    }, py::arg("name"),
+       py::arg("radius") = 0.03f,
+       py::arg("find_holes") = true,
+       py::arg("margin_thresh") = 0.001f,
+       py::arg("size") = 0,
+       py::arg("prob_thresh") = 0.001f,
+       py::arg("steep_thresh") = 0.5f,
+       "Compute BOARD Local Reference Frame. Returns dict with 'lrf' (numpy array N x 3 x 3) and 'time_ms'.");
+
+    m.def("flare_lrf", [](const std::string& name,
+                            float radius, float margin_thresh,
+                            int min_neighbors_normal, int min_neighbors_tangent) -> py::dict {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto lr = ct::Features::FLARELocalReferenceFrameEstimation(
+            cloud, radius, margin_thresh, min_neighbors_normal, min_neighbors_tangent);
+
+        py::dict dict;
+        dict["time_ms"] = lr.time_ms;
+
+        if (lr.lrf && !lr.lrf->empty()) {
+            int n = static_cast<int>(lr.lrf->size());
+            auto arr = py::array_t<float>({n, 3, 3});
+            auto buf = arr.request();
+            float* dst = static_cast<float*>(buf.ptr);
+            for (int i = 0; i < n; ++i) {
+                const auto& rf = lr.lrf->at(i);
+                for (int row = 0; row < 3; ++row) {
+                    dst[i * 9 + row * 3 + 0] = rf.x_axis[row];
+                    dst[i * 9 + row * 3 + 1] = rf.y_axis[row];
+                    dst[i * 9 + row * 3 + 2] = rf.z_axis[row];
+                }
+            }
+            dict["lrf"] = py::object(arr);
+        } else {
+            dict["lrf"] = py::none();
+        }
+
+        return dict;
+    }, py::arg("name"),
+       py::arg("radius") = 0.03f,
+       py::arg("margin_thresh") = 0.02f,
+       py::arg("min_neighbors_normal") = 5,
+       py::arg("min_neighbors_tangent") = 5,
+       "Compute FLARE Local Reference Frame. Returns dict with 'lrf' (numpy array N x 3 x 3) and 'time_ms'.");
 }

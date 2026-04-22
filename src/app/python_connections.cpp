@@ -5,6 +5,7 @@
 #include "ui/base/cloudtree.h"
 #include "viz/console.h"
 
+#include <pcl/conversions.h>
 #include <algorithm>
 #include <QObject>
 
@@ -269,7 +270,8 @@ void connectPythonSignals(
     // 点云管理 → CloudTree
     // ================================================================
     QObject::connect(bridge, &ct::PythonBridge::signalInsertCloud,
-            cloudtree, [cloudtree, cloudview](ct::Cloud::Ptr cloud) {
+            cloudtree, [cloudtree, cloudview, bridge](ct::Cloud::Ptr cloud) {
+                if (bridge->isScriptMode()) return;
                 cloudtree->insertCloud(cloud);
                 cloudview->addPointCloud(cloud);
                 cloudview->refresh();
@@ -372,6 +374,51 @@ void connectPythonSignals(
     // ================================================================
     QObject::connect(bridge, &ct::PythonBridge::signalSetScriptMode,
             cloudtree, &ct::CloudTree::setScriptMode, Qt::QueuedConnection);
+
+    // ================================================================
+    // 网格显示
+    // ================================================================
+    QObject::connect(bridge, &ct::PythonBridge::signalAddMesh,
+            cloudtree, [cloudtree, bridge](const pcl::PolygonMesh::Ptr& mesh, const QString& id) {
+                if (bridge->isScriptMode()) return;
+                // 如果树中已有该 ID 的节点，直接 attach mesh
+                QTreeWidgetItem* existing = cloudtree->getItemById(id);
+                if (existing) {
+                    cloudtree->registerMesh(id, mesh);
+                } else {
+                    // 从 mesh 顶点创建占位 Cloud 节点插入树，再 attach mesh
+                    pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
+                    pcl::fromPCLPointCloud2(mesh->cloud, cloud_xyz);
+                    std::vector<pcl::PointXYZ> pts(cloud_xyz.begin(), cloud_xyz.end());
+                    auto placeholder = std::make_shared<ct::Cloud>();
+                    placeholder->setId(id.toStdString());
+                    placeholder->addPoints(pts);
+                    placeholder->makeAdaptive();
+                    placeholder->update();
+                    cloudtree->insertCloud(placeholder, nullptr, false,
+                                           ct::MountStrategy::Sibling, ct::NodeMesh);
+                    cloudtree->registerMesh(id, mesh);
+                }
+            }, Qt::QueuedConnection);
+
+    QObject::connect(bridge, &ct::PythonBridge::signalRemoveMesh,
+            cloudtree, [cloudtree](const QString& id) {
+                cloudtree->unregisterMesh(id);
+            }, Qt::QueuedConnection);
+
+    // ================================================================
+    // 手动清理 / 脚本模式关闭清理
+    // ================================================================
+    QObject::connect(bridge, &ct::PythonBridge::signalClearAll,
+            cloudtree, [cloudtree, cloudview]() {
+                cloudtree->removeAllClouds();
+                cloudview->refresh();
+            }, Qt::QueuedConnection);
+
+    QObject::connect(bridge, &ct::PythonBridge::signalClearScriptSession,
+            cloudtree, [cloudtree, cloudview]() {
+                cloudview->refresh();
+            }, Qt::QueuedConnection);
 }
 
 } // namespace ct

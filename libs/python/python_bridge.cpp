@@ -61,4 +61,20 @@ void PythonBridge::releaseAllInUse()
     emit signalReleaseAllInUse();
 }
 
+void PythonBridge::clearScriptSession()
+{
+    QMutexLocker locker(&m_cloud_mutex);
+    QStringList ids;
+    for (auto it = m_cloud_registry.begin(); it != m_cloud_registry.end(); ++it) {
+        ids.append(it.key());
+    }
+    m_cloud_registry.clear();
+    m_held_clouds.clear();
+    for (const auto& id : ids) {
+        emit signalRemoveCloud(id);
+    }
+    emit signalClearAll();
+    m_script_mode = false;
+}
+
 } // namespace ct

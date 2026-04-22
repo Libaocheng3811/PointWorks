@@ -8,6 +8,8 @@
 #include <vector>
 #include "core/cloud.h"
 
+#include <pcl/PolygonMesh.h>
+
 namespace ct
 {
 
@@ -143,8 +145,18 @@ public:
     void updateCloud(const QString& id, const Cloud::Ptr& new_cloud)
                                                       { emit signalUpdateCloud(id, new_cloud); }
 
+    // —— 网格显示 ——
+    void addMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id)
+                                                      { emit signalAddMesh(mesh, id); }
+    void removeMesh(const QString& id)                 { emit signalRemoveMesh(id); }
+
     // —— 脚本模式：跳过弹窗 ——
     void setScriptMode(bool enabled)                  { emit signalSetScriptMode(enabled); }
+    bool isScriptMode() const                          { return m_script_mode; }
+
+    // —— 脚本会话清理 ——
+    void clearScriptSession();
+    void requestClearAll()                           { emit signalClearAll(); }
 
     // ================================================================
     // 云注册表（线程安全）
@@ -251,8 +263,14 @@ signals:
     // Phase 3: 就地更新
     void signalUpdateCloud(QString id, ct::Cloud::Ptr new_cloud);
 
+    // 网格显示
+    void signalAddMesh(pcl::PolygonMesh::Ptr mesh, QString id);
+    void signalRemoveMesh(QString id);
+
     // 脚本模式
     void signalSetScriptMode(bool enabled);
+    void signalClearScriptSession();
+    void signalClearAll();
 
     // 注册表
     void signalCloudRegistered(QString name);
@@ -267,6 +285,7 @@ private:
     mutable QMutex m_cloud_mutex;
     QMap<QString, Cloud::Ptr> m_cloud_registry;
     std::vector<Cloud::Ptr> m_held_clouds;
+    bool m_script_mode = false;
 };
 
 } // namespace ct

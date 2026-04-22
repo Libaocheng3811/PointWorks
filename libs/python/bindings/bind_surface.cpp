@@ -8,7 +8,13 @@ void registerSurfaceBindings(py::module_& m)
         .def("vertices", &PyMesh::vertices, "Mesh vertices as numpy array (N, 3) float32")
         .def("faces", &PyMesh::faces, "Mesh faces as numpy array (M, 3) int32")
         .def("num_vertices", &PyMesh::numVertices, "Number of vertices")
-        .def("num_faces", &PyMesh::numFaces, "Number of faces");
+        .def("num_faces", &PyMesh::numFaces, "Number of faces")
+        .def("show", [](PyMesh& self, const std::string& id) {
+            auto mesh_ptr = self.meshPtr();
+            if (!mesh_ptr) throw std::runtime_error("Mesh is empty");
+            auto* bridge = ct::PythonManager::instance().bridge();
+            bridge->addMesh(mesh_ptr, QString::fromStdString(id));
+        }, py::arg("id"), "Display this mesh in the 3D view.");
 
     auto meshResultToPyMesh = [](const std::shared_ptr<pcl::PolygonMesh>& mesh,
                                   const std::string& error) -> py::object {
@@ -98,15 +104,69 @@ void registerSurfaceBindings(py::module_& m)
        "Convex hull reconstruction. Returns ct.Mesh object.");
 
     m.def("concave_hull", [meshResultToPyMesh](const std::string& name,
-                               double alpha, bool keep_information) -> py::object {
+                               double alpha, bool keep_information, int dimension) -> py::object {
         auto* bridge = ct::PythonManager::instance().bridge();
         auto cloud = bridge->getCloud(QString::fromStdString(name));
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
-        auto mesh = surfaceConcaveHull(cloud, alpha, keep_information, err);
+        auto mesh = surfaceConcaveHull(cloud, alpha, keep_information, dimension, err);
         return meshResultToPyMesh(mesh, err);
     }, py::arg("name"),
        py::arg("alpha") = 0.1,
        py::arg("keep_information") = false,
+       py::arg("dimension") = 3,
        "Concave hull (alpha shape) reconstruction. Returns ct.Mesh object.");
+
+    m.def("marching_cubes_rbf", [meshResultToPyMesh](const std::string& name,
+                                         float iso_level, int res_x, int res_y, int res_z,
+                                         float percentage, float epsilon) -> py::object {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+        std::string err;
+        auto mesh = surfaceMarchingCubesRBF(cloud, iso_level, res_x, res_y, res_z,
+                                            percentage, epsilon, err);
+        return meshResultToPyMesh(mesh, err);
+    }, py::arg("name"),
+       py::arg("iso_level") = 0.0f,
+       py::arg("res_x") = 50,
+       py::arg("res_y") = 50,
+       py::arg("res_z") = 50,
+       py::arg("percentage") = 10.0f,
+       py::arg("epsilon") = 0.0f,
+       "Marching Cubes RBF surface reconstruction. Returns ct.Mesh object.");
+
+    m.def("grid_projection", [meshResultToPyMesh](const std::string& name,
+                                       double resolution, int padding_size, int k,
+                                       int max_binary_search_level) -> py::object {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+        std::string err;
+        auto mesh = surfaceGridProjection(cloud, resolution, padding_size, k,
+                                          max_binary_search_level, err);
+        return meshResultToPyMesh(mesh, err);
+    }, py::arg("name"),
+       py::arg("resolution") = 0.001,
+       py::arg("padding_size") = 3,
+       py::arg("k") = 0,
+       py::arg("max_binary_search_level") = 10,
+       "Grid Projection surface reconstruction. Returns ct.Mesh object.");
+
+    // ================================================================
+    // 网格显示/移除
+    // ================================================================
+    m.def("show_mesh", [](PyMesh& mesh, const std::string& id) {
+        auto mesh_ptr = mesh.meshPtr();
+        if (!mesh_ptr) throw std::runtime_error("Mesh is empty");
+        auto* bridge = ct::PythonManager::instance().bridge();
+        bridge->addMesh(mesh_ptr, QString::fromStdString(id));
+    }, py::arg("mesh"), py::arg("id"),
+       "Display a ct.Mesh in the 3D view under the given id.");
+
+    m.def("remove_mesh", [](const std::string& id) {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        bridge->removeMesh(QString::fromStdString(id));
+    }, py::arg("id"),
+       "Remove a displayed mesh from the 3D view by id.");
 }

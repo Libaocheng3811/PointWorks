@@ -87,4 +87,24 @@ void registerKeypointBindings(py::module_& m)
        py::arg("k") = 10,
        py::arg("radius") = 0.05,
        "SIFT 3D keypoint detection. Returns new ct.Cloud of keypoints.");
+
+    m.def("trajkovic_keypoints", [insertKeypointResult](const std::string& name,
+                                   int compute_method, int window_size,
+                                   float first_threshold, float second_threshold,
+                                   int k, double radius) -> py::object {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        if (!cloud) throw std::runtime_error("Cloud not found: " + name);
+
+        auto kr = ct::Keypoints::TrajkovicKeypoint3D(cloud, compute_method, window_size,
+                                                       first_threshold, second_threshold, k, radius);
+        return insertKeypointResult(kr, "trajkovic-" + name);
+    }, py::arg("name"),
+       py::arg("compute_method") = 0,
+       py::arg("window_size") = 3,
+       py::arg("first_threshold") = 0.15f,
+       py::arg("second_threshold") = 0.05f,
+       py::arg("k") = 10,
+       py::arg("radius") = 0.01,
+       "Trajkovic 3D keypoint detection. compute_method: 0-3 different methods. Returns new ct.Cloud of keypoints.");
 }

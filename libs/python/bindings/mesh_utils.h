@@ -46,5 +46,16 @@ std::shared_ptr<pcl::PolygonMesh> surfaceConvexHull(
 
 std::shared_ptr<pcl::PolygonMesh> surfaceConcaveHull(
     const std::shared_ptr<ct::Cloud>& cloud,
-    double alpha, bool keep_information,
+    double alpha, bool keep_information, int dimension,
+    std::string& error_msg);
+
+std::shared_ptr<pcl::PolygonMesh> surfaceMarchingCubesRBF(
+    const std::shared_ptr<ct::Cloud>& cloud,
+    float iso_level, int res_x, int res_y, int res_z,
+    float percentage, float epsilon,
+    std::string& error_msg);
+
+std::shared_ptr<pcl::PolygonMesh> surfaceGridProjection(
+    const std::shared_ptr<ct::Cloud>& cloud,
+    double resolution, int padding_size, int k, int max_binary_search_level,
     std::string& error_msg);

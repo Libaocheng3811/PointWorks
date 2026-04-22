@@ -142,10 +142,33 @@ std::shared_ptr<pcl::PolygonMesh> surfaceConvexHull(
 
 std::shared_ptr<pcl::PolygonMesh> surfaceConcaveHull(
     const std::shared_ptr<ct::Cloud>& cloud,
-    double alpha, bool keep_information,
+    double alpha, bool keep_information, int dimension,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::ConcaveHull(cloud, alpha, keep_information, 3);
+    auto sr = ct::Surface::ConcaveHull(cloud, alpha, keep_information, dimension);
+    if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
+    return sr.mesh;
+}
+
+std::shared_ptr<pcl::PolygonMesh> surfaceMarchingCubesRBF(
+    const std::shared_ptr<ct::Cloud>& cloud,
+    float iso_level, int res_x, int res_y, int res_z,
+    float percentage, float epsilon,
+    std::string& error_msg)
+{
+    auto sr = ct::Surface::MarchingCubesRBF(
+        cloud, iso_level, res_x, res_y, res_z, percentage, epsilon);
+    if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
+    return sr.mesh;
+}
+
+std::shared_ptr<pcl::PolygonMesh> surfaceGridProjection(
+    const std::shared_ptr<ct::Cloud>& cloud,
+    double resolution, int padding_size, int k, int max_binary_search_level,
+    std::string& error_msg)
+{
+    auto sr = ct::Surface::GridProjection(
+        cloud, resolution, padding_size, k, max_binary_search_level);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;
 }
