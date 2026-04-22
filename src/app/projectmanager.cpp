@@ -40,7 +40,7 @@ void ProjectManager::connectSignals()
 
     // 加载错误 → 弹窗
     connect(this, &ProjectManager::loadError, this, [](const QString& msg) {
-        QMessageBox::warning(nullptr, "Project Error", msg);
+        QMessageBox::warning(nullptr, tr("Project Error"), msg);
     });
 }
 
@@ -86,8 +86,8 @@ bool ProjectManager::confirmClose()
 {
     if (!m_modified) return true;
 
-    auto ret = QMessageBox::question(m_parent_widget, "Save Project",
-        "Current project has unsaved changes. Save before closing?",
+    auto ret = QMessageBox::question(m_parent_widget, tr("Save Project"),
+        tr("Current project has unsaved changes. Save before closing?"),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
     if (ret == QMessageBox::Cancel) return false;
     if (ret == QMessageBox::Save) onSaveProject();
@@ -101,8 +101,8 @@ bool ProjectManager::confirmClose()
 void ProjectManager::onNewProject()
 {
     if (m_modified) {
-        auto ret = QMessageBox::question(m_parent_widget, "Save Project",
-            "Current project has unsaved changes. Save before creating new project?",
+        auto ret = QMessageBox::question(m_parent_widget, tr("Save Project"),
+            tr("Current project has unsaved changes. Save before creating new project?"),
             QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
         if (ret == QMessageBox::Cancel) return;
         if (ret == QMessageBox::Save) onSaveProject();
@@ -115,8 +115,8 @@ void ProjectManager::onNewProject()
 void ProjectManager::onOpenProject()
 {
     if (m_modified) {
-        auto ret = QMessageBox::question(m_parent_widget, "Save Project",
-            "Current project has unsaved changes. Save before opening?",
+        auto ret = QMessageBox::question(m_parent_widget, tr("Save Project"),
+            tr("Current project has unsaved changes. Save before opening?"),
             QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
         if (ret == QMessageBox::Cancel) return;
         if (ret == QMessageBox::Save) onSaveProject();
@@ -269,9 +269,8 @@ bool ProjectManager::openProject(const QString& path)
     }
 
     if (!missing.isEmpty()) {
-        QString msg = "The following cloud files are missing:\n\n" + missing.join("\n") +
-                     "\n\nDo you want to continue loading the available files?";
-        auto ret = QMessageBox::warning(nullptr, "Missing Files", msg,
+        QString msg = QString(tr("The following cloud files are missing:\n\n%1\n\nDo you want to continue loading the available files?")).arg(missing.join("\n"));
+        auto ret = QMessageBox::warning(nullptr, tr("Missing Files"), msg,
                                         QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::No)
             return false;

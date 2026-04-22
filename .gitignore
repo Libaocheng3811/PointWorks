@@ -56,3 +56,4 @@ qrc_*.cpp
 bash.exe.stackdump
 GEMINI.md
 .claude/settings.local.json
+src/resources/trans/translate.py

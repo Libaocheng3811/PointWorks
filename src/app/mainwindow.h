@@ -49,6 +49,7 @@ public:
 protected:
     void moveEvent(QMoveEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    void changeEvent(QEvent* event) override;
 
 private:
     Ui::MainWindow *ui;

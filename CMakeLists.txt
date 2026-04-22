@@ -107,6 +107,7 @@ set(PYBIND11_FINDPYTHON ON CACHE BOOL "" FORCE)
 #set(CMAKE_PREFIX_PATH "D:/LibCommunity/Qt5.15/5.15.2/msvc2019_64")
 find_package(QT NAMES Qt5 COMPONENTS Core Widgets OpenGL Gui Concurrent Charts REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Concurrent Charts REQUIRED)
+find_package(Qt5LinguistTools REQUIRED)
 
 if (QT_FOUND)
     message(STATUS "Found QT version: ${Qt5_VERSION}.")

@@ -95,7 +95,7 @@ namespace ct
         {
             QString uniqueName = makeUniqueName(QString::fromStdString(cloud->id()));
             cloud->setId(uniqueName.toStdString());
-            printI(QString("Cloud id renamed to [%1] to avoid conflict.").arg(uniqueName));
+            printI(QString(tr("Cloud id renamed to [%1] to avoid conflict.")).arg(uniqueName));
         }
 
         // 根据策略确定实际父节点和节点类型
@@ -156,7 +156,7 @@ namespace ct
             this->setCurrentItem(newItem);
         }
 
-        printI(QString("Add %1[id:%2] done.").arg(nodeType == NodeMesh ? "mesh" : "cloud").arg(QString::fromStdString(cloud->id())));
+        printI(QString(tr("Add %1[id:%2] done.")).arg(nodeType == NodeMesh ? "mesh" : "cloud").arg(QString::fromStdString(cloud->id())));
 
         // 通知 Bridge 注册该云
         emit cloudInserted(cloud);
@@ -204,7 +204,7 @@ namespace ct
         if (item && item->isSelected()){
             m_cloudview->addBox(cloud);
         }
-        printI(QString("Update cloud[id:%1, size:%2] to new cloud[id:%3, size:%4] done.")
+        printI(QString(tr("Update cloud[id:%1, size:%2] to new cloud[id:%3, size:%4] done."))
                 .arg(QString::fromStdString(cloud->id())).arg(cloud->size()).arg(QString::fromStdString(new_cloud->id())).arg(new_cloud->size()));
     }
 
@@ -221,7 +221,7 @@ namespace ct
         for (QTreeWidgetItem* c : allChildren){
             Cloud::Ptr cloud = getCloud(c);
             if (cloud && m_registry->isCloudInUse(QString::fromStdString(cloud->id()))) {
-                printW(QString("Cloud[%1] is in use by script, cannot delete").arg(QString::fromStdString(cloud->id())));
+                printW(QString(tr("Cloud[%1] is in use by script, cannot delete")).arg(QString::fromStdString(cloud->id())));
                 return;
             }
         }
@@ -258,14 +258,14 @@ namespace ct
         m_cloudview->refresh();
 
         removeItem(item);
-        printI(QString("Remove cloud[id:%1] done."));
+        printI(QString(tr("Remove cloud[id:%1] done.")));
     }
 
     void CloudTree::removeAllClouds()
     {
         // 检查是否有任何点云正在被脚本使用
         if (!m_registry->cloudsInUse().isEmpty()) {
-            printW(QString("Cannot remove all: %1 cloud(s) in use by script").arg(m_registry->cloudsInUse().size()));
+            printW(QString(tr("Cannot remove all: %1 cloud(s) in use by script")).arg(m_registry->cloudsInUse().size()));
             return;
         }
 
@@ -282,7 +282,7 @@ namespace ct
 
         m_cloudview->setAutoRender(true);
         m_cloudview->refresh();
-        printI("remove all clouds done.");
+        printI(tr("remove all clouds done."));
     }
 
     void CloudTree::saveCloudItem(QTreeWidgetItem *item) {
@@ -327,7 +327,7 @@ namespace ct
             m_io->saveCloudFile(cloud, filepath, true);
         } else {
             // 点云保存路径（PLY mesh 也走这里，让用户选择 binary/ascii）
-            QMessageBox message_box(QMessageBox::NoIcon, "Saved format", tr("Save in binary or ascii format?"),
+            QMessageBox message_box(QMessageBox::NoIcon, tr("Saved format"), tr("Save in binary or ascii format?"),
                                     QMessageBox::NoButton, this);
             message_box.addButton(tr("Ascii"), QMessageBox::ActionRole);
             message_box.addButton(tr("Binary"), QMessageBox::ActionRole)->setDefault(true);
@@ -335,7 +335,7 @@ namespace ct
             int k = message_box.exec();
             if (k == QMessageBox::Cancel)
             {
-                printW("Save cloud canceled.");
+                printW(tr("Save cloud canceled."));
                 return;
             }
 
@@ -378,7 +378,7 @@ namespace ct
 
         QString finalName = makeUniqueName(name);
         if (finalName != name) {
-            printI(QString("Cloud renamed to [%1] to avoid conflict.").arg(finalName));
+            printI(QString(tr("Cloud renamed to [%1] to avoid conflict.")).arg(finalName));
         }
 
         item->setText(0, finalName);
@@ -388,7 +388,7 @@ namespace ct
 
         m_registry->updateItemId(QString::fromStdString(cloud->id()), finalName, item);
         cloud->setId(finalName.toStdString());
-        printI(QString("Rename done."));
+        printI(tr("Rename done."));
     }
 
     std::vector<Cloud::Ptr> CloudTree::getSelectedClouds()
@@ -428,7 +428,7 @@ namespace ct
         // 如果选择的点云数量小于2，打印警告信息
         if (clouds.size() <= 1)
         {
-            printW("The number of clouds to merge is not enough!");
+            printW(tr("The number of clouds to merge is not enough!"));
             return;
         }
 
@@ -446,7 +446,7 @@ namespace ct
             double dist = (c->getGlobalShift() - master_shift).norm();
             if (dist > 100000.0) { // 100 km 阈值
                 force_local_merge = true;
-                printW("Detected large distance between clouds. Forcing local merge to avoid huge bounding box.");
+                printW(tr("Detected large distance between clouds. Forcing local merge to avoid huge bounding box."));
                 break;
             }
         }
@@ -562,7 +562,7 @@ namespace ct
         QTreeWidgetItem* groupItem = addItem(nullptr, "Merged_" + merge_id, NodeGroup);
         // 合并点云默认作为根节点添加
         insertCloud(merge_cloud, groupItem, true);
-        printI(QString("Merge clouds to new cloud[id:%1] done.").arg(QString::fromStdString(merge_cloud->id())));
+        printI(QString(tr("Merge clouds to new cloud[id:%1] done.")).arg(QString::fromStdString(merge_cloud->id())));
     }
 
     void CloudTree::cloneSelectedClouds(){
@@ -609,12 +609,12 @@ namespace ct
                                        QTreeWidgetItem* targetParent, float time)
     {
         if (!cloud) {
-            printE("load the file failed!");
+            printE(tr("load the file failed!"));
             m_progress->closeProgress();
             return;
         }
 
-        printI(QString("Load the file [path:%1] done, take time %2 ms.").arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
+        printI(QString(tr("Load the file [path:%1] done, take time %2 ms.")).arg(QFileInfo(QString::fromStdString(cloud->filepath())).absoluteFilePath()).arg(time));
 
         bool isMesh = mesh && !mesh->polygons.empty();
         SceneNodeType nodeType = isMesh ? NodeMesh : NodeCloud;
@@ -634,24 +634,24 @@ namespace ct
         if (mesh && !mesh->polygons.empty()) {
             QString cloudId = QString::fromStdString(cloud->id());
             registerMesh(cloudId, mesh);
-            printI(QString("Mesh detected: %1 polygons").arg(mesh->polygons.size()));
+            printI(QString(tr("Mesh detected: %1 polygons")).arg(mesh->polygons.size()));
         }
     }
 
     void CloudTree::handleSaveComplete(bool success, const QString& path, float time)
     {
         if (!success)
-            printE("Save the file failed!");
+            printE(tr("Save the file failed!"));
         else
-            printI(QString("Save the file [path:%1] done, take time %2 ms.").arg(path).arg(time));
+            printI(QString(tr("Save the file [path:%1] done, take time %2 ms.")).arg(path).arg(time));
     }
 
     void CloudTree::handleMeshSaveComplete(bool success, const QString& path, float time)
     {
         if (!success)
-            printE("Save mesh file failed!");
+            printE(tr("Save mesh file failed!"));
         else
-            printI(QString("Save mesh file [path:%1] done, take time %2 ms.").arg(path).arg(time));
+            printI(QString(tr("Save mesh file [path:%1] done, take time %2 ms.")).arg(path).arg(time));
     }
 
     // TODO: 对于文件树的修改，目前只验证了添加点云、选点、CSF和植被滤波功能，其他功能还未验证是否正常
@@ -1317,7 +1317,7 @@ namespace ct
         QTreeWidgetItem* originItem = getItemById(QString::fromStdString(originCloud->id()));
         if (!originItem){
             // 如果原始点云被删除了，尝试将结果点云添加到根目录
-            printW(QString("Origin cloud [%1] item not found, add results to root.").arg(QString::fromStdString(originCloud->id())));
+            printW(QString(tr("Origin cloud [%1] item not found, add results to root.")).arg(QString::fromStdString(originCloud->id())));
             QTreeWidgetItem* rootGroup = addItem(nullptr, groupName, NodeGroup);
             for (const auto& cloud : results){
                 insertCloud(cloud, rootGroup, true);
@@ -1382,7 +1382,7 @@ namespace ct
         m_cloudview->resetCamera();
         m_cloudview->refresh();
 
-        printI(QString("Add results to group [%1] done.").arg(groupName));
+        printI(QString(tr("Add results to group [%1] done.")).arg(groupName));
     }
 
     void CloudTree::registerMesh(const QString& cloudId, const pcl::PolygonMesh::Ptr& mesh)
@@ -1533,11 +1533,11 @@ namespace ct
 
         auto _ltm_mesh = m_registry->getMesh(cloudId);
         if (!_ltm_mesh || _ltm_mesh->polygons.empty()) {
-            printW("Textured mesh result received but mesh not found in registry for: " + cloudId);
+            printW(QString(tr("Textured mesh result received but mesh not found in registry for: %1")).arg(cloudId));
             return;
         }
 
-        printI(QString("Textured mesh detected: %1 polygons, obj: %2").arg(_ltm_mesh->polygons.size()).arg(objFilePath));
+        printI(QString(tr("Textured mesh detected: %1 polygons, obj: %2")).arg(_ltm_mesh->polygons.size()).arg(objFilePath));
 
         TexturedMeshPtr texturedMesh = std::make_shared<TexturedMesh>();
         texturedMesh->mesh = _ltm_mesh;
@@ -1591,7 +1591,7 @@ namespace ct
 
         if (valid) {
             m_cloudview->zoomToBounds(global_min, global_max);
-            printI("Zoom to fit selected/visible objects.");
+            printI(tr("Zoom to fit selected/visible objects."));
         } else {
             m_cloudview->resetCamera();
         }
@@ -1631,29 +1631,29 @@ namespace ct
         {
             Cloud::Ptr cloud = getCloud(item);
 
-            menu.addAction("Show / Hide", this, [this, item]() {
+            menu.addAction(tr("Show / Hide"), this, [this, item]() {
                 bool next = (item->checkState(0) != Qt::Checked);
                 item->setCheckState(0, next ? Qt::Checked : Qt::Unchecked);
             });
 
             menu.addSeparator();
-            menu.addAction("Rename", this, [this, item]() {
+            menu.addAction(tr("Rename"), this, [this, item]() {
                 bool ok = false;
                 Cloud::Ptr cloud = getCloud(item);
                 QString oldName = cloud ? QString::fromStdString(cloud->id()) : item->text(0);
-                QString newName = QInputDialog::getText(this, "Rename", "New name:",
+                QString newName = QInputDialog::getText(this, tr("Rename"), tr("New name:"),
                     QLineEdit::Normal, oldName, &ok);
                 if (ok && !newName.isEmpty()) renameCloudItem(item, newName);
             });
 
-            menu.addAction("Save As...", this, [this, item]() { saveCloudItem(item); });
-            menu.addAction("Clone", this, [this, item]() { cloneCloudItem(item); });
+            menu.addAction(tr("Save As..."), this, [this, item]() { saveCloudItem(item); });
+            menu.addAction(tr("Clone"), this, [this, item]() { cloneCloudItem(item); });
 
             menu.addSeparator();
-            menu.addAction("Delete", this, [this, item]() { removeCloudItem(item); });
+            menu.addAction(tr("Delete"), this, [this, item]() { removeCloudItem(item); });
 
             menu.addSeparator();
-            menu.addAction("Zoom to Fit", this, [this, item]() {
+            menu.addAction(tr("Zoom to Fit"), this, [this, item]() {
                 setCurrentItem(item);
                 zoomToSelected();
             });
@@ -1661,7 +1661,7 @@ namespace ct
         else if (isFolderNode(item))
         {
             // FileNode / GroupNode 通用菜单
-            menu.addAction("Expand All", this, [item]() {
+            menu.addAction(tr("Expand All"), this, [item]() {
                 std::function<void(QTreeWidgetItem*)> expand;
                 expand = [&](QTreeWidgetItem* p) {
                     p->setExpanded(true);
@@ -1671,7 +1671,7 @@ namespace ct
                 expand(item);
             });
 
-            menu.addAction("Collapse All", this, [item]() {
+            menu.addAction(tr("Collapse All"), this, [item]() {
                 std::function<void(QTreeWidgetItem*)> collapse;
                 collapse = [&](QTreeWidgetItem* p) {
                     p->setExpanded(false);
@@ -1685,15 +1685,15 @@ namespace ct
 
             if (getNodeType(item) == NodeGroup)
             {
-                menu.addAction("Rename", this, [this, item]() {
+                menu.addAction(tr("Rename"), this, [this, item]() {
                     bool ok = false;
-                    QString newName = QInputDialog::getText(this, "Rename Group", "New name:",
+                    QString newName = QInputDialog::getText(this, tr("Rename Group"), tr("New name:"),
                         QLineEdit::Normal, item->text(0), &ok);
                     if (ok && !newName.isEmpty()) renameCloudItem(item, newName);
                 });
             }
 
-            menu.addAction("Delete", this, [this, item]() { removeCloudItem(item); });
+            menu.addAction(tr("Delete"), this, [this, item]() { removeCloudItem(item); });
         }
 
         if (!menu.actions().isEmpty())

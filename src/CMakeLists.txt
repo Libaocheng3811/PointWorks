@@ -105,6 +105,8 @@ find_package(VTK COMPONENTS
     vtkRenderingGL2PSOpenGL2
     vtkRenderingVolumeOpenGL2)
 
+qt5_add_translation(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/trans/zh_CN.ts)
+
 add_executable(pointworks WIN32 ${Srcs} ${Hdrs} ${UIS} ${QRCs} ${IRCs})
 
 target_include_directories(pointworks PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

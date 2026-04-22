@@ -19,6 +19,7 @@ set(Base_Srcs
     base/cloud_io_controller.cpp
     base/cloudregistry.cpp
     base/dialog_registry.cpp
+    base/language_manager.cpp
     base/progress_manager.cpp
     widgets/sf_histogram_chart.cpp
     widgets/sf_display_panel.cpp
@@ -32,6 +33,7 @@ set(Base_Hdrs
     base/customdock.h
     base/customdialog.h
     base/dialog_registry.h
+    base/language_manager.h
     base/progress_manager.h
     base/paramsnapshot.h
     widgets/sf_histogram_chart.h

@@ -45,6 +45,8 @@
 #include "python_connections.h"
 #include "help_launcher.h"
 
+#include "ui/base/language_manager.h"
+
 #include "python/python_console.h"
 #include "python/python_editor.h"
 #include <algorithm>
@@ -59,6 +61,8 @@
 #include <QMessageBox>
 #include <QComboBox>
 #include <QHeaderView>
+#include <QSettings>
+#include <QEvent>
 
 #define  CLOUD_ICON_PATH    ":/res/icon2/cloud.svg"
 #define  MESH_ICON_PATH     ":/res/icon2/mesh.svg"
@@ -320,8 +324,29 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(ui->actionOrigin, &QAction::triggered, [=]{
-        this->setStyleSheet("");  // 清空样式表，恢复默认
+        this->setStyleSheet("");  // clear stylesheet, restore default
     });
+
+    // === Language switching ===
+    connect(ui->actionEnglish, &QAction::triggered, this, [=] {
+        ct::LanguageManager::instance().switchLanguage(ct::LanguageManager::English);
+        ui->actionEnglish->setChecked(true);
+        ui->actionChinese->setChecked(false);
+        QSettings settings("PointWorks", "PointWorks");
+        settings.setValue("language", static_cast<int>(ct::LanguageManager::English));
+    });
+    connect(ui->actionChinese, &QAction::triggered, this, [=] {
+        ct::LanguageManager::instance().switchLanguage(ct::LanguageManager::Chinese);
+        ui->actionChinese->setChecked(true);
+        ui->actionEnglish->setChecked(false);
+        QSettings settings("PointWorks", "PointWorks");
+        settings.setValue("language", static_cast<int>(ct::LanguageManager::Chinese));
+    });
+
+    // Set initial checked state based on current language
+    auto& langMgr = ct::LanguageManager::instance();
+    ui->actionEnglish->setChecked(langMgr.currentLanguage() == ct::LanguageManager::English);
+    ui->actionChinese->setChecked(langMgr.currentLanguage() == ct::LanguageManager::Chinese);
 
     // === Python Bridge 信号连接 ===
     auto* bridge = ct::PythonManager::instance().bridge();
@@ -360,4 +385,11 @@ void MainWindow::moveEvent(QMoveEvent *event)
     QPoint pos = ui->cloudview->mapToGlobal(QPoint(0, 0));
     emit ui->cloudview->posChanged(pos);
     return QMainWindow::moveEvent(event);
+}
+
+void MainWindow::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        ui->retranslateUi(this);
+    QMainWindow::changeEvent(event);
 }
