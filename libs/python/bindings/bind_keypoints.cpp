@@ -12,7 +12,7 @@ void registerKeypointBindings(py::module_& m)
         kr.cloud->makeAdaptive();
         bridge->registerCloud(kr.cloud);
         bridge->holdCloud(kr.cloud);
-        bridge->insertCloud(kr.cloud);
+        if (shouldAutoInsert()) bridge->insertCloud(kr.cloud);
         return py::cast(PyCloud(kr.cloud));
     };
 

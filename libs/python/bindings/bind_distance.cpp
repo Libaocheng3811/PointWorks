@@ -94,7 +94,7 @@ void registerDistanceBindings(py::module_& m)
         cr.projected_cloud->makeAdaptive();
         bridge->registerCloud(cr.projected_cloud);
         bridge->holdCloud(cr.projected_cloud);
-        bridge->insertCloud(cr.projected_cloud);
+        if (shouldAutoInsert()) bridge->insertCloud(cr.projected_cloud);
 
         return py::cast(PyCloud(cr.projected_cloud));
     }, py::arg("source_name"), py::arg("target_name"),

@@ -25,7 +25,7 @@ void registerRegistrationBindings(py::module_& m)
         result.aligned_cloud->makeAdaptive();
         bridge->registerCloud(result.aligned_cloud);
         bridge->holdCloud(result.aligned_cloud);
-        bridge->insertCloud(result.aligned_cloud);
+        if (shouldAutoInsert()) bridge->insertCloud(result.aligned_cloud);
 
         py::dict dict;
         dict["aligned"] = py::cast(PyCloud(result.aligned_cloud));

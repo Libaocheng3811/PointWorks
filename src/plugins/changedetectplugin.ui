@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>450</height>
+    <height>400</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>changedetectdialog</string>
+   <string>Change Detection</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -27,7 +27,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="0">
-       <widget class="QLabel" name="lbl_reference">
+       <widget class="QLabel" name="lbl_phase1">
         <property name="minimumSize">
          <size>
           <width>160</width>
@@ -35,12 +35,12 @@
          </size>
         </property>
         <property name="text">
-         <string>Reference Cloud</string>
+         <string>Phase 1 Cloud</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QComboBox" name="combo_reference">
+       <widget class="QComboBox" name="combo_phase1">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -50,7 +50,7 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="lbl_compare">
+       <widget class="QLabel" name="lbl_phase2">
         <property name="minimumSize">
          <size>
           <width>160</width>
@@ -58,12 +58,12 @@
          </size>
         </property>
         <property name="text">
-         <string>Compare Cloud</string>
+         <string>Phase 2 Cloud</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QComboBox" name="combo_compare">
+       <widget class="QComboBox" name="combo_phase2">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -119,7 +119,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="NearestNeighbor">
          <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -183,7 +183,7 @@
               <item>
                <widget class="QStackedWidget" name="stackInput">
                 <property name="currentIndex">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <widget class="QWidget" name="page">
                  <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -315,37 +315,6 @@
           </item>
          </layout>
         </widget>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="font">
-      <font>
-       <family>Times New Roman</family>
-       <pointsize>11</pointsize>
-      </font>
-     </property>
-     <property name="title">
-      <string>Output</string>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QCheckBox" name="chk_export">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>25</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Export Unchanged Points</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
        </widget>
       </item>
      </layout>

@@ -19,7 +19,7 @@ void registerNormalBindings(py::module_& m)
         result.cloud->makeAdaptive();
         bridge->registerCloud(result.cloud);
         bridge->holdCloud(result.cloud);
-        bridge->insertCloud(result.cloud);
+        if (shouldAutoInsert()) bridge->insertCloud(result.cloud);
 
         return py::cast(PyCloud(result.cloud));
     }, py::arg("name"),

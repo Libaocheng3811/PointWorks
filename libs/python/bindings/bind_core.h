@@ -299,6 +299,16 @@ public:
 
     ct::Cloud::Ptr cloudPtr() const { return m_cloud; }
 
+    void show(const std::string& name = "") {
+        if (!name.empty()) m_cloud->setId(name);
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) {
+            bridge->registerCloud(m_cloud);
+            bridge->markSceneMounted(QString::fromStdString(m_cloud->id()));
+            bridge->insertCloud(m_cloud);
+        }
+    }
+
 private:
     ct::Cloud::Ptr m_cloud;
 };

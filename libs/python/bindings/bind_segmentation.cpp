@@ -17,7 +17,7 @@ void registerSegmentationBindings(py::module_& m)
             c->makeAdaptive();
             bridge->registerCloud(c);
             bridge->holdCloud(c);
-            bridge->insertCloud(c);
+            if (shouldAutoInsert()) bridge->insertCloud(c);
             cloud_list.append(py::cast(PyCloud(c)));
         }
         return cloud_list;

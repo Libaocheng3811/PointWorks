@@ -27,6 +27,7 @@
 #include <QComboBox>
 #include <QApplication>
 #include <QTime>
+#include <QDateTime>
 #include <QSizePolicy>
 
 namespace ct
@@ -92,31 +93,9 @@ namespace ct
 
         if (m_cloudview->contains(QString::fromStdString(cloud->id())))
         {
-            int k = QMessageBox::warning(this, "WARNING", "Rename the exists id?", QMessageBox::Yes, QMessageBox::Cancel);
-            if (k == QMessageBox::Yes)
-            {
-                bool ok = false;
-                QString res = QInputDialog::getText(this, "Rename", "", QLineEdit::Normal, QString::fromStdString(cloud->id()), &ok);
-                if (ok)
-                {
-                    if (res == QString::fromStdString(cloud->id()) || m_cloudview->contains(res))
-                    {
-                        printE(QString("The cloud id[%1] already exists!").arg(res));
-                        return;
-                    }
-                    cloud->setId(res.toStdString());
-                }
-                else
-                {
-                    printW("Add cloud canceled.");
-                    return;
-                }
-            }
-            else
-            {
-                printW("Add cloud canceled.");
-                return;
-            }
+            QString uniqueName = makeUniqueName(QString::fromStdString(cloud->id()));
+            cloud->setId(uniqueName.toStdString());
+            printI(QString("Cloud id renamed to [%1] to avoid conflict.").arg(uniqueName));
         }
 
         // 根据策略确定实际父节点和节点类型
@@ -366,6 +345,30 @@ namespace ct
         }
     }
 
+    QString CloudTree::makeUniqueName(const QString& desiredName) {
+        if (!m_cloudview->contains(desiredName))
+            return desiredName;
+
+        int maxNum = 0;
+        QString pattern = desiredName + "(";
+        for (const auto& cloud : m_registry->getAllClouds()) {
+            QString id = QString::fromStdString(cloud->id());
+            if (id.startsWith(pattern) && id.endsWith(")")) {
+                QString numStr = id.mid(pattern.length(), id.length() - pattern.length() - 1);
+                bool ok = false;
+                int num = numStr.toInt(&ok);
+                if (ok) maxNum = std::max(maxNum, num);
+            }
+        }
+
+        for (int i = maxNum + 1; i <= maxNum + 1000; ++i) {
+            QString candidate = desiredName + "(" + QString::number(i) + ")";
+            if (!m_cloudview->contains(candidate))
+                return candidate;
+        }
+        return desiredName + "(" + QString::number(QDateTime::currentMSecsSinceEpoch() % 100000) + ")";
+    }
+
     void CloudTree::renameCloudItem(QTreeWidgetItem *item, const QString &name) {
         Cloud::Ptr cloud = getCloud(item);
         if (!cloud) {
@@ -373,19 +376,18 @@ namespace ct
             return;
         }
 
-        if (m_cloudview->contains(name)){
-            printW(QString("Cloud[id:%1] already exists, please rename it.").arg(name));
-            return;
+        QString finalName = makeUniqueName(name);
+        if (finalName != name) {
+            printI(QString("Cloud renamed to [%1] to avoid conflict.").arg(finalName));
         }
 
-        item->setText(0, name);
-        // TODO:为什么这里是移除点云？
+        item->setText(0, finalName);
         m_cloudview->removePointCloud(QString::fromStdString(cloud->id()));
         m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
         m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
 
-        m_registry->updateItemId(QString::fromStdString(cloud->id()), name, item);
-        cloud->setId(name.toStdString());
+        m_registry->updateItemId(QString::fromStdString(cloud->id()), finalName, item);
+        cloud->setId(finalName.toStdString());
         printI(QString("Rename done."));
     }
 

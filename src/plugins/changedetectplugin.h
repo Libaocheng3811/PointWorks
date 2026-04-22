@@ -38,10 +38,9 @@ private slots:
 private:
     Ui::ChangeDetectPlugin *ui;
 
-    ct::Cloud::Ptr m_refCloud;
-    ct::Cloud::Ptr m_compCloud;
+    ct::Cloud::Ptr m_phase1Cloud;
+    ct::Cloud::Ptr m_phase2Cloud;
 
-    // 缓存当前参数
     double m_threshold;
 };
 

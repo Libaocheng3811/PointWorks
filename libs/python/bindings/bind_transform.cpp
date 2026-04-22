@@ -26,7 +26,7 @@ static py::object insertTransformedCloud(const ct::Cloud::Ptr& result,
     auto* bridge = ct::PythonManager::instance().bridge();
     bridge->registerCloud(result);
     bridge->holdCloud(result);
-    bridge->insertCloud(result);
+    if (shouldAutoInsert()) bridge->insertCloud(result);
     return py::cast(PyCloud(result));
 }
 
@@ -173,7 +173,7 @@ void registerTransformBindings(py::module_& m)
         fr_z.result_cloud->makeAdaptive();
         bridge->registerCloud(fr_z.result_cloud);
         bridge->holdCloud(fr_z.result_cloud);
-        bridge->insertCloud(fr_z.result_cloud);
+        if (shouldAutoInsert()) bridge->insertCloud(fr_z.result_cloud);
 
         return py::cast(PyCloud(fr_z.result_cloud));
     }, py::arg("name"),

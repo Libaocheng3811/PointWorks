@@ -170,6 +170,7 @@ void registerCoreBindings(py::module_& m)
         .def("clear_scalar_fields", &PyCloud::clearScalarFields, "Remove all scalar fields")
         .def("has_scalar_field", &PyCloud::hasScalarField, "Check if scalar field exists", py::arg("name"))
         .def("update_color_by_field", &PyCloud::updateColorByField, "Colorize cloud by scalar field values", py::arg("field_name"))
+        .def("show", &PyCloud::show, py::arg("name") = "", "Add this cloud to the scene tree and view. Optionally set a new name.")
 
         // ===== 变换（便捷方法） =====
         .def("translate", [](PyCloud& self, double tx, double ty, double tz) -> py::object {
@@ -187,7 +188,7 @@ void registerCoreBindings(py::module_& m)
             result->makeAdaptive();
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, py::arg("tx"), py::arg("ty"), py::arg("tz"),
            "Translate cloud by (tx, ty, tz). Returns new ct.Cloud.")
@@ -207,7 +208,7 @@ void registerCoreBindings(py::module_& m)
             result->makeAdaptive();
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, py::arg("rx"), py::arg("ry"), py::arg("rz"),
            "Rotate cloud by Euler angles (degrees). Returns new ct.Cloud.")
@@ -227,7 +228,7 @@ void registerCoreBindings(py::module_& m)
             result->makeAdaptive();
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, py::arg("angle"), py::arg("ax"), py::arg("ay"), py::arg("az"),
            "Rotate cloud by angle (degrees) around axis. Returns new ct.Cloud.")
@@ -249,7 +250,7 @@ void registerCoreBindings(py::module_& m)
             result->makeAdaptive();
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, py::arg("sx"), py::arg("sy"), py::arg("sz"),
            "Scale cloud by (sx, sy, sz). Returns new ct.Cloud.")
@@ -275,7 +276,7 @@ void registerCoreBindings(py::module_& m)
             result->makeAdaptive();
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, py::arg("matrix"),
            "Apply 4x4 transformation matrix. Returns new ct.Cloud.")
@@ -290,7 +291,7 @@ void registerCoreBindings(py::module_& m)
             fr.result_cloud->makeAdaptive();
             bridge->registerCloud(fr.result_cloud);
             bridge->holdCloud(fr.result_cloud);
-            bridge->insertCloud(fr.result_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(fr.result_cloud);
             return py::cast(PyCloud(fr.result_cloud));
         }, py::arg("lx"), py::arg("ly"), py::arg("lz"),
            "Voxel grid downsampling. Returns new ct.Cloud.")
@@ -304,7 +305,7 @@ void registerCoreBindings(py::module_& m)
             fr.result_cloud->makeAdaptive();
             bridge->registerCloud(fr.result_cloud);
             bridge->holdCloud(fr.result_cloud);
-            bridge->insertCloud(fr.result_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(fr.result_cloud);
             return py::cast(PyCloud(fr.result_cloud));
         }, py::arg("nr_k") = 30, py::arg("stddev_mult") = 2.0,
            "Statistical outlier removal. Returns new ct.Cloud.")
@@ -324,7 +325,7 @@ void registerCoreBindings(py::module_& m)
             fr_z.result_cloud->makeAdaptive();
             bridge->registerCloud(fr_z.result_cloud);
             bridge->holdCloud(fr_z.result_cloud);
-            bridge->insertCloud(fr_z.result_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(fr_z.result_cloud);
             return py::cast(PyCloud(fr_z.result_cloud));
         }, py::arg("min_x"), py::arg("min_y"), py::arg("min_z"),
            py::arg("max_x"), py::arg("max_y"), py::arg("max_z"),
@@ -340,7 +341,7 @@ void registerCoreBindings(py::module_& m)
             result.cloud->makeAdaptive();
             bridge->registerCloud(result.cloud);
             bridge->holdCloud(result.cloud);
-            bridge->insertCloud(result.cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(result.cloud);
             return py::cast(PyCloud(result.cloud));
         }, py::arg("k_search") = 30, py::arg("radius_search") = 0.0,
            "Estimate normals. Returns new ct.Cloud with normals.")
@@ -375,7 +376,7 @@ void registerCoreBindings(py::module_& m)
             result->makeAdaptive();
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, py::arg("k") = 30, py::arg("radius") = 0.05, py::arg("angle") = 30.0,
            "Estimate boundary points (requires normals). Returns new ct.Cloud.")
@@ -431,7 +432,7 @@ void registerCoreBindings(py::module_& m)
             kr.cloud->makeAdaptive();
             bridge->registerCloud(kr.cloud);
             bridge->holdCloud(kr.cloud);
-            bridge->insertCloud(kr.cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(kr.cloud);
             return py::cast(PyCloud(kr.cloud));
         }, py::arg("resolution") = 0.1,
            py::arg("gamma_21") = 0.975, py::arg("gamma_32") = 0.975,
@@ -446,7 +447,7 @@ void registerCoreBindings(py::module_& m)
             result->setId("clone-" + cloud->id());
             bridge->registerCloud(result);
             bridge->holdCloud(result);
-            bridge->insertCloud(result);
+            if (shouldAutoInsert()) bridge->insertCloud(result);
             return py::cast(PyCloud(result));
         }, "Clone this cloud. Returns new ct.Cloud.");
 }

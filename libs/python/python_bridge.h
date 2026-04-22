@@ -5,6 +5,8 @@
 #include <QString>
 #include <QMutex>
 #include <QMap>
+#include <QSet>
+#include <atomic>
 #include <vector>
 #include "core/cloud.h"
 
@@ -151,12 +153,20 @@ public:
     void removeMesh(const QString& id)                 { emit signalRemoveMesh(id); }
 
     // —— 脚本模式：跳过弹窗 ——
-    void setScriptMode(bool enabled)                  { emit signalSetScriptMode(enabled); }
-    bool isScriptMode() const                          { return m_script_mode; }
+    void setScriptMode(bool enabled) {
+        m_script_mode = enabled;
+        emit signalSetScriptMode(enabled);
+    }
+    bool isScriptMode() const                          { return m_script_mode.load(std::memory_order_relaxed); }
 
     // —— 脚本会话清理 ——
     void clearScriptSession();
     void requestClearAll()                           { emit signalClearAll(); }
+
+    // —— 脚本生成数据跟踪 ——
+    void markScriptGenerated(const QString& id);
+    void markSceneMounted(const QString& id);
+    void clearScriptData();
 
     // ================================================================
     // 云注册表（线程安全）
@@ -271,6 +281,7 @@ signals:
     void signalSetScriptMode(bool enabled);
     void signalClearScriptSession();
     void signalClearAll();
+    void signalClearScriptData(QStringList ids);
 
     // 注册表
     void signalCloudRegistered(QString name);
@@ -285,7 +296,8 @@ private:
     mutable QMutex m_cloud_mutex;
     QMap<QString, Cloud::Ptr> m_cloud_registry;
     std::vector<Cloud::Ptr> m_held_clouds;
-    bool m_script_mode = false;
+    std::atomic<bool> m_script_mode{false};
+    QSet<QString> m_script_generated_ids;  // 脚本生成但未挂载到场景的 cloud ID
 };
 
 } // namespace ct

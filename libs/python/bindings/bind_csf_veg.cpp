@@ -20,14 +20,14 @@ void registerCsfVegBindings(py::module_& m)
             result.ground_cloud->makeAdaptive();
             bridge->registerCloud(result.ground_cloud);
             bridge->holdCloud(result.ground_cloud);
-            bridge->insertCloud(result.ground_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(result.ground_cloud);
         }
         if (result.off_ground_cloud) {
             result.off_ground_cloud->setId("offground-" + name);
             result.off_ground_cloud->makeAdaptive();
             bridge->registerCloud(result.off_ground_cloud);
             bridge->holdCloud(result.off_ground_cloud);
-            bridge->insertCloud(result.off_ground_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(result.off_ground_cloud);
         }
 
         py::dict dict;
@@ -53,14 +53,14 @@ void registerCsfVegBindings(py::module_& m)
             result.veg_cloud->makeAdaptive();
             bridge->registerCloud(result.veg_cloud);
             bridge->holdCloud(result.veg_cloud);
-            bridge->insertCloud(result.veg_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(result.veg_cloud);
         }
         if (result.non_veg_cloud) {
             result.non_veg_cloud->setId("nonveg-" + name);
             result.non_veg_cloud->makeAdaptive();
             bridge->registerCloud(result.non_veg_cloud);
             bridge->holdCloud(result.non_veg_cloud);
-            bridge->insertCloud(result.non_veg_cloud);
+            if (shouldAutoInsert()) bridge->insertCloud(result.non_veg_cloud);
         }
 
         py::dict dict;

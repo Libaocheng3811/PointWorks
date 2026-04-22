@@ -150,6 +150,10 @@ new_cloud = cloud.iss_keypoints(resolution=0.1)
 
 # ===== 克隆 =====
 new_cloud = cloud.clone()
+
+# ===== 显式显示 =====
+cloud.show("name")              # 将此点云添加到文件树和视图（可选设置名称）
+ct.add_to_scene(cloud, "name")  # 等价的模块级函数
 ```
 
 ### 变换（Layer 2 — 精细控制）
@@ -347,27 +351,40 @@ ct.remove_mesh("my_mesh")
 ### 脚本模式与数据清理
 
 ```python
-# 默认模式：算法结果自动插入文件树 + 显示在视图
-mesh = ct.poisson("chef")     # 自动显示并加入文件树
+# 默认模式：算法结果自动插入文件树 + 显示在视图（向后兼容）
+cloud = ct.voxel_grid("my_cloud", 0.5, 0.5, 0.5)  # 自动显示并加入文件树
 
-# 脚本模式：结果只在内存中，不显示、不插入文件树
-ct.set_script_mode(True)      # 开启脚本模式
-mesh = ct.poisson("chef")     # mesh 数据存在但不可见
+# 显式控制：任何 ct.Cloud 都可以手动 show 到场景
+cloud2 = ct.voxel_grid("my_cloud", 0.5, 0.5, 0.5)
+cloud2.show("my_voxel")          # 手动添加到文件树和视图
+ct.add_to_scene(cloud2, "name")  # 等价的模块级函数
+
+# 脚本/静默模式：结果只在内存中，不自动显示
+ct.set_script_mode(True)
+cloud3 = ct.voxel_grid("my_cloud", 0.5, 0.5, 0.5)  # 数据存在但不可见
 # ... 自定义处理、导出等 ...
-ct.clear_all()                # 手动清理所有脚本生成的数据
+cloud3.show("filtered")  # 显式添加到场景（即使在脚本模式也可用）
+cloud3.show()            # 也可以不加名称（使用自动生成的 ID）
 
-# 关闭 Python Editor 时，脚本模式下的数据自动清理
+# 清理接口
+ct.clear_script_data()    # 仅清理脚本生成但未 show() 的数据
+ct.clear_all()            # 清理所有 Python 生成的数据（点云+网格）
 ```
 
-| 模式 | 算法结果行为 | 关闭 Python Editor |
-|------|------------|-------------------|
-| 默认 (`set_script_mode(False)`) | 自动插入文件树 + 显示在视图 | 结果保留在树中 |
-| 脚本模式 (`set_script_mode(True)`) | 数据在内存中可用，不显示、不插入树 | 自动清理所有脚本数据 |
+| 模式 | 算法结果行为 | `.show()` / `add_to_scene()` | 关闭 Python Editor |
+|------|------------|---------------------------|-------------------|
+| 默认 (`set_script_mode(False)`) | 自动插入文件树 + 显示 | 仍可使用（通常不需要） | 结果保留在树中 |
+| 脚本模式 (`set_script_mode(True)`) | 数据在内存中，不显示 | **显式调用可显示** | 自动清理未 show 的数据 |
 
 ```python
-ct.set_script_mode(enabled)   # True 开启脚本模式
+ct.set_script_mode(enabled)   # True 开启静默模式
+ct.clear_script_data()        # 仅清理未挂载到场景的脚本数据
 ct.clear_all()                # 清理所有 Python 生成的数据（点云+网格）
 ```
+
+**所有权规则**：
+- 脚本变量 → 随脚本生命周期销毁
+- 调用 `.show()` 或 `add_to_scene()` 后 → 所有权移交主程序，关闭 Python Editor 后仍保留
 
 ## In-use 保护机制
 

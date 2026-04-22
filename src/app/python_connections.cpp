@@ -270,8 +270,7 @@ void connectPythonSignals(
     // 点云管理 → CloudTree
     // ================================================================
     QObject::connect(bridge, &ct::PythonBridge::signalInsertCloud,
-            cloudtree, [cloudtree, cloudview, bridge](ct::Cloud::Ptr cloud) {
-                if (bridge->isScriptMode()) return;
+            cloudtree, [cloudtree, cloudview](ct::Cloud::Ptr cloud) {
                 cloudtree->insertCloud(cloud);
                 cloudview->addPointCloud(cloud);
                 cloudview->refresh();
@@ -379,8 +378,7 @@ void connectPythonSignals(
     // 网格显示
     // ================================================================
     QObject::connect(bridge, &ct::PythonBridge::signalAddMesh,
-            cloudtree, [cloudtree, bridge](const pcl::PolygonMesh::Ptr& mesh, const QString& id) {
-                if (bridge->isScriptMode()) return;
+            cloudtree, [cloudtree](const pcl::PolygonMesh::Ptr& mesh, const QString& id) {
                 // 如果树中已有该 ID 的节点，直接 attach mesh
                 QTreeWidgetItem* existing = cloudtree->getItemById(id);
                 if (existing) {
@@ -417,6 +415,20 @@ void connectPythonSignals(
 
     QObject::connect(bridge, &ct::PythonBridge::signalClearScriptSession,
             cloudtree, [cloudtree, cloudview]() {
+                cloudview->refresh();
+            }, Qt::QueuedConnection);
+
+    QObject::connect(bridge, &ct::PythonBridge::signalClearScriptData,
+            cloudtree, [cloudtree, cloudview](const QStringList& ids) {
+                for (const auto& id : ids) {
+                    auto *item = cloudtree->getItemById(id);
+                    if (item) {
+                        for (auto *sel: cloudtree->selectedItems())
+                            sel->setSelected(false);
+                        cloudtree->setCloudSelected(cloudtree->getCloud(item), true);
+                        cloudtree->removeSelectedClouds();
+                    }
+                }
                 cloudview->refresh();
             }, Qt::QueuedConnection);
 }

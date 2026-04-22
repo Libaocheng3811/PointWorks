@@ -106,6 +106,7 @@ namespace ct
         void saveCloudItem(QTreeWidgetItem* item);
         void cloneCloudItem(QTreeWidgetItem* item);
         void renameCloudItem(QTreeWidgetItem* item, const QString& name);
+        QString makeUniqueName(const QString& desiredName);
 
     signals:
         void removedCloudId(const QString&);

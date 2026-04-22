@@ -12,7 +12,7 @@ void registerFilterBindings(py::module_& m)
         fr.result_cloud->makeAdaptive();
         bridge->registerCloud(fr.result_cloud);
         bridge->holdCloud(fr.result_cloud);
-        bridge->insertCloud(fr.result_cloud);
+        if (shouldAutoInsert()) bridge->insertCloud(fr.result_cloud);
         return py::cast(PyCloud(fr.result_cloud));
     };
 

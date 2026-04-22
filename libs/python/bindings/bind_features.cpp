@@ -199,7 +199,7 @@ void registerFeatureBindings(py::module_& m)
         result->makeAdaptive();
         bridge->registerCloud(result);
         bridge->holdCloud(result);
-        bridge->insertCloud(result);
+        if (shouldAutoInsert()) bridge->insertCloud(result);
 
         return py::cast(PyCloud(result));
     }, py::arg("name"),

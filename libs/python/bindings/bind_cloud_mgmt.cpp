@@ -106,6 +106,26 @@ void registerCloudMgmtBindings(py::module_& m)
         bridge->requestClearAll();
     }, "Clear all Python-generated data (clouds and meshes) from the scene");
 
+    // 仅清理脚本生成的未挂载数据（脚本模式下使用）
+    m.def("clear_script_data", []() {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (!bridge) throw std::runtime_error("Python bridge not initialized");
+        bridge->clearScriptData();
+    }, "Clear script-generated data that has not been explicitly shown via .show() or add_to_scene()");
+
+    // 显式将 cloud 添加到场景
+    m.def("add_to_scene", [](PyCloud& cloud, const std::string& name) {
+        auto cloud_ptr = cloud.cloudPtr();
+        if (!name.empty()) cloud_ptr->setId(name);
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) {
+            bridge->registerCloud(cloud_ptr);
+            bridge->markSceneMounted(QString::fromStdString(cloud_ptr->id()));
+            bridge->insertCloud(cloud_ptr);
+        }
+    }, py::arg("cloud"), py::arg("name") = "",
+       "Explicitly add a ct.Cloud to the scene tree and view. Equivalent to cloud.show(name).");
+
     // 克隆点云
     m.def("clone_cloud", [](const std::string& name) -> py::object {
         auto* bridge = ct::PythonManager::instance().bridge();
@@ -118,7 +138,7 @@ void registerCloudMgmtBindings(py::module_& m)
         cloned->makeAdaptive();
         bridge->registerCloud(cloned);
         bridge->holdCloud(cloned);
-        bridge->insertCloud(cloned);
+        if (shouldAutoInsert()) bridge->insertCloud(cloned);
 
         return py::cast(PyCloud(cloned));
     }, py::arg("name"), "Clone a cloud, returns new ct.Cloud");
@@ -186,7 +206,7 @@ void registerCloudMgmtBindings(py::module_& m)
 
         bridge->registerCloud(merged);
         bridge->holdCloud(merged);
-        bridge->insertCloud(merged);
+        if (shouldAutoInsert()) bridge->insertCloud(merged);
 
         return py::cast(PyCloud(merged));
     }, py::arg("names"), "Merge multiple clouds by name list, returns new ct.Cloud");

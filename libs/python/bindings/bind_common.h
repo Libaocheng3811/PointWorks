@@ -16,3 +16,9 @@
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+
+// 判断当前是否应自动将算法结果插入 UI（脚本模式下跳过）
+inline bool shouldAutoInsert() {
+    auto* bridge = ct::PythonManager::instance().bridge();
+    return bridge && !bridge->isScriptMode();
+}
