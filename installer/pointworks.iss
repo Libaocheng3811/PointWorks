@@ -11,12 +11,14 @@
 #define MyAppPublisher "PointWorks"
 #define MyAppExeName "pointworks.exe"
 #define MyAppURL ""
-; 路径通过环境变量传入，或用命令行 /D 覆盖，例如:
-;   set PROJECT_ROOT=C:\my\project
-;   set BUILD_OUTPUT=C:\my\project\cmake-build-release-visual-studio
-;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DProjectRoot="C:\my\project" /DBuildOutput="C:\my\project\cmake-build-release-visual-studio" installer\pointworks.iss
-#define ProjectRoot GetEnv("PROJECT_ROOT")
-#define SourceDir GetEnv("BUILD_OUTPUT") + "\dist\pointworks"
+; 默认路径（可通过命令行 /D 覆盖），例如:
+;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DProjectRoot="C:\my\project" /DSourceDir="C:\my\project\dist\pointworks" installer\pointworks.iss
+#ifndef ProjectRoot
+# define ProjectRoot ".."
+#endif
+#ifndef SourceDir
+# define SourceDir "..\cmake-build-release-visual-studio\dist\pointworks"
+#endif
 
 [Setup]
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}

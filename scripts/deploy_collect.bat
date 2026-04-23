@@ -95,7 +95,7 @@ xcopy /E /Y /Q "%~dp0..\scripts\examples\*" "%~dp0..\cmake-build-release-visual-
 echo [8/8] Done!
 echo.
 echo ============================================================
-  Output: %~dp0..\cmake-build-release-visual-studio\dist\pointworks
+  Output: %DIST_DIR%
 echo ============================================================
 echo.
-Next: run %~dp0..\cmake-build-release-visual-studio\dist\pointworks\pointworks.exe to test
+Next: run %DIST_DIR%\pointworks.exe to test

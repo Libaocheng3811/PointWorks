@@ -131,7 +131,7 @@ namespace ct
                 int level = i.key();
                 const InfoData& data = i.value();
                 std::string id = INFO_TEXT + std::to_string(level);
-                int y_pos = size.height() - 25 * level;
+                int y_pos = size.height() - 25 * (level + 1);
                 m_viewer->updateText(data.text.toStdString(), 10, y_pos, 12,
                                      data.rgb.rf(), data.rgb.gf(), data.rgb.bf(), id);
             }
@@ -1575,15 +1575,31 @@ namespace ct
     {
         // 比较获取优先级，维护最大的信息级别
         m_info_level = std::max(m_info_level, level);
-        m_active_infos[level] = {text, rgb};
 
+        // 根据level选择默认颜色，便于区分不同级别的信息
+        ColorRGB color = rgb;
+        bool isDefaultWhite = (color.r == Color::White.r &&
+                               color.g == Color::White.g &&
+                               color.b == Color::White.b);
+        if (isDefaultWhite) {
+            switch (level) {
+            case 1:  color = Color::Cyan;   break;
+            case 2:  color = Color::Green;  break;
+            case 3:  color = Color::Yellow; break;
+            case 4:  color = Color::Purple; break;
+            default: color = Color::White;  break;
+            }
+        }
+
+        m_active_infos[level] = {text, color};
+
+        // 偏移1行，为顶部的Cloud ID腾出空间，避免重叠
+        int y_row = level + 1;
         std::string id = INFO_TEXT + std::to_string(level);
-        // 设置视图器中的显示信息
         if (!m_viewer->contains(id))
-            m_viewer->addText(text.toStdString(), 10, this->height() - 25 * level, 12, rgb.rf(), rgb.gf(), rgb.bf(), id);
+            m_viewer->addText(text.toStdString(), 10, this->height() - 25 * y_row, 12, color.rf(), color.gf(), color.bf(), id);
         else
-            m_viewer->updateText(text.toStdString(), 10, this->height() - 25 * level, 12, rgb.rf(), rgb.gf(), rgb.bf(), id);
-        // 当视图器大小改变时，同步改变信息位置
+            m_viewer->updateText(text.toStdString(), 10, this->height() - 25 * y_row, 12, color.rf(), color.gf(), color.bf(), id);
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
