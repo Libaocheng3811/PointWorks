@@ -365,6 +365,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpenProject, &QAction::triggered, m_project_manager, &ProjectManager::onOpenProject);
     connect(ui->actionSaveProject, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProject);
     connect(ui->actionSaveProjectAs, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProjectAs);
+
+    // === 功能操作边界：基于选择类型启用/禁用 Action ===
+    connect(ui->cloudtree, &QTreeWidget::itemSelectionChanged,
+            this, &MainWindow::onTreeSelectionChanged);
+
+    // 初始化：无选中时禁用
+    updateActionEnableState(ct::SelectionInfo{});
 }
 
 MainWindow::~MainWindow() {
@@ -392,4 +399,75 @@ void MainWindow::changeEvent(QEvent* event)
     if (event->type() == QEvent::LanguageChange)
         ui->retranslateUi(this);
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::onTreeSelectionChanged()
+{
+    ct::SelectionInfo info = ui->cloudtree->getSelectionInfo();
+    updateActionEnableState(info);
+}
+
+void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
+{
+    const bool any      = info.hasAnySelection();
+    const bool cloud    = info.hasCloud();
+    const bool onlyCloud = info.hasOnlyCloud();
+    const bool cloudOrMesh = info.hasCloudOrMesh();
+    const bool singleCloud = info.isSingleCloud();
+
+    const int totalClouds = ui->cloudtree->getTotalCloudCount();
+    const int totalMeshes = ui->cloudtree->getTotalMeshCount();
+    const bool enoughClouds = totalClouds >= 2;
+
+    // --- File ---
+    ui->actionClose->setEnabled(any);
+    ui->actionClose_All->setEnabled(any);
+    ui->actionMerge->setEnabled(any);
+    ui->actionClone->setEnabled(any);
+    ui->actionSave->setEnabled(any);
+
+    // --- Edit ---
+    ui->actionColors->setEnabled(cloudOrMesh);
+    ui->actionBoundingBox->setEnabled(onlyCloud);
+    ui->actionTransformation->setEnabled(onlyCloud);
+    ui->actionNormals->setEnabled(cloud);
+    ui->actionScale->setEnabled(onlyCloud);
+    ui->actionCoords->setEnabled(any);
+
+    // --- Tools ---
+    ui->actionPickPoints->setEnabled(singleCloud);
+    ui->actionMeasure->setEnabled(onlyCloud);
+    ui->actionCutting->setEnabled(onlyCloud);
+    ui->actionFilters->setEnabled(onlyCloud);
+    ui->actionSampling->setEnabled(singleCloud);
+    ui->actionRangeImage->setEnabled(singleCloud);
+
+    // --- Segmentation ---
+    ui->actionClustering->setEnabled(singleCloud);
+    ui->actionRegionGrowing->setEnabled(singleCloud);
+    ui->actionSupervoxel->setEnabled(singleCloud);
+    ui->actionShapeDetection->setEnabled(singleCloud);
+    ui->actionMorphologicalFilter->setEnabled(singleCloud);
+
+    // --- Mesh (点云 → 网格) ---
+    ui->actionMeshComputeHull->setEnabled(singleCloud);
+    ui->actionMeshReconstructSurface->setEnabled(singleCloud);
+    ui->actionMeshExtractBoundary->setEnabled(singleCloud);
+
+    // --- Registration ---
+    ui->actionAlignByCenters->setEnabled(onlyCloud && enoughClouds);
+    ui->actionGlobalRegistration->setEnabled(onlyCloud && enoughClouds);
+    ui->actionFineRegistration->setEnabled(onlyCloud && enoughClouds);
+    ui->actionPointPairsAlignment->setEnabled(onlyCloud && enoughClouds);
+
+    // --- Distance ---
+    ui->actionDistanceC2C->setEnabled(onlyCloud && enoughClouds);
+    ui->actionDistanceC2M->setEnabled(totalClouds > 0 && totalMeshes > 0);
+    ui->actionDistanceC2P->setEnabled(singleCloud);
+    ui->actionDistanceCPS->setEnabled(onlyCloud && enoughClouds);
+
+    // --- Plugins ---
+    ui->actionCSF->setEnabled(singleCloud);
+    ui->actionVegetation_Filters->setEnabled(singleCloud);
+    ui->actionChange_Detection->setEnabled(totalClouds >= 2);
 }

@@ -19,6 +19,28 @@ enum SceneNodeType
     NodeBoundary = 5 // 附属形状节点（边界多段线等，作为父节点的子节点）
 };
 
+/// 选择统计信息（驱动 UI Action 的 enable/disable）
+struct SelectionInfo
+{
+    int totalSelected = 0;
+
+    int cloudCount = 0;
+    int meshCount  = 0;
+    int shapeCount = 0;
+    int groupCount = 0;
+    int boundaryCount = 0;
+
+    bool hasCloud()       const { return cloudCount > 0; }
+    bool hasMesh()        const { return meshCount > 0; }
+    bool hasShape()       const { return shapeCount > 0; }
+    bool hasOnlyCloud()   const { return cloudCount > 0 && meshCount == 0 && shapeCount == 0; }
+    bool hasOnlyMesh()    const { return meshCount > 0 && cloudCount == 0; }
+    bool hasCloudOrMesh() const { return cloudCount > 0 || meshCount > 0; }
+    bool hasAnySelection() const { return totalSelected > 0; }
+    bool isSingleSelection() const { return totalSelected == 1; }
+    bool isSingleCloud()  const { return totalSelected == 1 && cloudCount == 1; }
+};
+
 /// QTreeWidgetItem 数据角色 — 存储节点类型
 constexpr int NodeTypeRole      = Qt::UserRole + 1;
 /// QTreeWidgetItem 数据角色 — 存储关联的 Cloud UUID（仅 NodeCloud）

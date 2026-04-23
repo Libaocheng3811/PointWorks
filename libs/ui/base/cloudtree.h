@@ -2,6 +2,7 @@
 #define POINTWORKS_CLOUDTREE_H
 
 #include "customtree.h"
+#include "base/scenenodetype.h"
 #include "core/cloud.h"
 #include "core/textured_mesh.h"
 #include "base/progress_manager.h"
@@ -57,7 +58,12 @@ namespace ct
                              const QString& suffix = "-result");
 
         std::vector<Cloud::Ptr> getSelectedClouds();
+        std::vector<Cloud::Ptr> getSelectedCloudsOnly() const;
         std::vector<Cloud::Ptr> getAllClouds();
+
+        SelectionInfo getSelectionInfo() const;
+        int getTotalCloudCount() const;
+        int getTotalMeshCount() const;
 
         void removeSelectedClouds();
         void removeAllClouds();
@@ -132,6 +138,8 @@ namespace ct
         CloudIOController* m_io;
         QMenu* m_tree_menu;
         ProgressManager* m_progress;
+
+        int countNodesOfType(QTreeWidgetItem* parent, SceneNodeType type) const;
     };
 }
 

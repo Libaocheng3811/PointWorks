@@ -11,6 +11,7 @@
 #include "ui_mainwindow.h"
 
 #include "ui/base/customdialog.h"
+#include "ui/base/scenenodetype.h"
 #include "projectmanager.h"
 
 QT_BEGIN_NAMESPACE
@@ -54,6 +55,10 @@ protected:
 private:
     Ui::MainWindow *ui;
     ProjectManager* m_project_manager = nullptr;
+
+private slots:
+    void onTreeSelectionChanged();
+    void updateActionEnableState(const ct::SelectionInfo& info);
 };
 
 

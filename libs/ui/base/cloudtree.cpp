@@ -403,9 +403,69 @@ namespace ct
         return clouds;
     }
 
+    std::vector<Cloud::Ptr> CloudTree::getSelectedCloudsOnly() const
+    {
+        std::vector<Cloud::Ptr> clouds;
+        QList<QTreeWidgetItem*> items = const_cast<CloudTree*>(this)->getSelectedItems();
+        for (auto item : items) {
+            if (getNodeType(item) == NodeCloud) {
+                Cloud::Ptr c = const_cast<CloudTree*>(this)->getCloud(item);
+                if (c) clouds.push_back(c);
+            }
+        }
+        return clouds;
+    }
+
     std::vector<Cloud::Ptr> CloudTree::getAllClouds()
     {
         return m_registry->getAllClouds();
+    }
+
+    SelectionInfo CloudTree::getSelectionInfo() const
+    {
+        SelectionInfo info;
+        QList<QTreeWidgetItem*> items = const_cast<CloudTree*>(this)->getSelectedItems();
+        for (auto item : items) {
+            SceneNodeType type = getNodeType(item);
+            switch (type) {
+            case NodeCloud:    info.cloudCount++;    info.totalSelected++; break;
+            case NodeMesh:     info.meshCount++;     info.totalSelected++; break;
+            case NodeShape:    info.shapeCount++;    info.totalSelected++; break;
+            case NodeGroup:    info.groupCount++;    break;
+            case NodeBoundary: info.boundaryCount++; info.totalSelected++; break;
+            case NodeFile:     break;
+            }
+        }
+        return info;
+    }
+
+    int CloudTree::getTotalCloudCount() const
+    {
+        int count = 0;
+        for (int i = 0; i < topLevelItemCount(); ++i) {
+            count += countNodesOfType(topLevelItem(i), NodeCloud);
+        }
+        return count;
+    }
+
+    int CloudTree::getTotalMeshCount() const
+    {
+        int count = 0;
+        for (int i = 0; i < topLevelItemCount(); ++i) {
+            count += countNodesOfType(topLevelItem(i), NodeMesh);
+        }
+        return count;
+    }
+
+    int CloudTree::countNodesOfType(QTreeWidgetItem* parent, SceneNodeType type) const
+    {
+        if (!parent) return 0;
+        int count = 0;
+        if (getNodeType(parent) == type) count++;
+        for (int i = 0; i < parent->childCount(); ++i) {
+            count += countNodesOfType(parent->child(i), type);
+        }
+        return count;
     }
 
     void CloudTree::removeSelectedClouds() {
