@@ -10,10 +10,16 @@
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
 
+    // Read user's custom Python path from QSettings (before Python init)
+    QSettings settings("PointWorks", "PointWorks");
+    QString customPy = settings.value("python_home").toString();
+    if (!customPy.isEmpty()) {
+        ct::PythonManager::instance().setCustomPythonHome(customPy);
+    }
+
     ct::PythonManager::instance().initialize();
 
     // Restore saved language preference, default to English
-    QSettings settings("PointWorks", "PointWorks");
     int langVal = settings.value("language", 0).toInt();
     auto lang = static_cast<ct::LanguageManager::Language>(langVal);
     ct::LanguageManager::instance().switchLanguage(lang);

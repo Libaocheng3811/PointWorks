@@ -6,6 +6,7 @@ set(Srcs
     edit/color.cpp
     options/displaysettings.cpp
     options/displaysettings_colors_page.cpp
+    options/python_settings_page.cpp
     edit/boundingbox.cpp
     edit/transformation.cpp
     edit/normals.cpp
@@ -51,6 +52,7 @@ set(Hdrs
     options/displaysettings.h
     options/displaysettings_page.h
     options/displaysettings_colors_page.h
+    options/python_settings_page.h
     edit/boundingbox.h
     edit/transformation.h
     edit/normals.h

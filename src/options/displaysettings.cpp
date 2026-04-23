@@ -1,5 +1,6 @@
 #include "displaysettings.h"
 #include "displaysettings_colors_page.h"
+#include "python_settings_page.h"
 
 DisplaySettingsDialog::DisplaySettingsDialog(QWidget* parent)
     : ct::CustomDialog(parent)
@@ -65,6 +66,7 @@ void DisplaySettingsDialog::init()
 
     // 注册设置模块
     addPage("Colors", new ColorsPage(m_cloudview, m_cloudtree, this));
+    addPage("Python", new PythonSettingsPage(this));
 
     if (m_sidebar->count() > 0)
         m_sidebar->setCurrentRow(0);

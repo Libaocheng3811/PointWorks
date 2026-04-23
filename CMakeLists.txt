@@ -89,9 +89,18 @@ else ()
     message(STATUS "Not found OpenMP")
 endif ()
 
-# 标准python环境，为避免多个python版本冲突，指定路径
-set(MY_NATIVE_PYTHON_DIR "F:/Program Files/Python39")
-set(Python3_ROOT_DIR ${MY_NATIVE_PYTHON_DIR})
+# Python 路径配置：优先级 1) CMake -D 参数  2) PYTHON_HOME 环境变量  3) 默认值
+set(PYTHON_HOME "" CACHE PATH "Path to Python 3.9 installation")
+if(PYTHON_HOME STREQUAL "")
+    if(DEFINED ENV{PYTHON_HOME})
+        set(PYTHON_HOME "$ENV{PYTHON_HOME}")
+        message(STATUS "Using PYTHON_HOME from environment: ${PYTHON_HOME}")
+    else()
+        set(PYTHON_HOME "F:/Program Files/Python39")
+        message(STATUS "Using default PYTHON_HOME: ${PYTHON_HOME}")
+    endif()
+endif()
+set(Python3_ROOT_DIR ${PYTHON_HOME})
 set(Python3_FIND_STRATEGY LOCATION)
 set(Python3_FIND_REGISTRY NEVER)
 
@@ -103,8 +112,8 @@ message(STATUS "Python Libs: ${Python3_LIBRARIES}")
 link_directories(${Python3_LIBRARY_DIRS})
 set(PYBIND11_FINDPYTHON ON CACHE BOOL "" FORCE)
 
-# QT路径
-#set(CMAKE_PREFIX_PATH "D:/LibCommunity/Qt5.15/5.15.2/msvc2019_64")
+# QT路径（通过 CMAKE_PREFIX_PATH 或 Qt Creator 配置）
+#set(CMAKE_PREFIX_PATH "C:/Qt/5.15.2/msvc2019_64")
 find_package(QT NAMES Qt5 COMPONENTS Core Widgets OpenGL Gui Concurrent Charts REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Concurrent Charts REQUIRED)
 find_package(Qt5LinguistTools REQUIRED)
@@ -142,10 +151,7 @@ find_package(OpenMP REQUIRED)
 message(STATUS "Build Type: " ${CMAKE_BUILD_TYPE})
 
 # add_definitions 命令用于向编译器添加编译选项或定义宏
-file(TO_CMAKE_PATH "${PROJECT_SOURCE_DIR}" PROJECT_ROOT_PATH)
-add_definitions(-DROOT_PATH="${PROJECT_SOURCE_DIR}")
-add_definitions(-DDATA_PATH="${PROJECT_SOURCE_DIR}/data/")
-add_definitions(-DPYTHON_HOME="${MY_NATIVE_PYTHON_DIR}")
+add_definitions(-DPYTHON_HOME="${PYTHON_HOME}")
 
 # 3rdParty 编译选项
 set(LASZIP_BUILD_STATIC ON CACHE BOOL "Build static laszip" FORCE)

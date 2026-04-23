@@ -48,6 +48,13 @@ PythonConsole::PythonConsole(QWidget* parent)
     connect(m_input, &QLineEdit::returnPressed, this, &PythonConsole::onRunCommand);
     layout->addWidget(m_input);
 
+    // === 显示 Python 初始化状态 ===
+    auto& pm = ct::PythonManager::instance();
+    if (pm.isInitialized()) {
+        appendToOutput(pm.initMessage() + "\n", QColor("#52c41a"));
+    } else {
+        appendToOutput(pm.initMessage() + "\n", QColor("#f44747"));
+    }
 
     // === Worker & Bridge 信号连接 ===
     auto* worker = ct::PythonManager::instance().worker();
