@@ -1,14 +1,14 @@
 #include "bind_cloud_mgmt.h"
 #include "bind_core.h"
+#include "python_bridge.h"
 
 void registerCloudMgmtBindings(py::module_& m)
 {
-    // 就地更新点云数据
+    // In-place update cloud data
     m.def("update_cloud", [](const std::string& name, py::array_t<float> xyz,
                               py::object colors_obj) {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        auto old_cloud = bridge->getCloud(QString::fromStdString(name));
+        auto& registry = getRegistry();
+        auto old_cloud = registry.getCloud(name);
         if (!old_cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto buf = xyz.request();
@@ -64,96 +64,92 @@ void registerCloudMgmtBindings(py::module_& m)
         new_cloud->generateLOD();
         new_cloud->update();
 
-        bridge->updateCloud(QString::fromStdString(name), new_cloud);
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) bridge->updateCloud(QString::fromStdString(name), new_cloud);
     }, py::arg("name"), py::arg("xyz"), py::arg("colors") = py::none(),
        "Replace cloud data in-place with new xyz (and optional colors) arrays");
 
-    // 获取所有已注册点云的名称列表
+    // Get names of all registered clouds
     m.def("get_all_cloud_names", []() -> py::list {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) return py::list();
-        auto names = bridge->getCloudNames();
+        auto names = getRegistry().getCloudNames();
         py::list result;
         for (const auto& n : names)
-            result.append(py::cast(n.toStdString()));
+            result.append(py::cast(n));
         return result;
     }, "Get names of all registered clouds");
 
-    // 按名称移除单个点云
+    // Remove a cloud by name
     m.def("remove_cloud", [](const std::string& name) {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto& registry = getRegistry();
+        auto cloud = registry.getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        bridge->unregisterCloud(QString::fromStdString(name));
-        bridge->removeCloud(QString::fromStdString(name));
+        registry.unregisterCloud(name);
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) bridge->removeCloud(QString::fromStdString(name));
     }, py::arg("name"), "Remove a cloud by name");
 
-    // 移除所有点云
+    // Remove all clouds
     m.def("remove_all_clouds", []() {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        auto names = bridge->getCloudNames();
+        auto& registry = getRegistry();
+        auto names = registry.getCloudNames();
         for (const auto& n : names)
-            bridge->unregisterCloud(n);
-        bridge->removeAllClouds();
+            registry.unregisterCloud(n);
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) bridge->removeAllClouds();
     }, "Remove all clouds from the scene");
 
-    // 清理所有 Python 生成的数据（点云+网格）
+    // Clear all Python-generated data
     m.def("clear_all", []() {
         auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        bridge->requestClearAll();
+        if (bridge) bridge->requestClearAll();
     }, "Clear all Python-generated data (clouds and meshes) from the scene");
 
-    // 仅清理脚本生成的未挂载数据（脚本模式下使用）
+    // Clear script-generated unmounted data only
     m.def("clear_script_data", []() {
         auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        bridge->clearScriptData();
+        if (bridge) bridge->clearScriptData();
     }, "Clear script-generated data that has not been explicitly shown via .show() or add_to_scene()");
 
-    // 显式将 cloud 添加到场景
+    // Explicitly add a cloud to the scene
     m.def("add_to_scene", [](PyCloud& cloud, const std::string& name) {
         auto cloud_ptr = cloud.cloudPtr();
         if (!name.empty()) cloud_ptr->setId(name);
+        getRegistry().registerCloud(cloud_ptr);
+        getRegistry().markSceneMounted(cloud_ptr->id());
         auto* bridge = ct::PythonManager::instance().bridge();
-        if (bridge) {
-            bridge->registerCloud(cloud_ptr);
-            bridge->markSceneMounted(QString::fromStdString(cloud_ptr->id()));
-            bridge->insertCloud(cloud_ptr);
-        }
+        if (bridge) bridge->insertCloud(cloud_ptr);
     }, py::arg("cloud"), py::arg("name") = "",
        "Explicitly add a ct.Cloud to the scene tree and view. Equivalent to cloud.show(name).");
 
-    // 克隆点云
+    // Clone a cloud
     m.def("clone_cloud", [](const std::string& name) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto& registry = getRegistry();
+        auto cloud = registry.getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto cloned = cloud->clone();
         cloned->setId("clone-" + cloud->id());
         cloned->makeAdaptive();
-        bridge->registerCloud(cloned);
-        bridge->holdCloud(cloned);
-        if (shouldAutoInsert()) bridge->insertCloud(cloned);
+        registry.registerCloud(cloned);
+        registry.holdCloud(cloned);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(cloned);
+        }
 
         return py::cast(PyCloud(cloned));
     }, py::arg("name"), "Clone a cloud, returns new ct.Cloud");
 
-    // 合并多个点云
+    // Merge multiple clouds
     m.def("merge_clouds", [](py::list name_list) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
+        auto& registry = getRegistry();
         if (name_list.size() < 2)
             throw std::runtime_error("Need at least 2 clouds to merge");
 
         std::vector<ct::Cloud::Ptr> clouds;
         for (auto item : name_list) {
             std::string n = py::cast<std::string>(item);
-            auto c = bridge->getCloud(QString::fromStdString(n));
+            auto c = registry.getCloud(n);
             if (!c) throw std::runtime_error("Cloud not found: " + n);
             clouds.push_back(c);
         }
@@ -204,35 +200,36 @@ void registerCloudMgmtBindings(py::module_& m)
         merged->update();
         merged->makeAdaptive();
 
-        bridge->registerCloud(merged);
-        bridge->holdCloud(merged);
-        if (shouldAutoInsert()) bridge->insertCloud(merged);
+        registry.registerCloud(merged);
+        registry.holdCloud(merged);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(merged);
+        }
 
         return py::cast(PyCloud(merged));
     }, py::arg("names"), "Merge multiple clouds by name list, returns new ct.Cloud");
 
-    // 选中点云
+    // Select a cloud
     m.def("select_cloud", [](const std::string& name) {
         auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        bridge->selectCloud(QString::fromStdString(name));
+        if (bridge) bridge->selectCloud(QString::fromStdString(name));
     }, py::arg("name"), "Select a cloud by name in the tree");
 
-    // 加载点云文件
+    // Load a cloud file
     m.def("load_cloud", [](const std::string& filepath) -> py::object {
         auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        bridge->loadCloud(QString::fromStdString(filepath));
+        if (bridge) bridge->loadCloud(QString::fromStdString(filepath));
         return py::none();
     }, py::arg("filepath"), "Load a point cloud file into the scene (async)");
 
-    // 保存点云到文件
+    // Save a cloud to file
     m.def("save_cloud", [](const std::string& name, const std::string& filepath, bool binary) {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        if (!bridge) throw std::runtime_error("Python bridge not initialized");
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto& registry = getRegistry();
+        auto cloud = registry.getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        bridge->saveCloud(QString::fromStdString(name), QString::fromStdString(filepath), binary);
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) bridge->saveCloud(QString::fromStdString(name), QString::fromStdString(filepath), binary);
     }, py::arg("name"), py::arg("filepath"), py::arg("binary") = true,
        "Save a cloud to file. binary=True for binary, False for ASCII (async)");
 }

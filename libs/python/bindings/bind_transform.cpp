@@ -23,10 +23,12 @@ static ct::Cloud::Ptr transformCloud(const ct::Cloud::Ptr& cloud,
 static py::object insertTransformedCloud(const ct::Cloud::Ptr& result,
                                           const std::string& output_name)
 {
-    auto* bridge = ct::PythonManager::instance().bridge();
-    bridge->registerCloud(result);
-    bridge->holdCloud(result);
-    if (shouldAutoInsert()) bridge->insertCloud(result);
+    getRegistry().registerCloud(result);
+    getRegistry().holdCloud(result);
+    if (shouldAutoInsert()) {
+        auto* bridge = ct::PythonManager::instance().bridge();
+        if (bridge) bridge->insertCloud(result);
+    }
     return py::cast(PyCloud(result));
 }
 
@@ -37,8 +39,7 @@ void registerTransformBindings(py::module_& m)
     // ================================================================
     m.def("translate", [](const std::string& name,
                            double tx, double ty, double tz) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Affine3f trans = Eigen::Affine3f::Identity();
@@ -55,8 +56,7 @@ void registerTransformBindings(py::module_& m)
     // ================================================================
     m.def("rotate", [](const std::string& name,
                          double rx, double ry, double rz) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Affine3f trans = ct::getTransformation(0, 0, 0,
@@ -73,8 +73,7 @@ void registerTransformBindings(py::module_& m)
     m.def("rotate_axis", [](const std::string& name,
                               double angle, double ax, double ay, double az,
                               double tx, double ty, double tz) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Affine3f trans = ct::getTransformation(
@@ -94,8 +93,7 @@ void registerTransformBindings(py::module_& m)
     m.def("scale", [](const std::string& name,
                        double sx, double sy, double sz,
                        bool use_center) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Affine3f trans = Eigen::Affine3f::Identity();
@@ -123,8 +121,7 @@ void registerTransformBindings(py::module_& m)
     // ================================================================
     m.def("apply_matrix", [](const std::string& name,
                                py::list matrix) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         if (matrix.size() != 4)
@@ -151,8 +148,7 @@ void registerTransformBindings(py::module_& m)
                               double min_x, double min_y, double min_z,
                               double max_x, double max_y, double max_z,
                               bool negative) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         // 使用 PassThrough 滤波器实现三轴裁剪
@@ -171,9 +167,12 @@ void registerTransformBindings(py::module_& m)
 
         fr_z.result_cloud->setId("cropped-" + name);
         fr_z.result_cloud->makeAdaptive();
-        bridge->registerCloud(fr_z.result_cloud);
-        bridge->holdCloud(fr_z.result_cloud);
-        if (shouldAutoInsert()) bridge->insertCloud(fr_z.result_cloud);
+        getRegistry().registerCloud(fr_z.result_cloud);
+        getRegistry().holdCloud(fr_z.result_cloud);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(fr_z.result_cloud);
+        }
 
         return py::cast(PyCloud(fr_z.result_cloud));
     }, py::arg("name"),

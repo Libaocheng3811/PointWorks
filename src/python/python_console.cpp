@@ -51,9 +51,9 @@ PythonConsole::PythonConsole(QWidget* parent)
     // === 显示 Python 初始化状态 ===
     auto& pm = ct::PythonManager::instance();
     if (pm.isInitialized()) {
-        appendToOutput(pm.initMessage() + "\n", QColor("#52c41a"));
+        appendToOutput(QString::fromStdString(pm.initMessage()) + "\n", QColor("#52c41a"));
     } else {
-        appendToOutput(pm.initMessage() + "\n", QColor("#f44747"));
+        appendToOutput(QString::fromStdString(pm.initMessage()) + "\n", QColor("#f44747"));
     }
 
     // === Worker & Bridge 信号连接 ===

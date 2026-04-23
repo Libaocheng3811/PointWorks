@@ -1,4 +1,5 @@
 #include "bind_progress.h"
+#include "python_bridge.h"
 
 void registerProgressBindings(py::module_& m)
 {

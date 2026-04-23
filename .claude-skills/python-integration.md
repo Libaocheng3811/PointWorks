@@ -398,14 +398,23 @@ bridge->releaseAllHeld();           // 释放引用
 bridge->releaseAllInUse();          // 取消删除保护
 ```
 
+## 架构要点
+
+Python 绑定层分为两层：
+- **Qt-free 数据层**：`CloudRegistry`（`cloud_registry.h`）— 纯 `std::mutex` + `std::unordered_map`，不依赖 Qt。被算法绑定直接使用。
+- **Qt 信号桥接层**：`PythonBridge`（`python_bridge.h`）— 保留 QObject 继承，内部持有 `CloudRegistry` 实例。UI 绑定通过它发射信号。
+
+纯算法绑定（filters, normals, features, keypoints, transform, registration, segmentation, distance, csf_veg, surface）通过 `bind_common.h` 提供的 `getRegistry()` 访问 `CloudRegistry`，无需 include `python_bridge.h`。
+
 ## 绑定文件结构
 
 ```
 libs/python/
 ├── python_bindings.cpp         # PYBIND11_EMBEDDED_MODULE(ct) 入口
-├── python_manager.h/cpp        # 解释器生命周期
+├── python_manager.h/cpp        # 解释器生命周期（Qt-free 头文件）
 ├── python_worker.h/cpp         # QThread 脚本执行
-├── python_bridge.h/cpp         # 信号桥接 + 云注册表
+├── python_bridge.h/cpp         # 信号桥接（内部持有 CloudRegistry）
+├── cloud_registry.h/cpp        # Qt-free 线程安全云注册表
 └── bindings/
     ├── bind_common.h            # 公共 include
     ├── bind_core.h/cpp          # ct.Cloud 类 + 基础函数 + Layer 1 便捷方法

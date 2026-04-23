@@ -89,7 +89,7 @@ target_link_libraries(ct_ui_base
 ```cmake
 add_library(ct_python OBJECT ...)
 target_link_libraries(ct_python
-    PRIVATE Qt5::Widgets pybind11::embed Python3::Python ct_core ct_algorithm)
+    PRIVATE Qt5::Core pybind11::embed Python3::Python ct_core ct_algorithm)
 ```
 
 ### pointworks (src/CMakeLists.txt) — 可执行文件

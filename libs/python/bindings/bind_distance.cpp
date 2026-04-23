@@ -29,10 +29,9 @@ void registerDistanceBindings(py::module_& m)
     m.def("cloud_cloud_distance", [distResultToDict](
             const std::string& ref_name, const std::string& comp_name,
             int method, int k_knn, double radius) -> py::dict {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto ref = bridge->getCloud(QString::fromStdString(ref_name));
+        auto ref = getRegistry().getCloud(ref_name);
         if (!ref) throw std::runtime_error("Cloud not found: " + ref_name);
-        auto comp = bridge->getCloud(QString::fromStdString(comp_name));
+        auto comp = getRegistry().getCloud(comp_name);
         if (!comp) throw std::runtime_error("Cloud not found: " + comp_name);
 
         ct::C2CParams params;
@@ -56,10 +55,9 @@ void registerDistanceBindings(py::module_& m)
             const std::string& cloud_name, const std::string& mesh_name,
             bool signed_distance, bool flip_normals,
             double search_radius) -> py::dict {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto source = bridge->getCloud(QString::fromStdString(cloud_name));
+        auto source = getRegistry().getCloud(cloud_name);
         if (!source) throw std::runtime_error("Cloud not found: " + cloud_name);
-        auto mesh_cloud = bridge->getCloud(QString::fromStdString(mesh_name));
+        auto mesh_cloud = getRegistry().getCloud(mesh_name);
         if (!mesh_cloud) throw std::runtime_error("Cloud not found: " + mesh_name);
 
         // TODO: 支持从 ct.Mesh 对象获取 PolygonMesh
@@ -77,10 +75,9 @@ void registerDistanceBindings(py::module_& m)
     m.def("closest_point_set", [](const std::string& source_name,
                                     const std::string& target_name,
                                     double max_distance) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto source = bridge->getCloud(QString::fromStdString(source_name));
+        auto source = getRegistry().getCloud(source_name);
         if (!source) throw std::runtime_error("Cloud not found: " + source_name);
-        auto target = bridge->getCloud(QString::fromStdString(target_name));
+        auto target = getRegistry().getCloud(target_name);
         if (!target) throw std::runtime_error("Cloud not found: " + target_name);
 
         ct::CPSParams params;
@@ -92,9 +89,12 @@ void registerDistanceBindings(py::module_& m)
 
         cr.projected_cloud->setId("cps-" + source_name);
         cr.projected_cloud->makeAdaptive();
-        bridge->registerCloud(cr.projected_cloud);
-        bridge->holdCloud(cr.projected_cloud);
-        if (shouldAutoInsert()) bridge->insertCloud(cr.projected_cloud);
+        getRegistry().registerCloud(cr.projected_cloud);
+        getRegistry().holdCloud(cr.projected_cloud);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(cr.projected_cloud);
+        }
 
         return py::cast(PyCloud(cr.projected_cloud));
     }, py::arg("source_name"), py::arg("target_name"),
@@ -109,10 +109,9 @@ void registerDistanceBindings(py::module_& m)
             const std::string& comp_name,
             int method, int k_knn,
             double radius, bool flip_normals) -> py::dict {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto ref_cloud = bridge->getCloud(QString::fromStdString(ref_name));
+        auto ref_cloud = getRegistry().getCloud(ref_name);
         if (!ref_cloud) throw std::runtime_error("Cloud not found: " + ref_name);
-        auto comp_cloud = bridge->getCloud(QString::fromStdString(comp_name));
+        auto comp_cloud = getRegistry().getCloud(comp_name);
         if (!comp_cloud) throw std::runtime_error("Cloud not found: " + comp_name);
 
         ct::DistanceParams params;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bind_common.h"
+#include "python_bridge.h"
 
 // PyCloud — Python 端的点云访问包装
 // 不放在 namespace ct 中，避免与 PYBIND11_EMBEDDED_MODULE(ct, ...) 冲突
@@ -179,7 +180,7 @@ public:
 
         auto* bridge = ct::PythonManager::instance().bridge();
         if (bridge) {
-            bridge->cloudChanged(QString::fromStdString(name()));
+            bridge->cloudChanged(QString::fromStdString(m_cloud->id()));
             bridge->refreshView();
         }
     }
@@ -301,12 +302,10 @@ public:
 
     void show(const std::string& name = "") {
         if (!name.empty()) m_cloud->setId(name);
+        getRegistry().registerCloud(m_cloud);
+        getRegistry().markSceneMounted(m_cloud->id());
         auto* bridge = ct::PythonManager::instance().bridge();
-        if (bridge) {
-            bridge->registerCloud(m_cloud);
-            bridge->markSceneMounted(QString::fromStdString(m_cloud->id()));
-            bridge->insertCloud(m_cloud);
-        }
+        if (bridge) bridge->insertCloud(m_cloud);
     }
 
 private:

@@ -1,4 +1,5 @@
 #include "bind_overlay.h"
+#include "python_bridge.h"
 
 void registerOverlayBindings(py::module_& m)
 {

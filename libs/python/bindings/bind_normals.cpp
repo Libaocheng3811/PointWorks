@@ -8,8 +8,7 @@ void registerNormalBindings(py::module_& m)
                                   int k_search, double radius_search,
                                   float vpx, float vpy, float vpz,
                                   bool reverse) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto result = ct::Normals::estimate(cloud, k_search, radius_search, vpx, vpy, vpz, reverse);
@@ -17,9 +16,12 @@ void registerNormalBindings(py::module_& m)
 
         result.cloud->setId("normals-" + name);
         result.cloud->makeAdaptive();
-        bridge->registerCloud(result.cloud);
-        bridge->holdCloud(result.cloud);
-        if (shouldAutoInsert()) bridge->insertCloud(result.cloud);
+        getRegistry().registerCloud(result.cloud);
+        getRegistry().holdCloud(result.cloud);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(result.cloud);
+        }
 
         return py::cast(PyCloud(result.cloud));
     }, py::arg("name"),

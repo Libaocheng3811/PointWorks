@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     QSettings settings("PointWorks", "PointWorks");
     QString customPy = settings.value("python_home").toString();
     if (!customPy.isEmpty()) {
-        ct::PythonManager::instance().setCustomPythonHome(customPy);
+        ct::PythonManager::instance().setCustomPythonHome(customPy.toStdString());
     }
 
     ct::PythonManager::instance().initialize();

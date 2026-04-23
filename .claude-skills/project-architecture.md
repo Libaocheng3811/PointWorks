@@ -100,9 +100,10 @@ PointWorks/
 │   │       ├── sf_histogram_chart.h/cpp # 标量场直方图
 │   │       └── sf_display_panel.h/cpp   # 标量场显示面板
 │   └── python/                   # ct_python (OBJECT) — 嵌入式 Python
-│       ├── python_manager.h/cpp # Python 解释器生命周期管理（单例）
+│       ├── python_manager.h/cpp # Python 解释器生命周期管理（单例，Qt-free 头文件）
 │       ├── python_worker.h/cpp  # QThread 脚本执行引擎（GIL + 异步取消）
-│       ├── python_bridge.h/cpp  # 信号桥接 + 线程安全云注册表
+│       ├── python_bridge.h/cpp  # 信号桥接（内部持有 CloudRegistry）
+│       ├── cloud_registry.h/cpp # Qt-free 线程安全云注册表
 │       └── python_bindings.cpp  # pybind11 嵌入模块 `ct`
 ├── src/                        # 应用层（pointworks 可执行文件）
 │   ├── app/                    # 主程序

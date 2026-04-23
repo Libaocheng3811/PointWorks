@@ -1,4 +1,5 @@
 #include "bind_appearance.h"
+#include "python_bridge.h"
 
 void registerAppearanceBindings(py::module_& m)
 {

@@ -13,7 +13,7 @@ void registerSurfaceBindings(py::module_& m)
             auto mesh_ptr = self.meshPtr();
             if (!mesh_ptr) throw std::runtime_error("Mesh is empty");
             auto* bridge = ct::PythonManager::instance().bridge();
-            bridge->addMesh(mesh_ptr, QString::fromStdString(id));
+            if (bridge) bridge->addMesh(mesh_ptr, QString::fromStdString(id));
         }, py::arg("id"), "Display this mesh in the 3D view.");
 
     auto meshResultToPyMesh = [](const std::shared_ptr<pcl::PolygonMesh>& mesh,
@@ -28,8 +28,7 @@ void registerSurfaceBindings(py::module_& m)
                          float scale, int solver_divide, int iso_divide,
                          float samples_per_node, bool confidence,
                          bool output_polygons, bool manifold) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfacePoisson(cloud, depth, min_depth, point_weight, scale,
@@ -53,8 +52,7 @@ void registerSurfaceBindings(py::module_& m)
                                        double mu, int nnn, double radius,
                                        double min_angle, double max_angle, double ep,
                                        bool consistent, bool consistent_ordering) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfaceGreedyTriangulation(
@@ -74,8 +72,7 @@ void registerSurfaceBindings(py::module_& m)
     m.def("marching_cubes_hoppe", [meshResultToPyMesh](const std::string& name,
                                          float iso_level, int res_x, int res_y, int res_z,
                                          float percentage, float dist_ignore) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfaceMarchingCubesHoppe(cloud, iso_level, res_x, res_y, res_z,
@@ -92,8 +89,7 @@ void registerSurfaceBindings(py::module_& m)
 
     m.def("convex_hull", [meshResultToPyMesh](const std::string& name,
                               bool compute_area_volume, int dimension) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfaceConvexHull(cloud, compute_area_volume, dimension, err);
@@ -105,8 +101,7 @@ void registerSurfaceBindings(py::module_& m)
 
     m.def("concave_hull", [meshResultToPyMesh](const std::string& name,
                                double alpha, bool keep_information, int dimension) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfaceConcaveHull(cloud, alpha, keep_information, dimension, err);
@@ -120,8 +115,7 @@ void registerSurfaceBindings(py::module_& m)
     m.def("marching_cubes_rbf", [meshResultToPyMesh](const std::string& name,
                                          float iso_level, int res_x, int res_y, int res_z,
                                          float percentage, float epsilon) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfaceMarchingCubesRBF(cloud, iso_level, res_x, res_y, res_z,
@@ -139,8 +133,7 @@ void registerSurfaceBindings(py::module_& m)
     m.def("grid_projection", [meshResultToPyMesh](const std::string& name,
                                        double resolution, int padding_size, int k,
                                        int max_binary_search_level) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         std::string err;
         auto mesh = surfaceGridProjection(cloud, resolution, padding_size, k,
@@ -160,13 +153,13 @@ void registerSurfaceBindings(py::module_& m)
         auto mesh_ptr = mesh.meshPtr();
         if (!mesh_ptr) throw std::runtime_error("Mesh is empty");
         auto* bridge = ct::PythonManager::instance().bridge();
-        bridge->addMesh(mesh_ptr, QString::fromStdString(id));
+        if (bridge) bridge->addMesh(mesh_ptr, QString::fromStdString(id));
     }, py::arg("mesh"), py::arg("id"),
        "Display a ct.Mesh in the 3D view under the given id.");
 
     m.def("remove_mesh", [](const std::string& id) {
         auto* bridge = ct::PythonManager::instance().bridge();
-        bridge->removeMesh(QString::fromStdString(id));
+        if (bridge) bridge->removeMesh(QString::fromStdString(id));
     }, py::arg("id"),
        "Remove a displayed mesh from the 3D view by id.");
 }

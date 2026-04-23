@@ -1,11 +1,11 @@
 #include "python_manager.h"
 #include "python_worker.h"
+#include "python_bridge.h"
+#include "cloud_registry.h"
 
 #undef slots
 #include <pybind11/embed.h>
-#include <QCoreApplication>
-#include <QDir>
-#include <QDirIterator>
+#include <filesystem>
 #include <iostream>
 
 #ifdef _WIN32
@@ -17,7 +17,7 @@ namespace py = pybind11;
 namespace ct
 {
 
-// Python 版本相关常量（升级 Python 时只需改这里）
+// Python version constants (change only when upgrading Python)
 static const char* const PY_DLL       = "python39.dll";
 static const char* const PY_DLL_SHORT  = "python3.dll";
 static const char* const PY_ZIP       = "python39.zip";
@@ -37,57 +37,60 @@ PythonManager::~PythonManager()
         finalize();
 }
 
+PythonCloudRegistry* PythonManager::registry() const
+{
+    return m_bridge ? &m_bridge->registry() : nullptr;
+}
+
 void PythonManager::initialize()
 {
     if (m_initialized) return;
 
     try {
-        // 0. 在 Py_Initialize 之前配置 Python Home + DLL 搜索路径
+        // 0. Configure Python Home + DLL search path before Py_Initialize
         setupPythonHome();
 
-        // 1. 启动 Python 解释器
+        // 1. Start Python interpreter
         py::initialize_interpreter();
 
-        // 1.5 Py_SetPath() 会将 sys.prefix 设为空字符串，手动恢复
-        //     否则后续 addDllDirectories() 中 sys.prefix 检查会失败
+        // 1.5 Py_SetPath() sets sys.prefix to empty, restore manually
         if (m_is_embedded) {
             auto sys = py::module_::import("sys");
-            std::string prefix = m_detected_python_home.toStdString();
-            sys.attr("prefix") = prefix;
-            sys.attr("exec_prefix") = prefix;
-            sys.attr("base_prefix") = prefix;
+            sys.attr("prefix") = m_detected_python_home;
+            sys.attr("exec_prefix") = m_detected_python_home;
+            sys.attr("base_prefix") = m_detected_python_home;
         }
 
-        // 2. 设置 sys.argv（numpy 等库依赖）
+        // 2. Set sys.argv (required by numpy etc.)
         wchar_t argv0[] = L"pointworks";
         wchar_t* argv[] = { argv0 };
         PySys_SetArgv(1, argv);
 
-        // 3. 重定向 stdout/stderr
+        // 3. Redirect stdout/stderr
         redirectStdio();
 
-        // 4. 注册 DLL 搜索路径
+        // 4. Register DLL search paths
         addDllDirectories();
 
-        // 5. 添加搜索路径
+        // 5. Add search paths
         addSearchPaths();
 
-        // 6. 创建 Bridge 和 Worker
+        // 6. Create Bridge and Worker
         m_bridge = new PythonBridge();
         m_worker = new PythonWorker(m_bridge);
 
-        // 7. 主线程释放 GIL
+        // 7. Release GIL on main thread
         PyEval_SaveThread();
 
         m_initialized = true;
         m_init_message = "Python initialized successfully";
 
     } catch (const py::error_already_set& e) {
-        m_init_message = QString("Python init failed: ") + e.what();
-        std::cerr << m_init_message.toStdString() << std::endl;
+        m_init_message = std::string("Python init failed: ") + e.what();
+        std::cerr << m_init_message << std::endl;
     } catch (const std::exception& e) {
-        m_init_message = QString("Python init failed: ") + e.what();
-        std::cerr << m_init_message.toStdString() << std::endl;
+        m_init_message = std::string("Python init failed: ") + e.what();
+        std::cerr << m_init_message << std::endl;
     }
 }
 
@@ -107,78 +110,102 @@ void PythonManager::finalize()
     delete m_bridge;
     m_bridge = nullptr;
 
-    // 不调用 Py_Finalize()——NumPy/SciPy 的 C 扩展会触发段错误
     m_initialized = false;
 }
 
-void PythonManager::setCustomPythonHome(const QString& path)
+void PythonManager::setCustomPythonHome(const std::string& path)
 {
     m_custom_python_home = path;
 }
 
-void PythonManager::setupPythonHome()
+std::string getExeDir()
 {
 #ifdef _WIN32
-    QString appDir = QCoreApplication::applicationDirPath();
-    QString pyHome;
+    wchar_t exePath[MAX_PATH];
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    std::filesystem::path p(exePath);
+    return p.parent_path().string();
+#else
+    return ".";
+#endif
+}
 
-    // 三级优先级：
-    // 1. 用户自定义路径（QSettings，由 main.cpp 在 initialize() 前注入）
-    if (!m_custom_python_home.isEmpty() && QDir(m_custom_python_home).exists()) {
+std::string getEnvVar(const std::string& name)
+{
+#ifdef _WIN32
+    char buf[32767];
+    DWORD len = GetEnvironmentVariableA(name.c_str(), buf, sizeof(buf));
+    if (len == 0) return "";
+    return std::string(buf, len);
+#else
+    const char* val = std::getenv(name.c_str());
+    return val ? val : "";
+#endif
+}
+
+void setEnvVar(const std::string& name, const std::string& value)
+{
+#ifdef _WIN32
+    SetEnvironmentVariableA(name.c_str(), value.c_str());
+#else
+    setenv(name.c_str(), value.c_str(), 1);
+#endif
+}
+
+void PythonManager::setupPythonHome()
+{
+    std::string appDir = getExeDir();
+    std::string pyHome;
+
+    // Three-level priority:
+    // 1. User custom path (from QSettings, injected before initialize())
+    if (!m_custom_python_home.empty() && std::filesystem::exists(m_custom_python_home)) {
         pyHome = m_custom_python_home;
     }
-    // 2. exe 旁边的 python/ 目录（打包部署环境，含嵌入式 Python）
+    // 2. python/ directory next to exe (bundled embedded Python)
     else {
-        QString bundledPython = appDir + "/python";
-        if (QDir(bundledPython).exists() &&
-            (QFile::exists(bundledPython + "/" + PY_DLL) ||
-             QFile::exists(bundledPython + "/python.exe"))) {
+        std::string bundledPython = appDir + "/python";
+        if (std::filesystem::exists(bundledPython) &&
+            (std::filesystem::exists(bundledPython + "/" + PY_DLL) ||
+             std::filesystem::exists(bundledPython + "/python.exe"))) {
             pyHome = bundledPython;
         }
     }
-    // 3. 编译时 PYTHON_HOME 宏（开发环境 fallback）
-    if (pyHome.isEmpty()) {
-        pyHome = QString::fromUtf8(PYTHON_HOME);
+    // 3. Compile-time PYTHON_HOME macro (dev environment fallback)
+    if (pyHome.empty()) {
+        pyHome = PYTHON_HOME;
     }
 
-    // 检测是否为嵌入式 Python（有 python39.zip）
-    m_is_embedded = QFile::exists(pyHome + "/" + PY_ZIP);
+    // Detect embedded Python (has python39.zip)
+    m_is_embedded = std::filesystem::exists(pyHome + "/" + PY_ZIP);
 
     if (m_is_embedded) {
-        // 嵌入式 Python：用 Py_SetPath() 直接设置模块搜索路径
-        // Py_SetPythonHome() + _pth 文件在 encodings 导入之后才生效，会报
-        //   "failed to get the Python codec of the filesystem encoding"
-        // Py_SetPath() 在 Py_Initialize() 之前立即生效，绕过 _pth 处理
-        QStringList pathEntries = {
-            pyHome + "/" + PY_ZIP,
-            pyHome,
-            pyHome + "/Lib",
-            pyHome + "/Lib/site-packages",
-        };
-        std::wstring modulePath = pathEntries.join(";").toStdWString();
+        // Embedded Python: use Py_SetPath() for immediate module search path
+        std::string modulePathStr = pyHome + "/" + PY_ZIP + ";" +
+                                    pyHome + ";" +
+                                    pyHome + "/Lib;" +
+                                    pyHome + "/Lib/site-packages";
+        std::wstring modulePath(modulePathStr.begin(), modulePathStr.end());
         Py_SetPath(modulePath.c_str());
     } else {
-        // 完整 Python 安装：用 Py_SetPythonHome()，Python 会自动查找标准库
-        wcscpy_s(s_python_home, pyHome.toStdWString().c_str());
+        // Full Python install: use Py_SetPythonHome()
+        std::wstring wPyHome(pyHome.begin(), pyHome.end());
+        wcscpy_s(s_python_home, wPyHome.c_str());
         Py_SetPythonHome(s_python_home);
     }
     m_detected_python_home = pyHome;
 
-    // 将 Python 安装目录的 DLL 路径注入到进程 PATH
-    QStringList dllDirs = { pyHome };
+    // Inject Python DLL directory into process PATH
+    std::string dllDir = pyHome;
     if (!m_is_embedded) {
-        dllDirs.append(pyHome + "/DLLs");
+        dllDir += ";" + pyHome + "/DLLs";
     }
-    QByteArray curPath = qgetenv("PATH");
-    QString newPath = dllDirs.join(";") + ";" + QString::fromLocal8Bit(curPath);
-    qputenv("PATH", newPath.toLocal8Bit());
-#endif
+    std::string curPath = getEnvVar("PATH");
+    setEnvVar("PATH", dllDir + ";" + curPath);
 }
 
 void PythonManager::addDllDirectories()
 {
-    // 自动扫描 site-packages 下所有包含 DLL 的目录并注册到系统搜索路径
-    // 这样任意安装新的 C 扩展库（numpy/scipy/torch 等）都无需额外配置
     py::exec(R"PY(
 import sys, os, glob
 
@@ -192,16 +219,10 @@ if not os.path.isdir(sp):
 
 dll_dirs = set()
 
-# 1. Python 自身的基础目录
 for d in [py_home, os.path.join(py_home, 'DLLs'), os.path.join(py_home, 'Library', 'bin')]:
     if os.path.isdir(d):
         dll_dirs.add(d)
 
-# 2. 自动扫描 site-packages 下所有 .libs 目录
-#    pip 安装的带 C 扩展的包通常把 DLL 放在:
-#    - site-packages/<pkg>/.libs/
-#    - site-packages/<pkg>.libs/
-#    - site-packages/<pkg>/core/  等
 for pattern in [
     os.path.join(sp, '*', '.libs'),
     os.path.join(sp, '*.libs'),
@@ -210,7 +231,6 @@ for pattern in [
         if os.path.isdir(d):
             dll_dirs.add(d)
 
-# 3. 注入到系统 DLL 搜索路径
 for d in dll_dirs:
     if hasattr(os, 'add_dll_directory'):
         try:
@@ -218,7 +238,6 @@ for d in dll_dirs:
         except OSError:
             pass
 
-# 同时注入到 PATH 环境变量作为兜底
 valid = os.pathsep.join(d for d in dll_dirs if os.path.isdir(d))
 if valid:
     os.environ['PATH'] = valid + os.pathsep + os.environ.get('PATH', '')
@@ -249,23 +268,20 @@ void PythonManager::addSearchPaths()
     auto sys = py::module_::import("sys");
     auto paths = sys.attr("path").cast<py::list>();
 
-    QString appDir = QCoreApplication::applicationDirPath();
-    QString scriptsDir = appDir + "/scripts";
+    std::string appDir = getExeDir();
+    std::string scriptsDir = appDir + "/scripts";
 
-    // 添加 scripts/ 目录本身
-    if (QDir(scriptsDir).exists()) {
-        paths.append(scriptsDir.toStdString());
+    if (std::filesystem::exists(scriptsDir)) {
+        paths.append(scriptsDir);
 
-        // 递归扫描 scripts/ 下所有子目录，用户可自由组织脚本
-        QDirIterator it(scriptsDir, QDir::Dirs | QDir::NoDotAndDotDot,
-                         QDirIterator::Subdirectories);
-        while (it.hasNext()) {
-            paths.append(it.next().toStdString());
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(scriptsDir)) {
+            if (entry.is_directory())
+                paths.append(entry.path().string());
         }
     }
 
-    if (QDir(appDir + "/python").exists()) {
-        paths.append((appDir + "/python").toStdString());
+    if (std::filesystem::exists(appDir + "/python")) {
+        paths.append(appDir + "/python");
     }
 }
 

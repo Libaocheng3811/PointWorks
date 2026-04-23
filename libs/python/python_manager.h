@@ -1,35 +1,38 @@
 #ifndef POINTWORKS_PYTHON_MANAGER_H
 #define POINTWORKS_PYTHON_MANAGER_H
 
-#include "python_bridge.h"
-
-#include <QString>
+#include <string>
 #include <memory>
 
 namespace ct
 {
 
+class PythonBridge;
 class PythonWorker;
+class PythonCloudRegistry;
 
 class PythonManager
 {
 public:
     static PythonManager& instance();
 
-    /// 初始化 Python 解释器（QApplication 创建后调用）
+    /// Initialize Python interpreter (call after QApplication is created)
     void initialize();
 
-    /// 安全关闭 Python 解释器（QApplication 退出前调用）
+    /// Safe shutdown (call before QApplication exits)
     void finalize();
 
-    /// 在 initialize() 之前设置自定义 Python 路径（来自 QSettings）
-    void setCustomPythonHome(const QString& path);
+    /// Set custom Python path before initialize() (from QSettings)
+    void setCustomPythonHome(const std::string& path);
 
     bool isInitialized() const { return m_initialized; }
-    QString initMessage() const { return m_init_message; }
+    std::string initMessage() const { return m_init_message; }
 
     PythonBridge* bridge() const { return m_bridge; }
     PythonWorker* worker() const { return m_worker; }
+
+    /// Qt-free access to the cloud registry
+    PythonCloudRegistry* registry() const;
 
 private:
     PythonManager();
@@ -47,9 +50,9 @@ private:
     PythonWorker* m_worker = nullptr;
     bool m_initialized = false;
     bool m_is_embedded = false;
-    QString m_custom_python_home;
-    QString m_detected_python_home;
-    QString m_init_message;
+    std::string m_custom_python_home;
+    std::string m_detected_python_home;
+    std::string m_init_message;
 };
 
 } // namespace ct

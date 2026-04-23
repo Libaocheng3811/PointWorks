@@ -3,11 +3,9 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QMutex>
-#include <QMap>
-#include <QSet>
-#include <atomic>
-#include <vector>
+#include "cloud_registry.h"
 #include "core/cloud.h"
 
 #include <pcl/PolygonMesh.h>
@@ -15,19 +13,26 @@
 namespace ct
 {
 
-/// Python→C++ 信号桥接
+/// Python->C++ signal bridge
 ///
-/// 供 Python 调用的方法内部只发射信号，不直接操作 UI。
-/// 云注册表和引用持有均通过 QMutex 保护线程安全。
+/// Methods called from Python only emit signals, never directly operate UI.
+/// Cloud registry and reference holding are delegated to PythonCloudRegistry (Qt-free).
 class PythonBridge : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit PythonBridge(QObject* parent = nullptr) : QObject(parent) {}
+    explicit PythonBridge(QObject* parent = nullptr);
 
     // ================================================================
-    // 日志与进度
+    // PythonCloudRegistry access
+    // ================================================================
+
+    PythonCloudRegistry& registry() { return m_registry; }
+    const PythonCloudRegistry& registry() const { return m_registry; }
+
+    // ================================================================
+    // Logging and progress
     // ================================================================
 
     void log(int level, const QString& msg)              { emit signalLog(level, msg); }
@@ -36,14 +41,14 @@ public:
     void closeProgress()                             { emit signalCloseProgress(); }
 
     // ================================================================
-    // Python stdio 输出路由（Python Console 用）
+    // Python stdio output routing (Python Console)
     // ================================================================
 
     void printStdout(const QString& text)                { emit signalPrintStdout(text); }
     void printStderr(const QString& text)                { emit signalPrintStderr(text); }
 
     // ================================================================
-    // 视图控制
+    // View control
     // ================================================================
 
     void refreshView()                                 { emit signalRefreshView(); }
@@ -61,7 +66,7 @@ public:
     void setBottomView()                              { emit signalSetBottomView(); }
 
     // ================================================================
-    // 点云外观
+    // Point cloud appearance
     // ================================================================
 
     void setPointSize(const QString& id, float size)  { emit signalSetPointSize(id, size); }
@@ -74,14 +79,14 @@ public:
     void setCloudVisibility(const QString& id, bool v){ emit signalSetCloudVisibility(id, v); }
 
     // ================================================================
-    // 场景外观
+    // Scene appearance
     // ================================================================
 
     void setBackgroundColor(float r, float g, float b){ emit signalSetBackgroundColor(r, g, b); }
     void resetBackgroundColor()                       { emit signalResetBackgroundColor(); }
 
     // ================================================================
-    // 显示开关
+    // Display toggles
     // ================================================================
 
     void showId(bool show)                           { emit signalShowId(show); }
@@ -91,7 +96,7 @@ public:
     void clearInfo()                                 { emit signalClearInfo(); }
 
     // ================================================================
-    // 叠加物
+    // Overlays
     // ================================================================
 
     void addCube(float cx, float cy, float cz, float size, const QString& id)
@@ -101,7 +106,6 @@ public:
     void removeShape(const QString& id)               { emit signalRemoveShape(id); }
     void removeAllShapes()                           { emit signalRemoveAllShapes(); }
 
-    // —— Phase 3: 高级叠加物 ——
     void addArrow(float x1, float y1, float z1, float x2, float y2, float z2,
                   const QString& id, float r, float g, float b)
                                                       { emit signalAddArrow(x1,y1,z1,x2,y2,z2,id,r,g,b); }
@@ -123,13 +127,11 @@ public:
     void setInteractorEnable(bool enable)            { emit signalSetInteractorEnable(enable); }
 
     // ================================================================
-    // 点云管理
+    // Cloud management (signals)
     // ================================================================
 
     void insertCloud(Cloud::Ptr cloud)               { emit signalInsertCloud(cloud); }
     void removeSelectedClouds()                       { emit signalRemoveSelectedClouds(); }
-
-    // —— Phase 1: 按名称操作 ——
     void removeCloud(const QString& id)               { emit signalRemoveCloud(id); }
     void removeAllClouds()                            { emit signalRemoveAllClouds(); }
     void cloneCloud(const QString& id)                { emit signalCloneCloud(id); }
@@ -138,70 +140,60 @@ public:
     void loadCloud(const QString& filepath)           { emit signalLoadCloud(filepath); }
     void saveCloud(const QString& id, const QString& filepath, bool binary = true)
                                                       { emit signalSaveCloud(id, filepath, binary); }
-
-    // —— Phase 2: 算法结果组 ——
     void addResultGroup(const QString& origin_id, const std::vector<Cloud::Ptr>& results, const QString& group_name)
                                                       { emit signalAddResultGroup(origin_id, results, group_name); }
-
-    // —— Phase 3: 就地更新点云 ——
     void updateCloud(const QString& id, const Cloud::Ptr& new_cloud)
                                                       { emit signalUpdateCloud(id, new_cloud); }
-
-    // —— 网格显示 ——
     void addMesh(const pcl::PolygonMesh::Ptr& mesh, const QString& id)
                                                       { emit signalAddMesh(mesh, id); }
     void removeMesh(const QString& id)                 { emit signalRemoveMesh(id); }
 
-    // —— 脚本模式：跳过弹窗 ——
+    // ================================================================
+    // Script mode
+    // ================================================================
+
     void setScriptMode(bool enabled) {
-        m_script_mode = enabled;
+        m_registry.setScriptMode(enabled);
         emit signalSetScriptMode(enabled);
     }
-    bool isScriptMode() const                          { return m_script_mode.load(std::memory_order_relaxed); }
+    bool isScriptMode() const { return m_registry.isScriptMode(); }
 
-    // —— 脚本会话清理 ——
     void clearScriptSession();
     void requestClearAll()                           { emit signalClearAll(); }
-
-    // —— 脚本生成数据跟踪 ——
-    void markScriptGenerated(const QString& id);
-    void markSceneMounted(const QString& id);
     void clearScriptData();
 
     // ================================================================
-    // 云注册表（线程安全）
+    // Legacy QString-based delegates (kept for python_connections.cpp compatibility)
     // ================================================================
 
-    void registerCloud(Cloud::Ptr cloud);
-    void unregisterCloud(const QString& id);
-    Cloud::Ptr getCloud(const QString& name) const;
+    void registerCloud(Cloud::Ptr cloud)              { m_registry.registerCloud(cloud); }
+    void unregisterCloud(const QString& id)            { m_registry.unregisterCloud(id.toStdString()); }
+    Cloud::Ptr getCloud(const QString& name) const     { return m_registry.getCloud(name.toStdString()); }
     QStringList getCloudNames() const;
-
-    // ================================================================
-    // 引用持有 + In-use 标记
-    // ================================================================
-
-    void holdCloud(Cloud::Ptr cloud);
-    void releaseAllHeld();
-    void releaseAllInUse();
+    void holdCloud(Cloud::Ptr cloud)                  { m_registry.holdCloud(cloud); }
+    void releaseAllHeld()                             { m_registry.releaseAllHeld(); }
     void markCloudInUse(const QString& id)            { emit signalMarkCloudInUse(id); }
     void unmarkCloudInUse(const QString& id)          { emit signalUnmarkCloudInUse(id); }
+    void releaseAllInUse()                            { emit signalReleaseAllInUse(); }
+
+    void markScriptGenerated(const QString& id)       { m_registry.markScriptGenerated(id.toStdString()); }
+    void markSceneMounted(const QString& id)          { m_registry.markSceneMounted(id.toStdString()); }
 
 signals:
-    // 日志
+    // Logging
     void signalLog(int level, QString message);
     void signalPrint(QString message);
 
-    // Python stdio（Python Console 用）
+    // Python stdio
     void signalPrintStdout(QString text);
     void signalPrintStderr(QString text);
 
-    // 进度
+    // Progress
     void signalShowProgress(QString title);
     void signalSetProgress(int percent);
     void signalCloseProgress();
 
-    // 视图控制
+    // View control
     void signalCloudChanged(QString cloud_id);
     void signalResetCamera();
     void signalRefreshView();
@@ -216,7 +208,7 @@ signals:
     void signalSetRightSideView();
     void signalSetBottomView();
 
-    // 点云外观
+    // Point cloud appearance
     void signalSetPointSize(QString id, float size);
     void signalSetOpacity(QString id, float value);
     void signalSetCloudColorRGB(QString id, float r, float g, float b);
@@ -224,24 +216,23 @@ signals:
     void signalResetCloudColor(QString id);
     void signalSetCloudVisibility(QString id, bool visible);
 
-    // 场景外观
+    // Scene appearance
     void signalSetBackgroundColor(float r, float g, float b);
     void signalResetBackgroundColor();
 
-    // 显示开关
+    // Display toggles
     void signalShowId(bool show);
     void signalShowAxes(bool show);
     void signalShowFPS(bool show);
     void signalShowInfo(QString text);
     void signalClearInfo();
 
-    // 叠加物
+    // Overlays
     void signalAddCube(float cx, float cy, float cz, float size, QString id);
     void signalAdd3DLabel(QString text, float x, float y, float z, QString id);
     void signalRemoveShape(QString id);
     void signalRemoveAllShapes();
 
-    // Phase 3: 高级叠加物 + 视图控制
     void signalAddArrow(float x1, float y1, float z1, float x2, float y2, float z2,
                         QString id, float r, float g, float b);
     void signalAddPolygon(QString cloud_id, QString id, float r, float g, float b);
@@ -256,7 +247,7 @@ signals:
     void signalInvalidateCloudRender(QString id);
     void signalSetInteractorEnable(bool enable);
 
-    // 点云管理
+    // Cloud management
     void signalInsertCloud(ct::Cloud::Ptr cloud);
     void signalRemoveSelectedClouds();
     void signalRemoveCloud(QString id);
@@ -267,23 +258,23 @@ signals:
     void signalLoadCloud(QString filepath);
     void signalSaveCloud(QString id, QString filepath, bool binary);
 
-    // Phase 2: 算法结果组
+    // Algorithm result groups
     void signalAddResultGroup(QString origin_id, std::vector<ct::Cloud::Ptr> results, QString group_name);
 
-    // Phase 3: 就地更新
+    // In-place update
     void signalUpdateCloud(QString id, ct::Cloud::Ptr new_cloud);
 
-    // 网格显示
+    // Mesh display
     void signalAddMesh(pcl::PolygonMesh::Ptr mesh, QString id);
     void signalRemoveMesh(QString id);
 
-    // 脚本模式
+    // Script mode
     void signalSetScriptMode(bool enabled);
     void signalClearScriptSession();
     void signalClearAll();
     void signalClearScriptData(QStringList ids);
 
-    // 注册表
+    // Registry sync
     void signalCloudRegistered(QString name);
     void signalCloudUnregistered(QString id);
 
@@ -293,11 +284,7 @@ signals:
     void signalReleaseAllInUse();
 
 private:
-    mutable QMutex m_cloud_mutex;
-    QMap<QString, Cloud::Ptr> m_cloud_registry;
-    std::vector<Cloud::Ptr> m_held_clouds;
-    std::atomic<bool> m_script_mode{false};
-    QSet<QString> m_script_generated_ids;  // 脚本生成但未挂载到场景的 cloud ID
+    PythonCloudRegistry m_registry;
 };
 
 } // namespace ct

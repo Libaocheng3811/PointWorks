@@ -13,7 +13,7 @@ target_include_directories(ct_python PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(ct_python
     PUBLIC
-    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Core
     pybind11::embed
     Python3::Python
     PRIVATE

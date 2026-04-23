@@ -7,12 +7,14 @@ void registerKeypointBindings(py::module_& m)
     // 辅助：将 KeypointResult 的 cloud 插入场景并返回 PyCloud
     auto insertKeypointResult = [](const ct::KeypointResult& kr, const std::string& base_name) -> py::object {
         if (!kr.cloud) throw std::runtime_error("Keypoint detection produced no result");
-        auto* bridge = ct::PythonManager::instance().bridge();
         kr.cloud->setId(base_name);
         kr.cloud->makeAdaptive();
-        bridge->registerCloud(kr.cloud);
-        bridge->holdCloud(kr.cloud);
-        if (shouldAutoInsert()) bridge->insertCloud(kr.cloud);
+        getRegistry().registerCloud(kr.cloud);
+        getRegistry().holdCloud(kr.cloud);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(kr.cloud);
+        }
         return py::cast(PyCloud(kr.cloud));
     };
 
@@ -24,8 +26,7 @@ void registerKeypointBindings(py::module_& m)
                                float angle,
                                int k,
                                double radius) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto kr = ct::Keypoints::ISSKeypoint3D(cloud, resolution, gamma_21, gamma_32,
@@ -48,8 +49,7 @@ void registerKeypointBindings(py::module_& m)
                                   bool do_refine,
                                   int k,
                                   double radius) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto kr = ct::Keypoints::HarrisKeypoint3D(cloud, response_method, threshold,
@@ -71,8 +71,7 @@ void registerKeypointBindings(py::module_& m)
                                  float min_contrast,
                                  int k,
                                  double radius) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto kr = ct::Keypoints::SIFTKeypoint(cloud, min_scale, nr_octaves,
@@ -92,8 +91,7 @@ void registerKeypointBindings(py::module_& m)
                                    int compute_method, int window_size,
                                    float first_threshold, float second_threshold,
                                    int k, double radius) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto cloud = bridge->getCloud(QString::fromStdString(name));
+        auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         auto kr = ct::Keypoints::TrajkovicKeypoint3D(cloud, compute_method, window_size,

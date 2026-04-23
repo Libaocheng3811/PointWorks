@@ -1,14 +1,14 @@
 #pragma once
 
-// 所有 bind_*.cpp 的公共头文件
-// 提供 pybind11 include 和 PythonManager/Bridge 访问
+// Common includes for all bind_*.cpp files
+// Provides pybind11 includes and cloud registry access
 
-#include "python_manager.h"
-#include "python_bridge.h"
 #include "core/cloud.h"
 #include "core/octree.h"
+#include "python/cloud_registry.h"
+#include "python_manager.h"
 
-// Qt 的 <QObject> 定义了 slots 宏，与 Python 的 object.h 冲突
+// Qt's <QObject> defines slots macro, conflicts with Python's object.h
 #undef slots
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -17,8 +17,14 @@
 
 namespace py = pybind11;
 
-// 判断当前是否应自动将算法结果插入 UI（脚本模式下跳过）
-inline bool shouldAutoInsert() {
-    auto* bridge = ct::PythonManager::instance().bridge();
-    return bridge && !bridge->isScriptMode();
+// Get the global PythonCloudRegistry (Qt-free)
+inline ct::PythonCloudRegistry& getRegistry()
+{
+    return *ct::PythonManager::instance().registry();
+}
+
+// Check whether algorithm results should auto-insert into UI
+inline bool shouldAutoInsert()
+{
+    return !getRegistry().isScriptMode();
 }

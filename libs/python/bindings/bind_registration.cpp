@@ -6,10 +6,9 @@ void registerRegistrationBindings(py::module_& m)
 {
     auto makeRegContext = [](const std::string& src_name, const std::string& tgt_name,
                              int max_iter, double corr_dist) -> ct::RegistrationContext {
-        auto* bridge = ct::PythonManager::instance().bridge();
-        auto src = bridge->getCloud(QString::fromStdString(src_name));
+        auto src = getRegistry().getCloud(src_name);
         if (!src) throw std::runtime_error("Source cloud not found: " + src_name);
-        auto tgt = bridge->getCloud(QString::fromStdString(tgt_name));
+        auto tgt = getRegistry().getCloud(tgt_name);
         if (!tgt) throw std::runtime_error("Target cloud not found: " + tgt_name);
         ct::RegistrationContext ctx;
         ctx.source_cloud = src;
@@ -21,11 +20,13 @@ void registerRegistrationBindings(py::module_& m)
 
     auto regResultToDict = [](const ct::RegistrationResult& result) -> py::object {
         if (!result.success) return py::none();
-        auto* bridge = ct::PythonManager::instance().bridge();
         result.aligned_cloud->makeAdaptive();
-        bridge->registerCloud(result.aligned_cloud);
-        bridge->holdCloud(result.aligned_cloud);
-        if (shouldAutoInsert()) bridge->insertCloud(result.aligned_cloud);
+        getRegistry().registerCloud(result.aligned_cloud);
+        getRegistry().holdCloud(result.aligned_cloud);
+        if (shouldAutoInsert()) {
+            auto* bridge = ct::PythonManager::instance().bridge();
+            if (bridge) bridge->insertCloud(result.aligned_cloud);
+        }
 
         py::dict dict;
         dict["aligned"] = py::cast(PyCloud(result.aligned_cloud));

@@ -1,4 +1,5 @@
 #include "bind_view.h"
+#include "python_bridge.h"
 
 void registerViewBindings(py::module_& m)
 {
