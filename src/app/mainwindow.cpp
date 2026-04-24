@@ -65,6 +65,7 @@
 #include <QHeaderView>
 #include <QSettings>
 #include <QEvent>
+#include <QActionGroup>
 
 #define  OFFICIAL_WEBSITE   "https://libaocheng3811.github.io/PointWorks-docs/"
 #define  CLOUD_ICON_PATH    ":/res/icon2/cloud.svg"
@@ -88,6 +89,9 @@ MainWindow::MainWindow(QWidget *parent) :
     size.push_back(140);
     resizeDocks(docks, size, Qt::Orientation::Vertical);
 
+    // === ViewportManager（接管 centralwidget 中的 viewport_container）===
+    m_viewport_mgr = new ct::ViewportManager(ui->viewport_container);
+
     // === Python Console（按需创建，默认不添加到 tab）===
     auto* python_console = new ct::PythonConsole(nullptr);
 
@@ -101,7 +105,8 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     // connect pointer
-    ui->cloudtree->setCloudView(ui->cloudview);
+    ui->cloudtree->setCloudView(m_viewport_mgr->activeView());
+    ui->cloudtree->setViewportManager(m_viewport_mgr);
     ui->cloudtree->setConsole(ui->console);
     ui->cloudtree->setPropertiesTable(ui->cloudtable);
     ui->cloudtree->setFileIcon(style()->standardIcon(QStyle::SP_DirClosedIcon));
@@ -137,20 +142,65 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionScale, &QAction::triggered, [=] {this->createDialog<Scale>("Scale"); });
     connect(ui->actionCoords, &QAction::triggered, [=] {this->createDialog<Coordinate>("Coordinate"); });
 
-    // view
+    // view — 标准视图操作作用于活跃视窗
+    auto activeView = [this]() { return m_viewport_mgr->activeView(); };
     connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &ct::CloudTree::zoomToSelected);
-    connect(ui->actionTopView, &QAction::triggered, ui->cloudview, &ct::CloudView::setTopView);
-    connect(ui->actionFrontView, &QAction::triggered, ui->cloudview, &ct::CloudView::setFrontView);
-    connect(ui->actionLeftSideView, &QAction::triggered, ui->cloudview, &ct::CloudView::setLeftSideView);
-    connect(ui->actionBackView, &QAction::triggered, ui->cloudview, &ct::CloudView::setBackView);
-    connect(ui->actionRightSideView, &QAction::triggered, ui->cloudview, &ct::CloudView::setRightSideView);
-    connect(ui->actionBottomView, &QAction::triggered, ui->cloudview, &ct::CloudView::setBottomView);
-    connect(ui->actionShowID, &QAction::triggered, ui->cloudview, &ct::CloudView::setShowId);
-    connect(ui->actionShowAxes, &QAction::triggered, ui->cloudview, &ct::CloudView::setShowAxes);
-    connect(ui->actionShowFPS, &QAction::triggered, ui->cloudview, &ct::CloudView::setShowFPS);
+    connect(ui->actionTopView, &QAction::triggered, this, [=]{ activeView()->setTopView(); });
+    connect(ui->actionFrontView, &QAction::triggered, this, [=]{ activeView()->setFrontView(); });
+    connect(ui->actionLeftSideView, &QAction::triggered, this, [=]{ activeView()->setLeftSideView(); });
+    connect(ui->actionBackView, &QAction::triggered, this, [=]{ activeView()->setBackView(); });
+    connect(ui->actionRightSideView, &QAction::triggered, this, [=]{ activeView()->setRightSideView(); });
+    connect(ui->actionBottomView, &QAction::triggered, this, [=]{ activeView()->setBottomView(); });
+    connect(ui->actionShowID, &QAction::toggled, this, [=](bool checked){
+        for (auto* v : m_viewport_mgr->allViews()) v->setShowId(checked);
+    });
+    connect(ui->actionShowAxes, &QAction::toggled, this, [=](bool checked){
+        for (auto* v : m_viewport_mgr->allViews()) v->setShowAxes(checked);
+    });
+    connect(ui->actionShowFPS, &QAction::toggled, this, [=](bool checked){
+        for (auto* v : m_viewport_mgr->allViews()) v->setShowFPS(checked);
+    });
     ui->actionShowFPS->setChecked(true);
     ui->actionShowAxes->setChecked(true);
     ui->actionShowID->setChecked(true);
+
+    // view — 布局切换
+    auto* layoutGroup = new QActionGroup(this);
+    layoutGroup->addAction(ui->actionViewportSingle);
+    layoutGroup->addAction(ui->actionViewportHSplit);
+    layoutGroup->addAction(ui->actionViewportVSplit);
+    layoutGroup->addAction(ui->actionViewportTriple);
+    layoutGroup->addAction(ui->actionViewportQuad);
+    layoutGroup->setExclusive(true);
+
+    connect(ui->actionViewportSingle, &QAction::triggered, this, [=]{
+        m_viewport_mgr->setLayout(ct::ViewportManager::Single);
+    });
+    connect(ui->actionViewportHSplit, &QAction::triggered, this, [=]{
+        m_viewport_mgr->setLayout(ct::ViewportManager::HorizontalSplit);
+    });
+    connect(ui->actionViewportVSplit, &QAction::triggered, this, [=]{
+        m_viewport_mgr->setLayout(ct::ViewportManager::VerticalSplit);
+    });
+    connect(ui->actionViewportTriple, &QAction::triggered, this, [=]{
+        m_viewport_mgr->setLayout(ct::ViewportManager::TripleSplit);
+    });
+    connect(ui->actionViewportQuad, &QAction::triggered, this, [=]{
+        m_viewport_mgr->setLayout(ct::ViewportManager::QuadSplit);
+    });
+
+    // 活跃视窗切换时更新 CloudTree 的 CloudView 引用
+    connect(m_viewport_mgr, &ct::ViewportManager::activeViewChanged, this, [this](ct::CloudView* view) {
+        ui->cloudtree->setCloudView(view);
+    });
+
+    // 布局切换后重建视窗，需要重新添加所有点云并刷新属性栏
+    connect(m_viewport_mgr, &ct::ViewportManager::viewsRecreated, this, [this]() {
+        ui->cloudtree->setCloudView(m_viewport_mgr->activeView());
+        ui->cloudtree->repopulateAllViews();
+        emit ui->cloudtree->itemSelectionChanged();
+    });
+
     connect(ui->actionShowDataTree, &QAction::toggled, [=](bool checked){
         ui->DataDock->setVisible(checked); });
     connect(ui->DataDock, &QDockWidget::visibilityChanged, [=](bool visible){
@@ -220,7 +270,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(ui->actionPointPairsAlignment, &QAction::triggered, [=] {
         auto* dlg = ct::createDialog<PointPairsAlignment>(
-            this, "PointPairsAlignment", ui->cloudview, ui->cloudtree, ui->console);
+            this, "PointPairsAlignment", m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
         if (dlg) {
             // 禁用菜单栏、工具栏、文件树和属性栏，但保留 ViewBar 用于视角调整
             menuBar()->setEnabled(false);
@@ -296,9 +346,9 @@ MainWindow::MainWindow(QWidget *parent) :
             editor = new ct::PythonEditor(this);
         }
         if (checked) {
-            // 基于 CloudView 全局坐标定位：宽=CloudView宽，高=CloudView一半，遮住右半侧
-            QPoint tl = ui->cloudview->mapToGlobal(QPoint(0, 0));
-            QSize cvSize = ui->cloudview->size();
+            ct::CloudView* view = m_viewport_mgr->activeView();
+            QPoint tl = view->mapToGlobal(QPoint(0, 0));
+            QSize cvSize = view->size();
             editor->setGeometry(tl.x() + cvSize.width() / 2, tl.y(),
                                 cvSize.width() / 2, cvSize.height());
             editor->show();
@@ -354,7 +404,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // === Python Bridge 信号连接 ===
     auto* bridge = ct::PythonManager::instance().bridge();
     if (bridge) {
-        ct::connectPythonSignals(bridge, ui->cloudview, ui->cloudtree, ui->console);
+        ct::connectPythonSignals(bridge, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
     }
 
     // === Help ===
@@ -366,7 +416,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionAbout, &QAction::triggered, this, [this] { ct::HelpLauncher::showAbout(this); });
 
     // === 项目管理（自包含控制器） ===
-    m_project_manager = new ProjectManager(ui->cloudtree, ui->cloudview, ui->menuOpenRecent, this);
+    m_project_manager = new ProjectManager(ui->cloudtree, m_viewport_mgr->activeView(), ui->menuOpenRecent, this);
     connect(m_project_manager, &ProjectManager::windowTitleChanged, this, &MainWindow::setWindowTitle);
     setWindowTitle(m_project_manager->windowTitle()); // 初始标题（信号在连接前已发）
     connect(ui->actionNewProject, &QAction::triggered, m_project_manager, &ProjectManager::onNewProject);
@@ -397,8 +447,11 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::moveEvent(QMoveEvent *event)
 {
-    QPoint pos = ui->cloudview->mapToGlobal(QPoint(0, 0));
-    emit ui->cloudview->posChanged(pos);
+    ct::CloudView* view = m_viewport_mgr->activeView();
+    if (view) {
+        QPoint pos = view->mapToGlobal(QPoint(0, 0));
+        emit view->posChanged(pos);
+    }
     return QMainWindow::moveEvent(event);
 }
 
@@ -446,7 +499,7 @@ void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
     ui->actionPickPoints->setEnabled(singleCloud);
     ui->actionMeasure->setEnabled(onlyCloud);
     ui->actionCutting->setEnabled(onlyCloud);
-    ui->actionFilters->setEnabled(onlyCloud);
+    ui->actionFilters->setEnabled(singleCloud);
     ui->actionSampling->setEnabled(singleCloud);
     ui->actionRangeImage->setEnabled(singleCloud);
 

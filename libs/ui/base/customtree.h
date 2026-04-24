@@ -11,6 +11,7 @@ namespace ct
 {
     class CloudView;
     class Console;
+    class ViewportManager;
 
     class CustomTree : public QTreeWidget
     {
@@ -22,6 +23,11 @@ namespace ct
          * @brief 设置点云视图
          */
         void setCloudView(CloudView* cloudview) {m_cloudview = cloudview;}
+
+        /**
+         * @brief 设置视窗管理器（多视窗模式）
+         */
+        void setViewportManager(ViewportManager* mgr) { m_viewport_mgr = mgr; }
 
         /**
          * @brief 设置属性显示窗口
@@ -167,6 +173,7 @@ namespace ct
         CloudView* m_cloudview;
         Console* m_console;
         QTableWidget* m_table;
+        ViewportManager* m_viewport_mgr = nullptr;
 
     protected:
         // 四种节点类型的图标

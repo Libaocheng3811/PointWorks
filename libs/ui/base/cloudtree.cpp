@@ -1,5 +1,6 @@
 #include "cloudtree.h"
 
+#include "viewport_manager.h"
 #include "viz/cloudview.h"
 
 #include "core/colormap.h"
@@ -10,12 +11,14 @@
 
 #include <cfloat>
 
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QMenu>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QContextMenuEvent>
 #include <QMouseEvent>
 #include <QPushButton>
@@ -32,6 +35,170 @@
 
 namespace ct
 {
+    QList<int> CloudTree::getItemViewports(QTreeWidgetItem* item) const
+    {
+        if (!item) return { VIEWPORT_ALL };
+        QVariant var = item->data(0, NodeViewportIndexRole);
+        if (!var.isValid()) return { VIEWPORT_ALL };
+        return var.value<QList<int>>();
+    }
+
+    void CloudTree::setItemViewports(QTreeWidgetItem* item, const QList<int>& indices)
+    {
+        if (!item) return;
+        item->setData(0, NodeViewportIndexRole, QVariant::fromValue(indices));
+    }
+
+    QList<CloudView*> CloudTree::resolveViews(QTreeWidgetItem* item) const
+    {
+        if (!item) return { m_cloudview };
+        if (!m_viewport_mgr) return { m_cloudview };
+        QList<int> indices = getItemViewports(item);
+        if (indices.size() == 1 && indices[0] == VIEWPORT_ALL)
+            return m_viewport_mgr->allViews();
+        if (indices.isEmpty())
+            return {}; // None: 不在任意视窗显示
+        QList<CloudView*> result;
+        for (int idx : indices) {
+            CloudView* v = m_viewport_mgr->viewAt(idx);
+            if (v) result.append(v);
+        }
+        return result.isEmpty() ? QList<CloudView*>{ m_cloudview } : result;
+    }
+
+    CloudView* CloudTree::resolveView(QTreeWidgetItem* item) const
+    {
+        QList<CloudView*> views = resolveViews(item);
+        return views.isEmpty() ? m_cloudview : views.first();
+    }
+
+    void CloudTree::assignCloudToViewport(QTreeWidgetItem* item, int viewportIndex)
+    {
+        if (!item) return;
+        QList<int> oldIndices = getItemViewports(item);
+        QList<int> newIndices = { viewportIndex };
+
+        Cloud::Ptr cloud = getCloud(item);
+        if (!cloud) return;
+
+        QString cid = QString::fromStdString(cloud->id());
+
+        // 1. 从所有视窗移除
+        if (m_viewport_mgr) {
+            for (auto* view : m_viewport_mgr->allViews()) {
+                view->removePointCloud(cid);
+                view->removeShape(QString::fromStdString(cloud->boxId()));
+                view->removePointCloud(QString::fromStdString(cloud->normalId()));
+                if (m_registry->getTexturedMesh(cid))
+                    view->removeTexturedMesh(cid);
+                else if (m_registry->hasMesh(cid))
+                    view->removePolygonMesh(cid);
+            }
+        } else {
+            m_cloudview->removePointCloud(cid);
+            m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
+            m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
+        }
+
+        // 2. 设置新的视窗列表
+        setItemViewports(item, newIndices);
+        updateItemViewportLabel(item);
+
+        // 3. 添加到目标视窗
+        if (item->checkState(0) != Qt::Unchecked) {
+            for (CloudView* newView : resolveViews(item)) {
+                newView->addPointCloud(cloud);
+                if (cloud->pointSize() > 1)
+                    newView->setPointCloudSize(cid, cloud->pointSize());
+                if (m_registry->getTexturedMesh(cid)) {
+                    auto _tm = m_registry->getTexturedMesh(cid);
+                    if (!_tm->objFilePath.empty())
+                        newView->addTexturedMesh(QString::fromStdString(_tm->objFilePath), cid);
+                } else if (m_registry->hasMesh(cid)) {
+                    auto _m = m_registry->getMesh(cid);
+                    if (_m) newView->addMeshActor(_m, cid);
+                }
+            }
+        }
+        m_cloudview->refresh();
+    }
+
+    void CloudTree::updateItemViewportLabel(QTreeWidgetItem* item)
+    {
+        if (!item || !m_viewport_mgr || m_viewport_mgr->viewCount() <= 1) {
+            if (item) {
+                // 单视窗或无管理器时去掉标签
+                Cloud::Ptr cloud = getCloud(item);
+                if (cloud) {
+                    QString baseName = QString::fromStdString(cloud->id());
+                    QRegularExpression re(R"( \[V.*?\]$)");
+                    baseName.remove(re);
+                    item->setText(0, baseName);
+                }
+            }
+            return;
+        }
+        Cloud::Ptr cloud = getCloud(item);
+        if (!cloud) return;
+
+        QString baseName = QString::fromStdString(cloud->id());
+        QRegularExpression re(R"( \[V.*?\]$)");
+        baseName.remove(re);
+
+        QList<int> indices = getItemViewports(item);
+        if (indices.isEmpty() || (indices.size() == 1 && indices[0] == VIEWPORT_ALL)) {
+            item->setText(0, baseName); // 所有视窗，不加标签
+        } else if (indices.isEmpty()) {
+            item->setText(0, baseName + " [None]");
+        } else {
+            QStringList parts;
+            for (int idx : indices)
+                parts.append(QString("V%1").arg(idx + 1));
+            item->setText(0, baseName + " [" + parts.join(",") + "]");
+        }
+    }
+
+    void CloudTree::repopulateAllViews()
+    {
+        if (!m_viewport_mgr) return;
+        for (auto* view : m_viewport_mgr->allViews()) {
+            view->removeAllPointClouds();
+            view->removeAllShapes();
+        }
+        QList<QTreeWidgetItem*> allItems = m_registry->getAllItems();
+        for (QTreeWidgetItem* item : allItems) {
+            Cloud::Ptr cloud = getCloud(item);
+            if (!cloud) continue;
+            updateItemViewportLabel(item);
+            if (item->checkState(0) == Qt::Unchecked) continue;
+
+            QList<CloudView*> targets = resolveViews(item);
+            SceneNodeType nodeType = getNodeType(item);
+            QString cid = QString::fromStdString(cloud->id());
+            for (CloudView* target : targets) {
+                if (!target) continue;
+                if (nodeType != NodeMesh) {
+                    target->addPointCloud(cloud);
+                    if (cloud->pointSize() > 1)
+                        target->setPointCloudSize(cid, cloud->pointSize());
+                }
+                if (m_registry->hasMesh(cid)) {
+                    auto _tm = m_registry->getTexturedMesh(cid);
+                    if (_tm && !_tm->objFilePath.empty()) {
+                        target->setPointCloudVisibility(cid, false);
+                        target->addTexturedMesh(QString::fromStdString(_tm->objFilePath), cid);
+                    } else {
+                        auto _m = m_registry->getMesh(cid);
+                        if (_m) {
+                            target->setPointCloudVisibility(cid, false);
+                            target->addMeshActor(_m, cid);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     CloudTree::CloudTree(QWidget *parent)
         : CustomTree(parent),
         m_tree_menu(nullptr),
@@ -128,28 +295,36 @@ namespace ct
         QTreeWidgetItem* newItem = addItem(actualParent, QString::fromStdString(cloud->id()), nodeType, false);
         this->blockSignals(wasBlocked);
 
+        // 绑定到当前活跃视窗
+        if (m_viewport_mgr) {
+            int activeIdx = m_viewport_mgr->allViews().indexOf(m_cloudview);
+            setItemViewports(newItem, { activeIdx >= 0 ? activeIdx : VIEWPORT_ALL });
+            updateItemViewportLabel(newItem);
+        }
+
         m_registry->registerCloud(newItem, cloud);
 
         // Mesh 节点由 registerMesh 通过 addMeshActor 渲染，不添加点云散点
+        CloudView* targetView = resolveView(newItem);
         if (nodeType != NodeMesh) {
-            m_cloudview->addPointCloud(cloud);
+            targetView->addPointCloud(cloud);
 
             // 根据点云类型决定显示属性
             if (cloud->pointSize() > 1) {
-                m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
+                targetView->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
                 if (QString::fromStdString(cloud->id()).contains("picked-"))
-                    m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
+                    targetView->setPointCloudColor(cloud, ct::Color::Red);
             }
         }
 
         if (selected && nodeType != NodeMesh) {
-            m_cloudview->addBox(cloud);
+            targetView->addBox(cloud);
         }
 
         if (!cloud->empty()) {
             Eigen::Vector3f min_pt = cloud->min().getVector3fMap();
             Eigen::Vector3f max_pt = cloud->max().getVector3fMap();
-            m_cloudview->zoomToBounds(min_pt, max_pt);
+            targetView->zoomToBounds(min_pt, max_pt);
         }
 
         if (selected){
@@ -198,11 +373,12 @@ namespace ct
             QTreeWidgetItem* item = getItemById(QString::fromStdString(cloud->id()));
             if (item) renameCloudItem(item, QString::fromStdString(new_cloud->id()));
         }
-        m_cloudview->addPointCloud(cloud);
-
         QTreeWidgetItem* item = getItemById(QString::fromStdString(cloud->id()));
+        CloudView* targetView = resolveView(item);
+        targetView->addPointCloud(cloud);
+
         if (item && item->isSelected()){
-            m_cloudview->addBox(cloud);
+            targetView->addBox(cloud);
         }
         printI(QString(tr("Update cloud[id:%1, size:%2] to new cloud[id:%3, size:%4] done."))
                 .arg(QString::fromStdString(cloud->id())).arg(cloud->size()).arg(QString::fromStdString(new_cloud->id())).arg(new_cloud->size()));
@@ -233,9 +409,18 @@ namespace ct
             if (cloud) {
                 QString cid = QString::fromStdString(cloud->id());
                 emit removedCloudId(cid);
-                m_cloudview->removePointCloud(cid);
-                m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
-                m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
+                // 从所有可能包含该点云的视窗中移除
+                if (m_viewport_mgr) {
+                    for (auto* v : m_viewport_mgr->allViews()) {
+                        v->removePointCloud(cid);
+                        v->removeShape(QString::fromStdString(cloud->boxId()));
+                        v->removePointCloud(QString::fromStdString(cloud->normalId()));
+                    }
+                } else {
+                    m_cloudview->removePointCloud(cid);
+                    m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
+                    m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
+                }
                 m_registry->unregisterCloud(c);
                 // 清理关联的 PolygonMesh / TexturedMesh
                 if (m_registry->getTexturedMesh(cid) != nullptr) {
@@ -247,7 +432,7 @@ namespace ct
                 // 清理附属 shape（如边界多段线）
                 QString shape_id = c->data(0, NodeShapeIdRole).toString();
                 if (!shape_id.isEmpty()) {
-                    m_cloudview->removeShape(shape_id);
+                    resolveView(c)->removeShape(shape_id);
                     m_registry->unregisterShape(shape_id);
                     m_registry->unregisterCloudPolyline(shape_id);
                 }
@@ -276,8 +461,15 @@ namespace ct
             removeCloudItem(this->topLevelItem(0));
         }
 
-        m_cloudview->removeAllPointClouds();
-        m_cloudview->removeAllShapes();
+        if (m_viewport_mgr) {
+            for (auto* view : m_viewport_mgr->allViews()) {
+                view->removeAllPointClouds();
+                view->removeAllShapes();
+            }
+        } else {
+            m_cloudview->removeAllPointClouds();
+            m_cloudview->removeAllShapes();
+        }
         m_registry->clear();
 
         m_cloudview->setAutoRender(true);
@@ -382,9 +574,10 @@ namespace ct
         }
 
         item->setText(0, finalName);
-        m_cloudview->removePointCloud(QString::fromStdString(cloud->id()));
-        m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
-        m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
+        CloudView* cv = resolveView(item);
+        cv->removePointCloud(QString::fromStdString(cloud->id()));
+        cv->removePointCloud(QString::fromStdString(cloud->normalId()));
+        cv->removeShape(QString::fromStdString(cloud->boxId()));
 
         m_registry->updateItemId(QString::fromStdString(cloud->id()), finalName, item);
         cloud->setId(finalName.toStdString());
@@ -748,7 +941,9 @@ namespace ct
             parent = parent->parent();
         }
 
-        m_cloudview->setAutoRender(false);
+        // 收集所有需要 setAutoRender(false) 的视窗
+        QSet<CloudView*> affectedViews;
+        affectedViews.insert(m_cloudview);
 
         // 获取所有受影响节点 (自己 + 所有子孙 + 所有祖先)
         QList<QTreeWidgetItem*> affectedItems;
@@ -764,26 +959,34 @@ namespace ct
         for (QTreeWidgetItem* it : affectedItems){
             Cloud::Ptr cloud = getCloud(it);
 
+            QList<CloudView*> itemViews = resolveViews(it);
+            for (CloudView* cv : itemViews) {
+                affectedViews.insert(cv);
+                cv->setAutoRender(false);
+            }
+
+            for (CloudView* cv : itemViews) {
+
             // --- NodeBoundary: 附属 shape 的可见性联动 ---
             if (!cloud) {
                 QString shape_id = it->data(0, NodeShapeIdRole).toString();
                 if (!shape_id.isEmpty()) {
                     bool show = (it->checkState(0) != Qt::Unchecked);
                     if (show) {
-                        if (!m_cloudview->contains(shape_id)) {
+                        if (!cv->contains(shape_id)) {
                             // 优先从 mesh 提取折线，其次从 cloud 绘制折线
                             auto _shape_mesh = m_registry->getShape(shape_id);
                             if (_shape_mesh) {
-                                m_cloudview->addPolylineFromPolygonMesh(_shape_mesh, shape_id);
+                                cv->addPolylineFromPolygonMesh(_shape_mesh, shape_id);
                             } else {
                                 auto _polyline_cloud = m_registry->getCloudPolyline(shape_id);
                                 if (_polyline_cloud) {
-                                    m_cloudview->addPolylineFromCloud(_polyline_cloud, shape_id);
+                                    cv->addPolylineFromCloud(_polyline_cloud, shape_id);
                                 }
                             }
                         }
                     } else {
-                        m_cloudview->removeShape(shape_id);
+                        cv->removeShape(shape_id);
                     }
                 }
                 continue;
@@ -795,26 +998,26 @@ namespace ct
 
             // NodeMesh 节点不显示点云散点，由下方的 mesh 联动逻辑处理
             if (nodeType != NodeMesh) {
-                bool exists = m_cloudview->contains(QString::fromStdString(cloud->id()));
+                bool exists = cv->contains(QString::fromStdString(cloud->id()));
 
                 if(shouldShow){
                     if (exists){
-                        m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), true);
+                        cv->setPointCloudVisibility(QString::fromStdString(cloud->id()), true);
                     }
                     else {
-                        m_cloudview->addPointCloud(cloud);
+                        cv->addPointCloud(cloud);
                         if (cloud->pointSize() > 1){
-                            m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
+                            cv->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
                             if (QString::fromStdString(cloud->id()).contains("picked-"))
-                                m_cloudview->setPointCloudColor(cloud, ct::Color::Red);
+                                cv->setPointCloudColor(cloud, ct::Color::Red);
                         }
                     }
                     if (it->isSelected() && cloud->size() > 100)
-                        m_cloudview->addBox(cloud);
+                        cv->addBox(cloud);
                 }
                 else{
                     if (exists){
-                        m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), false);
+                        cv->setPointCloudVisibility(QString::fromStdString(cloud->id()), false);
                     }
                 }
             }
@@ -825,28 +1028,29 @@ namespace ct
                 bool shouldShow = (it->checkState(0) != Qt::Unchecked);
                 if (shouldShow) {
                     // actor 已存在时只切换可见性，避免重复重建导致卡顿
-                    if (m_cloudview->contains(mesh_id)) {
-                        m_cloudview->setShapeVisibility(mesh_id, true);
+                    if (cv->contains(mesh_id)) {
+                        cv->setShapeVisibility(mesh_id, true);
                     } else {
                         auto _tex_mesh = m_registry->getTexturedMesh(mesh_id);
                         if (_tex_mesh && !_tex_mesh->objFilePath.empty()) {
                             // 纹理 mesh：隐藏点云散点，移除无纹理 mesh，显示带纹理 mesh 表面
-                            m_cloudview->setPointCloudVisibility(mesh_id, false);
-                            m_cloudview->addTexturedMesh(QString::fromStdString(_tex_mesh->objFilePath), mesh_id);
+                            cv->setPointCloudVisibility(mesh_id, false);
+                            cv->addTexturedMesh(QString::fromStdString(_tex_mesh->objFilePath), mesh_id);
                         } else {
                             // 无纹理 mesh 或算法生成的 mesh：用 VTK actor 渲染
                             auto _mesh_actor = m_registry->getMesh(mesh_id);
                             if (_mesh_actor) {
-                                m_cloudview->setPointCloudVisibility(mesh_id, false);
-                                m_cloudview->addMeshActor(_mesh_actor, mesh_id);
+                                cv->setPointCloudVisibility(mesh_id, false);
+                                cv->addMeshActor(_mesh_actor, mesh_id);
                             }
                         }
                     }
                 } else {
                     // 只隐藏，不销毁 actor，下次勾选时直接切换可见性避免重建卡顿
-                    m_cloudview->setShapeVisibility(mesh_id, false);
+                    cv->setShapeVisibility(mesh_id, false);
                 }
             }
+            } // for (CloudView* cv : itemViews)
         }
 
         // Sync scalar bar visibility with selected+checked state
@@ -878,17 +1082,22 @@ namespace ct
             }
         }
 
-        m_cloudview->setAutoRender(true);
-        m_cloudview->refresh();
+        for (auto* v : affectedViews) {
+            v->setAutoRender(true);
+            v->refresh();
+        }
         this->blockSignals(wasBlocked);
     }
 
     void CloudTree::itemSelectionChangedEvent()
     {
-        m_cloudview->setAutoRender(false);
+        // 收集所有受影响的视窗
+        QSet<CloudView*> affectedViews;
+        affectedViews.insert(m_cloudview);
+        for (auto* v : affectedViews) v->setAutoRender(false);
 
         // ============================================================
-        // Phase 1: 更新3D视图中的包围盒
+        // Phase 1: 更新3D视图中的包围盒（每个 item 在其目标视窗操作）
         // ============================================================
         QList<QTreeWidgetItem*> allItems = m_registry->getAllItems();
         QList<QTreeWidgetItem*> selectedItems = getSelectedItems();
@@ -899,29 +1108,35 @@ namespace ct
 
             bool isSelected = selectedItems.contains(item);
             bool isChecked = (item->checkState(0) != Qt::Unchecked);
-            bool hasBox = m_cloudview->contains(QString::fromStdString(cloud->boxId()));
+
+            QVariant vpVar = item->data(0, NodeViewportIndexRole);
+            QList<CloudView*> itemViews = resolveViews(item);
+            for (CloudView* cv : itemViews) affectedViews.insert(cv);
+
+            for (CloudView* cv : itemViews) {
+            bool hasBox = cv->contains(QString::fromStdString(cloud->boxId()));
 
             if (getNodeType(item) == NodeMesh) {
                 // NodeMesh 不添加包围盒，但需清理可能残留的 box
-                if (hasBox) m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
+                if (hasBox) cv->removeShape(QString::fromStdString(cloud->boxId()));
                 continue;
             }
 
             if (isSelected && isChecked){
                 if (!hasBox && cloud->size() > 100)
-                    m_cloudview->addBox(cloud);
+                    cv->addBox(cloud);
             }
             else{
-                if (hasBox) m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
+                if (hasBox) cv->removeShape(QString::fromStdString(cloud->boxId()));
             }
+            } // for cv
         }
 
         // ============================================================
         // Phase 2: 更新属性栏（根据节点类型动态构建）
         // ============================================================
         if (!m_table) {
-            m_cloudview->setAutoRender(true);
-            m_cloudview->refresh();
+            for (auto* v : affectedViews) { v->setAutoRender(true); v->refresh(); }
             return;
         }
 
@@ -931,8 +1146,7 @@ namespace ct
         m_table->setRowCount(0);
 
         if (selectedItems.isEmpty()){
-            m_cloudview->setAutoRender(true);
-            m_cloudview->refresh();
+            for (auto* v : affectedViews) { v->setAutoRender(true); v->refresh(); }
             return;
         }
 
@@ -940,10 +1154,12 @@ namespace ct
         SceneNodeType nodeType = getNodeType(firstItem);
         Cloud::Ptr cloud = getCloud(firstItem);
         if (!cloud) {
-            m_cloudview->setAutoRender(true);
-            m_cloudview->refresh();
+            for (auto* v : affectedViews) { v->setAutoRender(true); v->refresh(); }
             return;
         }
+
+        CloudView* itemView = resolveView(firstItem);
+        affectedViews.insert(itemView);
 
         QString cloudId = QString::fromStdString(cloud->id());
         bool isMesh = (nodeType == NodeMesh);
@@ -1016,9 +1232,6 @@ namespace ct
                 item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
         }
 
-        // 显示 ID
-        m_cloudview->showCloudId(cloudId);
-
         // Opacity
         {
             int row = m_table->rowCount();
@@ -1036,19 +1249,143 @@ namespace ct
                 connect(opacity, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
                         this, [=](double value){
                             cloud->setOpacity(value);
-                            m_cloudview->setTextureMeshOpacity(cloudId, value);
-                            m_cloudview->refresh();
+                            itemView->setTextureMeshOpacity(cloudId, value);
+                            itemView->refresh();
                         });
             } else {
                 connect(opacity, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
                         this, [=](double value){
                             cloud->setOpacity(value);
-                            m_cloudview->setPointCloudOpacity(cloudId, value);
-                            m_cloudview->refresh();
+                            itemView->setPointCloudOpacity(cloudId, value);
+                            itemView->refresh();
                         });
             }
             m_table->setCellWidget(row, 1, opacity);
         }
+
+        // 显示 ID（在活跃视窗）
+        m_cloudview->showCloudId(cloudId);
+
+        // ============================================================
+        // Viewport Section（仅多视窗模式下显示）
+        // ============================================================
+        if (m_viewport_mgr && m_viewport_mgr->viewCount() > 1) {
+            addSectionHeader("Viewport");
+
+            QList<int> currentVps = getItemViewports(firstItem);
+            bool isAll = (currentVps.size() == 1 && currentVps[0] == VIEWPORT_ALL);
+            bool isNone = currentVps.isEmpty();
+            int viewCount = m_viewport_mgr->viewCount();
+
+            // --- Display In ---
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Display In");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
+                m_table->setItem(row, 0, labelItem);
+
+                QWidget* vpWidget = new QWidget;
+                QHBoxLayout* vpLayout = new QHBoxLayout(vpWidget);
+                vpLayout->setContentsMargins(0, 0, 0, 0);
+                vpLayout->setSpacing(4);
+
+                QPushButton* allBtn = new QPushButton("All");
+                allBtn->setCheckable(true);
+                allBtn->setChecked(isAll);
+                allBtn->setFixedWidth(36);
+                vpLayout->addWidget(allBtn);
+
+                QPushButton* noneBtn = new QPushButton("None");
+                noneBtn->setCheckable(true);
+                noneBtn->setChecked(isNone);
+                noneBtn->setFixedWidth(42);
+                vpLayout->addWidget(noneBtn);
+
+                // 用按钮组让 All/None/各视窗互斥
+                QButtonGroup* vpGroup = new QButtonGroup(this);
+                vpGroup->setExclusive(true);
+                vpGroup->addButton(allBtn, 0);
+                vpGroup->addButton(noneBtn, 1);
+
+                QVector<QPushButton*> vpButtons;
+                for (int i = 0; i < viewCount; ++i) {
+                    QPushButton* btn = new QPushButton(QString("V%1").arg(i + 1));
+                    btn->setCheckable(true);
+                    btn->setChecked(!isAll && !isNone && currentVps.contains(i));
+                    btn->setFixedWidth(36);
+                    vpLayout->addWidget(btn);
+                    vpButtons.append(btn);
+                    vpGroup->addButton(btn, 10 + i);
+                }
+
+                auto applyViewportChange = [=]() {
+                    QList<int> newVps;
+                    if (allBtn->isChecked()) {
+                        newVps = { VIEWPORT_ALL };
+                    } else if (noneBtn->isChecked()) {
+                        newVps = {};
+                    } else {
+                        for (int i = 0; i < vpButtons.size(); ++i) {
+                            if (vpButtons[i]->isChecked()) newVps.append(i);
+                        }
+                    }
+                    setItemViewports(firstItem, newVps);
+                    updateItemViewportLabel(firstItem);
+                    // 从所有视窗移除
+                    QString cid = cloudId;
+                    for (auto* view : m_viewport_mgr->allViews()) {
+                        view->removePointCloud(cid);
+                        view->removeShape(QString::fromStdString(cloud->boxId()));
+                        view->removePointCloud(QString::fromStdString(cloud->normalId()));
+                        if (m_registry->getTexturedMesh(cid))
+                            view->removeTexturedMesh(cid);
+                        else if (m_registry->hasMesh(cid))
+                            view->removePolygonMesh(cid);
+                    }
+                    // 添加到目标视窗
+                    if (firstItem->checkState(0) != Qt::Unchecked) {
+                        for (CloudView* target : resolveViews(firstItem)) {
+                            target->addPointCloud(cloud);
+                            if (cloud->pointSize() > 1)
+                                target->setPointCloudSize(cid, cloud->pointSize());
+                            if (m_registry->getTexturedMesh(cid)) {
+                                auto _tm = m_registry->getTexturedMesh(cid);
+                                if (!_tm->objFilePath.empty())
+                                    target->addTexturedMesh(QString::fromStdString(_tm->objFilePath), cid);
+                            } else if (m_registry->hasMesh(cid)) {
+                                auto _m = m_registry->getMesh(cid);
+                                if (_m) target->addMeshActor(_m, cid);
+                            }
+                        }
+                    }
+                    m_cloudview->refresh();
+                };
+
+                connect(vpGroup, QOverload<QAbstractButton*>::of(&QButtonGroup::buttonClicked),
+                        this, [=](QAbstractButton*) { applyViewportChange(); });
+
+                vpLayout->addStretch();
+                m_table->setCellWidget(row, 1, vpWidget);
+            }
+
+            // --- Sync Rotation ---
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Sync Rotation");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
+                m_table->setItem(row, 0, labelItem);
+
+                QCheckBox* syncCheck = new QCheckBox;
+                syncCheck->setChecked(m_viewport_mgr->isSyncRotation());
+                connect(syncCheck, &QCheckBox::toggled, this, [this](bool checked) {
+                    m_viewport_mgr->setSyncRotation(checked);
+                });
+                m_table->setCellWidget(row, 1, syncCheck);
+            }
+        }
+
 
         // ============================================================
         // Cloud Section（仅点云节点）
@@ -1109,8 +1446,8 @@ namespace ct
                 connect(point_size, QOverload<int>::of(&QSpinBox::valueChanged),
                         this, [=](int value){
                             cloud->setPointSize(value);
-                            m_cloudview->setPointCloudSize(cloudId, value);
-                            m_cloudview->refresh();
+                            itemView->setPointCloudSize(cloudId, value);
+                            itemView->refresh();
                         });
                 m_table->setCellWidget(row, 1, point_size);
             }
@@ -1140,12 +1477,12 @@ namespace ct
                 connect(scale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
                         [=](double value){
                             if (cloud->hasNormals() && show_normals->isChecked())
-                                m_cloudview->addPointCloudNormals(cloud, 1, value);
+                                itemView->addPointCloudNormals(cloud, 1, value);
                         });
                 connect(show_normals, &QCheckBox::stateChanged,
                         [=](int state){
-                            if (state) m_cloudview->addPointCloudNormals(cloud, 1, scale->value());
-                            else m_cloudview->removeShape(QString::fromStdString(cloud->normalId()));
+                            if (state) itemView->addPointCloudNormals(cloud, 1, scale->value());
+                            else itemView->removeShape(QString::fromStdString(cloud->normalId()));
                         });
 
                 layout->addWidget(show_normals);
@@ -1210,21 +1547,21 @@ namespace ct
                 {
                     sf_panel = new SFDisplayPanel();
                     sf_panel->onColorChanged = [=]() {
-                        m_cloudview->invalidateCloudRender(cloudId);
-                        m_cloudview->refresh();
+                        itemView->invalidateCloudRender(cloudId);
+                        itemView->refresh();
                     };
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarRequested,
-                            m_cloudview, &CloudView::showScalarBar);
+                            itemView, &CloudView::showScalarBar);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarDisplayRangeChanged,
-                            m_cloudview, &CloudView::setScalarBarDisplayRange);
+                            itemView, &CloudView::setScalarBarDisplayRange);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarHistogramChanged,
-                            m_cloudview, &CloudView::setScalarBarHistogram);
+                            itemView, &CloudView::setScalarBarHistogram);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarToggled,
-                            m_cloudview, &CloudView::setScalarBarVisible);
+                            itemView, &CloudView::setScalarBarVisible);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarShowZero,
-                            m_cloudview, &CloudView::setScalarBarShowZero);
+                            itemView, &CloudView::setScalarBarShowZero);
                     QObject::connect(sf_panel, &SFDisplayPanel::scalarBarShowCurve,
-                            m_cloudview, &CloudView::setScalarBarShowCurve);
+                            itemView, &CloudView::setScalarBarShowCurve);
 
                     sf_panel->bindCloud(cloud);
 
@@ -1255,7 +1592,7 @@ namespace ct
                     m_table->setRowHeight(field_row, 0);
                     m_table->setRowHeight(cmap_row, 0);
                     m_table->setRowHeight(panel_row, 0);
-                    m_cloudview->hideScalarBar();
+                    itemView->hideScalarBar();
                 };
 
                 if (currently_sf) {
@@ -1272,12 +1609,12 @@ namespace ct
                                 auto cur_fields = cloud->getScalarFieldNames();
                                 if (!cur_fields.empty()) {
                                     cloud->updateColorByField(cur_fields[0]);
-                                    m_cloudview->addPointCloud(cloud);
+                                    itemView->addPointCloud(cloud);
                                 }
                             } else {
                                 hideSFRows();
                                 if (text == "RGB (Default)") {
-                                    m_cloudview->resetPointCloudColor(cloud);
+                                    itemView->resetPointCloudColor(cloud);
                                 }
                             }
                         });
@@ -1317,14 +1654,14 @@ namespace ct
                                 // 切换到纹理模式：用 VTK OBJ reader 重新加载带纹理的 mesh
                                 auto _tex_cb = m_registry->getTexturedMesh(cloudId);
                                 if (_tex_cb && !_tex_cb->objFilePath.empty())
-                                    m_cloudview->addTexturedMesh(
+                                    itemView->addTexturedMesh(
                                         QString::fromStdString(_tex_cb->objFilePath), cloudId);
                             } else {
                                 // 切换到无纹理模式：用 VTK actor 渲染（支持透明度等属性）
-                                m_cloudview->removeTexturedMesh(cloudId);
+                                itemView->removeTexturedMesh(cloudId);
                                 auto _mesh_cb = m_registry->getMesh(cloudId);
                                 if (_mesh_cb)
-                                    m_cloudview->addMeshActor(_mesh_cb, cloudId);
+                                    itemView->addMeshActor(_mesh_cb, cloudId);
                             }
                         });
                 m_table->setCellWidget(row, 1, showTex);
@@ -1351,15 +1688,17 @@ namespace ct
                             int type = 2;
                             if (text == "Wireframe") type = 1;
                             else if (text == "Points") type = 0;
-                            m_cloudview->setTextureMeshRepresentation(cloudId, type);
-                            m_cloudview->refresh();
+                            itemView->setTextureMeshRepresentation(cloudId, type);
+                            itemView->refresh();
                         });
                 m_table->setCellWidget(row, 1, repr);
             }
         }
 
-        m_cloudview->setAutoRender(true);
-        m_cloudview->refresh();
+        for (auto* v : affectedViews) {
+            v->setAutoRender(true);
+            v->refresh();
+        }
     }
 
     void CloudTree::showProgress(const QString &message) { m_progress->showProgress(message); }
@@ -1398,8 +1737,9 @@ namespace ct
                 for (QTreeWidgetItem* ch : children) {
                     Cloud::Ptr c = getCloud(ch);
                     if (c) {
-                        m_cloudview->removePointCloud(QString::fromStdString(c->id()));
-                        m_cloudview->removeShape(QString::fromStdString(c->id()));
+                        CloudView* cv = resolveView(ch);
+                        cv->removePointCloud(QString::fromStdString(c->id()));
+                        cv->removeShape(QString::fromStdString(c->id()));
                     }
                     m_registry->unregisterCloud(ch);
                 }
@@ -1425,16 +1765,17 @@ namespace ct
         for (const auto& cloud : results){
             if (!cloud) continue;
             insertCloud(cloud, groupItem, true);
-            m_cloudview->setPointCloudVisibility(QString::fromStdString(cloud->id()), true);
+            // insertCloud 已经通过 resolveView 添加到正确的视窗了
         }
 
         // 自动隐藏原始点云
         const bool wasBlocked = this->blockSignals(true);
         if (originItem->checkState(0) == Qt::Checked){
             originItem->setCheckState(0, Qt::Unchecked);
-            m_cloudview->removePointCloud(QString::fromStdString(originCloud->id()));
-            m_cloudview->removeShape(QString::fromStdString(originCloud->id()));
-            m_cloudview->removePointCloud(QString::fromStdString(originCloud->normalId()));
+            CloudView* originView = resolveView(originItem);
+            originView->removePointCloud(QString::fromStdString(originCloud->id()));
+            originView->removeShape(QString::fromStdString(originCloud->id()));
+            originView->removePointCloud(QString::fromStdString(originCloud->normalId()));
         }
         this->blockSignals(wasBlocked);
 
@@ -1464,9 +1805,10 @@ namespace ct
         Cloud::Ptr cloud = getCloud(item);
         float opacity = cloud ? cloud->opacity() : 1.0f;
 
-        m_cloudview->addMeshActor(mesh, cloudId);
+        CloudView* cv = item ? resolveView(item) : m_cloudview;
+        cv->addMeshActor(mesh, cloudId);
         if (opacity < 1.0f) {
-            m_cloudview->setTextureMeshOpacity(cloudId, opacity);
+            cv->setTextureMeshOpacity(cloudId, opacity);
         }
 
         // 如果该节点当前被选中，刷新属性栏以显示正确的面数等信息
@@ -1493,9 +1835,10 @@ namespace ct
         Cloud::Ptr cloud = getCloud(item);
         float opacity = cloud ? cloud->opacity() : 1.0f;
 
-        m_cloudview->addMeshActorFromPolydata(polydata, cloudId);
+        CloudView* cv2 = item ? resolveView(item) : m_cloudview;
+        cv2->addMeshActorFromPolydata(polydata, cloudId);
         if (opacity < 1.0f) {
-            m_cloudview->setTextureMeshOpacity(cloudId, opacity);
+            cv2->setTextureMeshOpacity(cloudId, opacity);
         }
 
         if (item && item->isSelected()) {
@@ -1506,11 +1849,12 @@ namespace ct
     void CloudTree::unregisterMesh(const QString& cloudId)
     {
         m_registry->unregisterMesh(cloudId);
-        m_cloudview->removeTexturedMesh(cloudId);
-        m_cloudview->removePolygonMesh(cloudId);
-        m_cloudview->removeShape(cloudId);
-
         QTreeWidgetItem* item = getItemById(cloudId);
+        CloudView* cv = item ? resolveView(item) : m_cloudview;
+        cv->removeTexturedMesh(cloudId);
+        cv->removePolygonMesh(cloudId);
+        cv->removeShape(cloudId);
+
         if (item) {
             item->setData(0, NodeMeshIdRole, QVariant());
         }
@@ -1548,7 +1892,7 @@ namespace ct
         m_registry->registerCloudPolyline(shapeId, cloud);
 
         // 立即绘制折线
-        m_cloudview->addPolylineFromCloud(cloud, shapeId);
+        resolveView(parentItem)->addPolylineFromCloud(cloud, shapeId);
     }
 
     void CloudTree::registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh)
@@ -1563,25 +1907,28 @@ namespace ct
 
         if (!texturedMesh->objFilePath.empty()) {
             // 纹理 mesh 用 VTK actor 渲染表面，移除之前注册的无纹理 mesh 和点云避免遮挡
-            m_cloudview->removePolygonMesh(cloudId);
-            m_cloudview->removePointCloud(cloudId);
-            m_cloudview->addTexturedMesh(QString::fromStdString(texturedMesh->objFilePath), cloudId);
+            CloudView* cv = item ? resolveView(item) : m_cloudview;
+            cv->removePolygonMesh(cloudId);
+            cv->removePointCloud(cloudId);
+            cv->addTexturedMesh(QString::fromStdString(texturedMesh->objFilePath), cloudId);
         } else {
-            m_cloudview->addMeshActor(texturedMesh->mesh, cloudId);
+            CloudView* cv = item ? resolveView(item) : m_cloudview;
+            cv->addMeshActor(texturedMesh->mesh, cloudId);
         }
     }
 
     void CloudTree::unregisterTexturedMesh(const QString& cloudId)
     {
         m_registry->unregisterTexturedMesh(cloudId);
-        m_cloudview->removeTexturedMesh(cloudId);
+        QTreeWidgetItem* item = getItemById(cloudId);
+        CloudView* cv = item ? resolveView(item) : m_cloudview;
+        cv->removeTexturedMesh(cloudId);
 
         // 同时清理普通 mesh 引用
         m_registry->unregisterMesh(cloudId);
-        m_cloudview->removePolygonMesh(cloudId);
-        m_cloudview->removeShape(cloudId);
+        cv->removePolygonMesh(cloudId);
+        cv->removeShape(cloudId);
 
-        QTreeWidgetItem* item = getItemById(cloudId);
         if (item) {
             item->setData(0, NodeMeshIdRole, QVariant());
         }
@@ -1631,6 +1978,13 @@ namespace ct
             return;
         }
 
+        // 确定目标视窗
+        QList<QTreeWidgetItem*> selectedItems = getSelectedItems();
+        CloudView* targetView = m_cloudview;
+        if (!selectedItems.isEmpty()) {
+            targetView = resolveView(selectedItems.first());
+        }
+
         Eigen::Vector3f global_min(FLT_MAX, FLT_MAX, FLT_MAX);
         Eigen::Vector3f global_max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
@@ -1650,10 +2004,10 @@ namespace ct
         }
 
         if (valid) {
-            m_cloudview->zoomToBounds(global_min, global_max);
+            targetView->zoomToBounds(global_min, global_max);
             printI(tr("Zoom to fit selected/visible objects."));
         } else {
-            m_cloudview->resetCamera();
+            targetView->resetCamera();
         }
     }
 
@@ -1717,6 +2071,7 @@ namespace ct
                 setCurrentItem(item);
                 zoomToSelected();
             });
+
         }
         else if (isFolderNode(item))
         {

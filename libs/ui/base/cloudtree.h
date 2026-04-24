@@ -74,6 +74,14 @@ namespace ct
         void setCloudChecked(const Cloud::Ptr& cloud, bool checked = true);
         void setCloudSelected(const Cloud::Ptr& cloud, bool selected = true);
 
+        QList<int> getItemViewports(QTreeWidgetItem* item) const;
+        void setItemViewports(QTreeWidgetItem* item, const QList<int>& indices);
+        QList<CloudView*> resolveViews(QTreeWidgetItem* item) const;
+        CloudView* resolveView(QTreeWidgetItem* item) const;
+        void assignCloudToViewport(QTreeWidgetItem* item, int viewportIndex);
+        void repopulateAllViews();
+        void updateItemViewportLabel(QTreeWidgetItem* item);
+
         void showProgress(const QString& message);
         void closeProgress();
         void setProgress(int percent);

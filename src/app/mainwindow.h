@@ -1,7 +1,3 @@
-//
-// Created by LBC on 2024/10/8.
-//
-
 #ifndef POINTWORKS_MAINWINDOW_H
 #define POINTWORKS_MAINWINDOW_H
 
@@ -11,6 +7,7 @@
 #include "ui_mainwindow.h"
 
 #include "ui/base/customdialog.h"
+#include "ui/base/viewport_manager.h"
 #include "ui/base/scenenodetype.h"
 #include "projectmanager.h"
 
@@ -32,19 +29,19 @@ public:
     template <class T>
     void createDialog(const QString& label)
     {
-        ct::createDialog<T>(this, label, ui->cloudview, ui->cloudtree, ui->console);
+        ct::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
     }
 
     template <class T>
     void createModalDialog(const QString& label)
     {
-        ct::createDialog<T>(this, label, ui->cloudview, ui->cloudtree, ui->console, false, true);
+        ct::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console, false, true);
     }
 
     template <class T>
     void createToolDialog(const QString& label)
     {
-        ct::createDialog<T>(this, label, ui->cloudview, ui->cloudtree, ui->console, false, false);
+        ct::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console, false, false);
     }
 
 protected:
@@ -55,6 +52,7 @@ protected:
 private:
     Ui::MainWindow *ui;
     ProjectManager* m_project_manager = nullptr;
+    ct::ViewportManager* m_viewport_mgr = nullptr;
 
 private slots:
     void onTreeSelectionChanged();

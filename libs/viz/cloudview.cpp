@@ -63,6 +63,7 @@ namespace ct
             interactionCallback->SetClientData(this);
 
             this->interactor()->AddObserver(vtkCommand::StartInteractionEvent, interactionCallback);
+            this->interactor()->AddObserver(vtkCommand::InteractionEvent, interactionCallback);
             this->interactor()->AddObserver(vtkCommand::EndInteractionEvent, interactionCallback);
         }
 
@@ -173,6 +174,8 @@ namespace ct
 
         if (eventId == vtkCommand::StartInteractionEvent) {
             self->onInteraction(true);
+        } else if (eventId == vtkCommand::InteractionEvent) {
+            emit self->viewerPose(self->m_viewer->getViewerPose());
         } else if (eventId == vtkCommand::EndInteractionEvent) {
             self->onInteraction(false);
         }

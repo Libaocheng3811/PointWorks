@@ -4,6 +4,7 @@
 #include "cloudtree.h"
 #include "progress_manager.h"
 #include "dialog_registry.h"
+#include "viewport_manager.h"
 
 #include "viz/cloudview.h"
 #include "viz/console.h"
@@ -22,7 +23,7 @@ namespace ct
         Q_OBJECT
     public:
         explicit CustomDialog(QWidget* parent = nullptr)
-            : QDialog(parent), m_cloudview(nullptr), m_cloudtree(nullptr), m_console(nullptr), m_progress(nullptr) {}
+            : QDialog(parent), m_cloudview(nullptr), m_cloudtree(nullptr), m_console(nullptr), m_progress(nullptr), m_viewport_mgr(nullptr) {}
 
         ~CustomDialog() {}
 
@@ -34,6 +35,15 @@ namespace ct
 
         void setProgressManager(ProgressManager* progress) {m_progress = progress; }
 
+        void setViewportManager(ViewportManager* mgr) {
+            m_viewport_mgr = mgr;
+            if (mgr) {
+                connect(mgr, &ViewportManager::activeViewChanged, this, [this](CloudView* view) {
+                    m_cloudview = view;
+                });
+            }
+        }
+
         virtual void init() {}
 
         virtual void reset() {}
@@ -42,7 +52,7 @@ namespace ct
 
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-        signals:
+    signals:
             void sizeChanged(const QSize&);
 
     protected:
@@ -68,6 +78,7 @@ namespace ct
         CloudTree* m_cloudtree;
         Console* m_console;
         ProgressManager* m_progress;
+        ViewportManager* m_viewport_mgr;
     };
 
     /**
@@ -111,23 +122,29 @@ namespace ct
                 QPoint pos = cloudview->mapToGlobal(QPoint(0, 0));
                 dlg->move(pos.x() + cloudview->width() - dlg->width() - 9, pos.y() + 9);
 
-                // 跟随移动
-                QObject::connect(cloudview, &CloudView::posChanged, [&](const QPoint& pos)
+                // 跟随移动 — 监听活跃视窗的 posChanged 信号
+                auto weakDlg = dlg;
+                auto weakView = cloudview;
+                // 由于活跃视窗会切换，我们直接使用 ViewportManager（如果可用）
+                // 但 createDialog 不知道 ViewportManager，所以监听当前 cloudview
+                QObject::connect(cloudview, &CloudView::posChanged, [weakDlg, weakView, &reg, label](const QPoint& pos)
                 {
-                    if (reg.getDialog(label) != nullptr) {
-                        int ax = pos.x() + cloudview->width() - reg.getDialog(label)->width() - 9;
+                    auto* d = weakDlg ? reg.getDialog(label) : nullptr;
+                    if (d) {
+                        int ax = pos.x() + weakView->width() - d->width() - 9;
                         int ay = pos.y() + 9;
-                        reg.getDialog(label)->move(ax, ay);
+                        d->move(ax, ay);
                     }
                 });
 
-                QObject::connect(dlg, &CustomDialog::sizeChanged, [&](const QSize& size)
+                QObject::connect(dlg, &CustomDialog::sizeChanged, [weakDlg, weakView, &reg, label](const QSize& size)
                 {
-                    if (reg.getDialog(label) != nullptr) {
-                        QPoint pos = cloudview->mapToGlobal(QPoint(0, 0));
-                        int ax = pos.x() + cloudview->width() - size.width() - 9;
+                    auto* d = weakDlg ? reg.getDialog(label) : nullptr;
+                    if (d) {
+                        QPoint pos = weakView->mapToGlobal(QPoint(0, 0));
+                        int ax = pos.x() + weakView->width() - size.width() - 9;
                         int ay = pos.y() + 9;
-                        reg.getDialog(label)->move(ax, ay);
+                        d->move(ax, ay);
                     }
                 });
             }

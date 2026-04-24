@@ -21,6 +21,7 @@ set(Base_Srcs
     base/dialog_registry.cpp
     base/language_manager.cpp
     base/progress_manager.cpp
+    base/viewport_manager.cpp
     widgets/sf_histogram_chart.cpp
     widgets/sf_display_panel.cpp
 )
@@ -36,6 +37,7 @@ set(Base_Hdrs
     base/language_manager.h
     base/progress_manager.h
     base/paramsnapshot.h
+    base/viewport_manager.h
     widgets/sf_histogram_chart.h
     widgets/sf_display_panel.h
 )

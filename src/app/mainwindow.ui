@@ -35,7 +35,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="ct::CloudView" name="cloudview" native="true">
+     <widget class="QWidget" name="viewport_container" native="true">
       <layout class="QHBoxLayout" name="horizontalLayout"/>
      </widget>
     </item>
@@ -120,6 +120,13 @@
     <addaction name="actionShowFPS"/>
     <addaction name="actionShowAxes"/>
     <addaction name="actionShowID"/>
+    <addaction name="separator"/>
+    <addaction name="actionViewportSingle"/>
+    <addaction name="actionViewportHSplit"/>
+    <addaction name="actionViewportVSplit"/>
+    <addaction name="actionViewportTriple"/>
+    <addaction name="actionViewportQuad"/>
+    <addaction name="separator"/>
     <addaction name="actionShowDataTree"/>
     <addaction name="actionShowProperties"/>
     <addaction name="actionShowConsole"/>
@@ -1721,6 +1728,79 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>No Recent Projects</string>
+   </property>
+  </action>
+  <action name="actionViewportSingle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Single Viewport</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionViewportHSplit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Horizontal Split</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionViewportVSplit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Vertical Split</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionViewportTriple">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Triple Split</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionViewportQuad">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Quad Split</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
    </property>
   </action>
  </widget>
