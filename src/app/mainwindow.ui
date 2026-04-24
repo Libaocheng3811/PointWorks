@@ -30,7 +30,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../resources/res.qrc">
-    <normaloff>:/res/logo/LogoV4.svg</normaloff>:/res/logo/LogoV4.svg</iconset>
+    <normaloff>:/res/logo/logo.svg</normaloff>:/res/logo/logo.svg</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -510,11 +510,11 @@ QScrollBar::sub-line:horizontal {
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
-       <property name="selectionBehavior">
-        <enum>QAbstractItemView::SelectRows</enum>
-       </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectRows</enum>
        </property>
        <property name="showGrid">
         <bool>false</bool>

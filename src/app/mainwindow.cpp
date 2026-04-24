@@ -1,5 +1,7 @@
 // You may need to build the project (run Qt uic code generator) to get "ui_MainWindow.h" resolved
 
+#include <QDesktopServices>
+#include <QUrl>
 #include "mainwindow.h"
 #include "ui_MainWindow.h"
 #include "projectmanager.h"
@@ -43,7 +45,7 @@
 #include "python/python_manager.h"
 #include "python/python_bridge.h"
 #include "python_connections.h"
-#include "help_launcher.h"
+#include "help/help_launcher.h"
 
 #include "ui/base/language_manager.h"
 
@@ -64,6 +66,7 @@
 #include <QSettings>
 #include <QEvent>
 
+#define  OFFICIAL_WEBSITE   "https://libaocheng3811.github.io/PointWorks-docs/"
 #define  CLOUD_ICON_PATH    ":/res/icon2/cloud.svg"
 #define  MESH_ICON_PATH     ":/res/icon2/mesh.svg"
 #define  GROUP_ICON_PATH    ":/res/icon/view-group.svg"
@@ -353,6 +356,11 @@ MainWindow::MainWindow(QWidget *parent) :
     if (bridge) {
         ct::connectPythonSignals(bridge, ui->cloudview, ui->cloudtree, ui->console);
     }
+
+    // === Help ===
+    connect(ui->action_Help, &QAction::triggered, this, [] {
+        QDesktopServices::openUrl(QUrl(OFFICIAL_WEBSITE));
+    });
 
     // === About ===
     connect(ui->actionAbout, &QAction::triggered, this, [this] { ct::HelpLauncher::showAbout(this); });

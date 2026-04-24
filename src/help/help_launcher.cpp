@@ -18,7 +18,7 @@ void HelpLauncher::showAbout(QWidget* parent) {
 
     // Logo
     auto* logoLabel = new QLabel(&dlg);
-    QPixmap logo(":/res/logo/PointWorks.svg");
+    QPixmap logo(":/res/logo/logo.svg");
     if (!logo.isNull()) {
         logo = logo.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         logoLabel->setPixmap(logo);

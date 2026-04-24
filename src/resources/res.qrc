@@ -513,7 +513,5 @@
     <file>icon/folder.svg</file>
     <file>logo/logo.png</file>
     <file>logo/PointWorks.svg</file>
-    <file>logo/testlogo.svg</file>
-    <file>logo/LogoV4.svg</file>
   </qresource>
 </RCC>

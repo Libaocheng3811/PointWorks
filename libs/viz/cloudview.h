@@ -598,6 +598,9 @@ namespace ct {
         // Key = Level (int), Value = InfoData
         QMap<int, InfoData> m_active_infos;
 
+#define INFO_CLOUD_ID  "info_cloud_id"
+#define INFO_TEXT      "info_text"
+
     private:
         Q_DISABLE_COPY(CloudView);
 

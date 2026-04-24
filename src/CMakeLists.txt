@@ -1,7 +1,7 @@
 set(Srcs
     app/main.cpp
     app/mainwindow.cpp
-    app/help_launcher.cpp
+    help/help_launcher.cpp
     app/python_connections.cpp
     edit/color.cpp
     options/displaysettings.cpp
@@ -44,7 +44,7 @@ set(Srcs
 
 set(Hdrs
     app/mainwindow.h
-    app/help_launcher.h
+    help/help_launcher.h
     app/python_connections.h
     app/projectmanager.h
     app/recentprojects.h
