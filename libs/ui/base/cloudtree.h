@@ -57,6 +57,10 @@ namespace ct
         void addSiblingCloud(const Cloud::Ptr& sourceCloud, const Cloud::Ptr& resultCloud,
                              const QString& suffix = "-result");
 
+        void smartSave();
+        void saveFolderAsFiles(QTreeWidgetItem* folderItem, const QString& dirPath,
+                               const QString& baseName);
+
         std::vector<Cloud::Ptr> getSelectedClouds();
         std::vector<Cloud::Ptr> getSelectedCloudsOnly() const;
         std::vector<Cloud::Ptr> getAllClouds();
@@ -125,6 +129,7 @@ namespace ct
     signals:
         void removedCloudId(const QString&);
         void cloudInserted(Cloud::Ptr cloud);
+        void requestSaveProject();
 
     private slots:
         void handleCloudLoaded(const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh,

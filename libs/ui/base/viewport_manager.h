@@ -42,6 +42,9 @@ public:
     void setSyncRotation(bool enable);
     bool isSyncRotation() const { return m_sync_rotation; }
 
+    void setShowViewportLabels(bool show);
+    bool showViewportLabels() const { return m_show_labels; }
+
     void syncPointCloudToAllViews(const Cloud::Ptr& cloud);
     void syncRemoveFromAllViews(const QString& id);
 
@@ -67,6 +70,7 @@ private:
     LayoutMode m_layout_mode = Single;
     bool m_sync_rotation = false;
     bool m_syncing = false;
+    bool m_show_labels = true;
     QMap<CloudView*, QFrame*> m_view_frames;
 };
 

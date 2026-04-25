@@ -112,8 +112,11 @@ void CloudIOController::loadCloudFile(const QString& filepath, QTreeWidgetItem* 
 
 void CloudIOController::saveCloudFile(const Cloud::Ptr& cloud, const QString& filepath, bool isBinary)
 {
-    m_progress->showProgress("Saving Point Cloud...");
-    m_progress->bindWorker(m_fileio);
+    if (m_progress->savingQueueCount() <= 1) {
+        m_progress->showProgress("Saving Point Cloud...");
+        m_progress->bindWorker(m_fileio);
+        m_progress->setSavingQueueCount(1);
+    }
 
     QMetaObject::invokeMethod(m_fileio, "savePointCloud", Qt::QueuedConnection,
                                Q_ARG(Cloud::Ptr, cloud), Q_ARG(QString, filepath), Q_ARG(bool, isBinary));
@@ -121,8 +124,11 @@ void CloudIOController::saveCloudFile(const Cloud::Ptr& cloud, const QString& fi
 
 void CloudIOController::saveMeshFile(const pcl::PolygonMesh::Ptr& mesh, const QString& filename)
 {
-    m_progress->showProgress("Saving Mesh...");
-    m_progress->bindWorker(m_fileio);
+    if (m_progress->savingQueueCount() <= 1) {
+        m_progress->showProgress("Saving Mesh...");
+        m_progress->bindWorker(m_fileio);
+        m_progress->setSavingQueueCount(1);
+    }
 
     QMetaObject::invokeMethod(m_fileio, "saveMesh", Qt::QueuedConnection,
                                Q_ARG(pcl::PolygonMesh::Ptr, mesh), Q_ARG(QString, filename));
@@ -161,14 +167,30 @@ void CloudIOController::onSaveCloudResult(bool success, const QString& path, flo
 {
     if (success) m_path = path;
     emit saveComplete(success, path, time);
-    m_progress->closeProgress();
+    int remaining = m_progress->savingQueueCount() - 1;
+    m_progress->setSavingQueueCount(remaining);
+    if (remaining <= 0) {
+        m_progress->setSavingQueueCount(0);
+        m_progress->closeProgress();
+    } else if (m_progress->dialog()) {
+        m_progress->dialog()->setProgress(0);
+        m_progress->dialog()->setMessage(QString("Saving... (%1 remaining)").arg(remaining));
+    }
 }
 
 void CloudIOController::onSaveMeshResult(bool success, const QString& path, float time)
 {
     if (success) m_path = path;
     emit meshSaveComplete(success, path, time);
-    m_progress->closeProgress();
+    int remaining = m_progress->savingQueueCount() - 1;
+    m_progress->setSavingQueueCount(remaining);
+    if (remaining <= 0) {
+        m_progress->setSavingQueueCount(0);
+        m_progress->closeProgress();
+    } else if (m_progress->dialog()) {
+        m_progress->dialog()->setProgress(0);
+        m_progress->dialog()->setMessage(QString("Saving... (%1 remaining)").arg(remaining));
+    }
 }
 
 void CloudIOController::onLoadTexturedMeshResult(const QString& cloudId, const QString& objFilePath)

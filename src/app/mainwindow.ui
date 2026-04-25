@@ -74,7 +74,6 @@
     <addaction name="actionOpenProject"/>
     <addaction name="menuOpenRecent"/>
     <addaction name="actionSave"/>
-    <addaction name="actionSaveProject"/>
     <addaction name="actionSaveProjectAs"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
@@ -624,7 +623,6 @@ QScrollBar::sub-line:horizontal {
    <addaction name="actionNewProject"/>
    <addaction name="actionOpenProject"/>
    <addaction name="actionSave"/>
-   <addaction name="actionSaveProject"/>
    <addaction name="actionClose"/>
    <addaction name="actionClose_All"/>
    <addaction name="actionMerge"/>
@@ -759,6 +757,24 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionSaveProjectAs">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/document-save-all.svg</normaloff>:/res/icon/document-save-all.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Save Project As</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
    </property>
   </action>
   <action name="actionClose">
@@ -1693,33 +1709,6 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+O</string>
-   </property>
-  </action>
-  <action name="actionSaveProject">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/document-save-all.svg</normaloff>:/res/icon/document-save-all.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Save Project</string>
-   </property>
-   <property name="toolTip">
-    <string>Save Project</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+S</string>
-   </property>
-  </action>
-  <action name="actionSaveProjectAs">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/document-save-as.svg</normaloff>:/res/icon/document-save-as.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Save Project As...</string>
-   </property>
-   <property name="toolTip">
-    <string>Save Project As</string>
    </property>
   </action>
   <action name="actionRecentPlaceholder">

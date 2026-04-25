@@ -28,6 +28,7 @@ struct SelectionInfo
     int meshCount  = 0;
     int shapeCount = 0;
     int groupCount = 0;
+    int fileCount = 0;
     int boundaryCount = 0;
 
     bool hasCloud()       const { return cloudCount > 0; }
@@ -37,6 +38,7 @@ struct SelectionInfo
     bool hasOnlyMesh()    const { return meshCount > 0 && cloudCount == 0; }
     bool hasCloudOrMesh() const { return cloudCount > 0 || meshCount > 0; }
     bool hasAnySelection() const { return totalSelected > 0; }
+    bool hasAny() const { return totalSelected > 0; }
     bool isSingleSelection() const { return totalSelected == 1; }
     bool isSingleCloud()  const { return totalSelected == 1 && cloudCount == 1; }
 };

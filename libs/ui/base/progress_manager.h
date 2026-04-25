@@ -29,6 +29,9 @@ namespace ct
         void setLoadingQueueCount(int count) { m_loading_queue_count = count; }
         int loadingQueueCount() const { return m_loading_queue_count; }
 
+        void setSavingQueueCount(int count) { m_saving_queue_count = count; }
+        int savingQueueCount() const { return m_saving_queue_count; }
+
     signals:
         void cancelRequested();
 
@@ -36,6 +39,7 @@ namespace ct
         ProcessingDialog* m_dialog = nullptr;
         bool m_script_mode = false;
         int m_loading_queue_count = 0;
+        int m_saving_queue_count = 0;
     };
 }
 

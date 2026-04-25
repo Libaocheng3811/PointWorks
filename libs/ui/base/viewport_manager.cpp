@@ -237,6 +237,18 @@ void ViewportManager::setSyncRotation(bool enable)
     emit syncRotationChanged(enable);
 }
 
+void ViewportManager::setShowViewportLabels(bool show)
+{
+    if (m_show_labels == show) return;
+    m_show_labels = show;
+    for (auto* frame : m_view_frames) {
+        for (auto* child : frame->findChildren<QLabel*>("vpLabel")) {
+            child->setVisible(show);
+            if (show) child->raise();
+        }
+    }
+}
+
 void ViewportManager::onCameraChanged(const Eigen::Affine3f& pose)
 {
     if (m_syncing || !m_sync_rotation || !m_active_view) return;

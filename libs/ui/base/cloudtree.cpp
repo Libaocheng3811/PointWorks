@@ -15,6 +15,8 @@
 #include <QCheckBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QInputDialog>
+#include <QLineEdit>
 #include <QHBoxLayout>
 #include <QMenu>
 #include <QMessageBox>
@@ -624,9 +626,9 @@ namespace ct
             case NodeCloud:    info.cloudCount++;    info.totalSelected++; break;
             case NodeMesh:     info.meshCount++;     info.totalSelected++; break;
             case NodeShape:    info.shapeCount++;    info.totalSelected++; break;
-            case NodeGroup:    info.groupCount++;    break;
+            case NodeGroup:    info.groupCount++;    info.totalSelected++; break;
             case NodeBoundary: info.boundaryCount++; info.totalSelected++; break;
-            case NodeFile:     break;
+            case NodeFile:     info.fileCount++;     info.totalSelected++; break;
             }
         }
         return info;
@@ -673,6 +675,99 @@ namespace ct
     void CloudTree::saveSelectedClouds(){
         QList<QTreeWidgetItem*> items = getSelectedItems();
         for (auto item : items) saveCloudItem(item);
+    }
+
+    void CloudTree::smartSave()
+    {
+        QList<QTreeWidgetItem*> items = getSelectedItems();
+
+        if (items.isEmpty()) {
+            emit requestSaveProject();
+            return;
+        }
+
+        QTreeWidgetItem* first = items.first();
+
+        if (isFolderNode(first)) {
+            QString filter = "Cloud && Mesh Files (*);;Project Files (*.pwproj)";
+            QString defaultName;
+            QVariant fpVar = first->data(0, NodeFilePathRole);
+            if (fpVar.isValid()) {
+                defaultName = QFileInfo(fpVar.toString()).completeBaseName();
+            } else {
+                defaultName = first->text(0).split(" ").first();
+            }
+            QString selectedFilter;
+            QString filepath = QFileDialog::getSaveFileName(this, tr("Save"), defaultName, filter, &selectedFilter);
+            if (filepath.isEmpty()) return;
+
+            if (selectedFilter.contains("pwproj")) {
+                emit requestSaveProject();
+                return;
+            }
+
+            QFileInfo fi(filepath);
+            QString dirPath = fi.absolutePath();
+            QString baseName = fi.completeBaseName();
+            saveFolderAsFiles(first, dirPath, baseName);
+        } else {
+            saveCloudItem(first);
+        }
+    }
+
+    void CloudTree::saveFolderAsFiles(QTreeWidgetItem* folderItem, const QString& dirPath,
+                                       const QString& baseName)
+    {
+        QList<QTreeWidgetItem*> children;
+        getAllChildItems(folderItem, children);
+
+        QList<QTreeWidgetItem*> dataItems;
+        for (auto* child : children) {
+            SceneNodeType type = getNodeType(child);
+            if (type == NodeCloud || type == NodeMesh) dataItems.append(child);
+        }
+
+        int total = dataItems.size();
+        if (total == 0) return;
+
+        m_progress->setSavingQueueCount(total);
+        m_progress->showProgress(QString("Saving 0/%1...").arg(total));
+        bindWorker(m_io);
+
+        int idx = 1;
+        for (auto* child : dataItems) {
+            Cloud::Ptr cloud = getCloud(child);
+            if (!cloud) continue;
+
+            SceneNodeType type = getNodeType(child);
+            QString originalPath = QString::fromStdString(cloud->filepath());
+            QString originalSuffix = QFileInfo(originalPath).suffix().toLower();
+            if (originalSuffix.isEmpty()) {
+                originalSuffix = (type == NodeMesh) ? "obj" : "ply";
+            }
+
+            QString filename;
+            if (total == 1) {
+                filename = baseName + "." + originalSuffix;
+            } else {
+                filename = baseName + "_" + QString::number(idx) + "." + originalSuffix;
+            }
+            QString filepath = dirPath + "/" + filename;
+
+            QString cid = QString::fromStdString(cloud->id());
+            bool hasMesh = m_registry->hasMesh(cid);
+            bool isMeshFormat = (originalSuffix == "obj" || originalSuffix == "stl" || originalSuffix == "vtk");
+
+            if (isMeshFormat && hasMesh) {
+                auto _m = m_registry->getMesh(cid);
+                if (_m) {
+                    m_io->saveMeshFile(_m, filepath);
+                }
+            } else {
+                m_io->saveCloudFile(cloud, filepath, true);
+            }
+            idx++;
+        }
     }
 
     void CloudTree::mergeSelectedClouds()
@@ -1383,6 +1478,22 @@ namespace ct
                     m_viewport_mgr->setSyncRotation(checked);
                 });
                 m_table->setCellWidget(row, 1, syncCheck);
+            }
+
+            // --- Show Labels ---
+            {
+                int row = m_table->rowCount();
+                m_table->insertRow(row);
+                QTableWidgetItem* labelItem = new QTableWidgetItem("Show Labels");
+                labelItem->setFlags(labelItem->flags() & ~Qt::ItemIsEditable);
+                m_table->setItem(row, 0, labelItem);
+
+                QCheckBox* labelsCheck = new QCheckBox;
+                labelsCheck->setChecked(m_viewport_mgr->showViewportLabels());
+                connect(labelsCheck, &QCheckBox::toggled, this, [this](bool checked) {
+                    m_viewport_mgr->setShowViewportLabels(checked);
+                });
+                m_table->setCellWidget(row, 1, labelsCheck);
             }
         }
 

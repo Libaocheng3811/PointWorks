@@ -126,7 +126,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // file
     connect(ui->actionOpen, &QAction::triggered, ui->cloudtree, &ct::CloudTree::addCloud);
-    connect(ui->actionSave, &QAction::triggered, ui->cloudtree, &ct::CloudTree::saveSelectedClouds);
+    connect(ui->actionSave, &QAction::triggered, ui->cloudtree, &ct::CloudTree::smartSave);
     connect(ui->actionClose, &QAction::triggered, ui->cloudtree, &ct::CloudTree::removeSelectedClouds);
     connect(ui->actionClose_All, &QAction::triggered, ui->cloudtree, &ct::CloudTree::removeAllClouds);
     connect(ui->actionMerge, &QAction::triggered, ui->cloudtree, &ct::CloudTree::mergeSelectedClouds);
@@ -421,7 +421,12 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowTitle(m_project_manager->windowTitle()); // 初始标题（信号在连接前已发）
     connect(ui->actionNewProject, &QAction::triggered, m_project_manager, &ProjectManager::onNewProject);
     connect(ui->actionOpenProject, &QAction::triggered, m_project_manager, &ProjectManager::onOpenProject);
-    connect(ui->actionSaveProject, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProject);
+    connect(ui->cloudtree, &ct::CloudTree::requestSaveProject, this, [this](){
+        if (m_project_manager->currentProjectPath().isEmpty())
+            m_project_manager->onSaveProjectAs();
+        else
+            m_project_manager->onSaveProject();
+    });
     connect(ui->actionSaveProjectAs, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProjectAs);
 
     // === 功能操作边界：基于选择类型启用/禁用 Action ===
@@ -470,7 +475,8 @@ void MainWindow::onTreeSelectionChanged()
 
 void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
 {
-    const bool any      = info.hasAnySelection();
+    const bool any      = info.hasAny();
+    const bool hasData  = info.hasAnySelection();
     const bool cloud    = info.hasCloud();
     const bool onlyCloud = info.hasOnlyCloud();
     const bool cloudOrMesh = info.hasCloudOrMesh();
@@ -479,13 +485,14 @@ void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
     const int totalClouds = ui->cloudtree->getTotalCloudCount();
     const int totalMeshes = ui->cloudtree->getTotalMeshCount();
     const bool enoughClouds = totalClouds >= 2;
+    const bool hasContent = (totalClouds + totalMeshes) > 0;
 
     // --- File ---
     ui->actionClose->setEnabled(any);
     ui->actionClose_All->setEnabled(any);
     ui->actionMerge->setEnabled(any);
     ui->actionClone->setEnabled(any);
-    ui->actionSave->setEnabled(any);
+    ui->actionSave->setEnabled(any || hasContent);
 
     // --- Edit ---
     ui->actionColors->setEnabled(cloudOrMesh);
