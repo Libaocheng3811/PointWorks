@@ -1720,6 +1720,10 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportSingle">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/singleView</normaloff>:/res/icon2/singleView</iconset>
+   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -1737,6 +1741,10 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportHSplit">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/horizontal_split</normaloff>:/res/icon2/horizontal_split</iconset>
+   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -1751,6 +1759,10 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportVSplit">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/vertical_split</normaloff>:/res/icon2/vertical_split</iconset>
+   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -1765,6 +1777,10 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportTriple">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/triple_split</normaloff>:/res/icon2/triple_split</iconset>
+   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -1779,6 +1795,10 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportQuad">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon2/quad_split</normaloff>:/res/icon2/quad_split</iconset>
+   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>

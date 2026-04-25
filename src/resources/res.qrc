@@ -12,6 +12,11 @@
     <file>icon2/mesh.svg</file>
     <file>icon2/cloud.svg</file>
     <file>icon2/displaySetting.svg</file>
+    <file>icon2/singleView.svg</file>
+    <file>icon2/horizontal_split.svg</file>
+    <file>icon2/vertical_split.svg</file>
+    <file>icon2/triple_split.svg</file>
+    <file>icon2/quad_split.svg</file>
     <file>trans/zh_CN.qm</file>
     <file>trans/zh_CN.ts</file>
     <file>theme/darkstyle.qss</file>
