@@ -26,6 +26,7 @@ public:
 private slots:
     void onApply();
     void onCancel();
+    void onGuessParams();
 
 private:
     Ui::M3C2Plugin *ui;

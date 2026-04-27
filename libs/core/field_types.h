@@ -120,13 +120,29 @@ namespace ct
         } cone_params;
     };
 
-    // M3C2: 多尺度点云比较
+    // M3C2: 多尺度点云比较 (CloudCompare-compatible parameters)
     struct M3C2Params : DistanceParams {
-        double normal_min_scale = 0.0;       // 法线估计最小邻域半径 (0 = 自动估算)
-        double normal_max_scale = 0.0;       // 法线估计最大邻域半径 (0 = 自动, min_scale * 10)
-        double normal_step_scale = 2.0;      // 法线估计步进系数
-        double proj_radius = 0.0;            // 投影圆柱搜索半径 (0 = 自动, max_scale * 2)
+        // 法线估计参数
         bool use_existing_normals = true;     // 使用点云已有法线
+        double normal_diameter = 0.0;         // 法线估计邻域直径 (0 = 自动估算, CloudCompare uses diameter)
+
+        // 投影参数
+        double proj_diameter = 0.0;          // 投影圆柱直径 (0 = 自动, 等于 normal_diameter)
+        double max_depth = 0.0;              // 最大投影深度 (0 = 自动)
+
+        // 核心点采样
+        enum class CorePointsMode {
+            USE_REF_CLOUD = 0,               // 使用参考点云所有点
+            SUBSAMPLE_REF = 1,               // 对参考点云降采样
+            USE_COMP_CLOUD = 2               // 使用比较点云
+        };
+        CorePointsMode core_points_mode = CorePointsMode::USE_REF_CLOUD;
+        double subsample_factor = 1.0;        // 降采样因子 (>1 表示降采样)
+
+        // 注册误差
+        bool use_registration_error = false;  // 是否使用注册误差
+        double registration_error = 0.0;      // 注册误差值 (m)
+
         bool compute_lod = true;              // 计算置信区间 LOD
     };
 

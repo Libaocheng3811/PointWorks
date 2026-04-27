@@ -6,14 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>420</width>
-    <height>480</height>
+    <width>460</width>
+    <height>560</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>M3C2</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <!-- Input Clouds -->
    <item>
     <widget class="QGroupBox" name="groupBox_input">
      <property name="font">
@@ -75,6 +76,7 @@
      </layout>
     </widget>
    </item>
+   <!-- Normals -->
    <item>
     <widget class="QGroupBox" name="groupBox_normal">
      <property name="font">
@@ -84,11 +86,24 @@
       </font>
      </property>
      <property name="title">
-      <string>Normal Estimation</string>
+      <string>Normals</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_normal">
       <item row="0" column="0" colspan="2">
-       <widget class="QCheckBox" name="chk_useNormals">
+       <widget class="QRadioButton" name="radio_computeNormals">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Compute normals (on core points)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QRadioButton" name="radio_useExistingNormals">
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -103,8 +118,8 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="lbl_maxScale">
+      <item row="2" column="0">
+       <widget class="QLabel" name="lbl_normalDiameter">
         <property name="minimumSize">
          <size>
           <width>160</width>
@@ -112,12 +127,12 @@
          </size>
         </property>
         <property name="text">
-         <string>Normal Scale (m)</string>
+         <string>Normal Diameter (m)</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QDoubleSpinBox" name="dsb_maxScale">
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="dsb_normalDiameter">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -125,7 +140,7 @@
          </size>
         </property>
         <property name="decimals">
-         <number>3</number>
+         <number>6</number>
         </property>
         <property name="minimum">
          <double>0.000000000000000</double>
@@ -147,6 +162,7 @@
      </layout>
     </widget>
    </item>
+   <!-- Projection -->
    <item>
     <widget class="QGroupBox" name="groupBox_proj">
      <property name="font">
@@ -160,7 +176,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_proj">
       <item row="0" column="0">
-       <widget class="QLabel" name="lbl_projRadius">
+       <widget class="QLabel" name="lbl_projScale">
         <property name="minimumSize">
          <size>
           <width>160</width>
@@ -168,12 +184,12 @@
          </size>
         </property>
         <property name="text">
-         <string>Projection Radius (m)</string>
+         <string>Projection Scale (m)</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QDoubleSpinBox" name="dsb_projRadius">
+       <widget class="QDoubleSpinBox" name="dsb_projScale">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -181,7 +197,7 @@
          </size>
         </property>
         <property name="decimals">
-         <number>3</number>
+         <number>6</number>
         </property>
         <property name="minimum">
          <double>0.000000000000000</double>
@@ -222,7 +238,7 @@
          </size>
         </property>
         <property name="decimals">
-         <number>3</number>
+         <number>6</number>
         </property>
         <property name="minimum">
          <double>0.000000000000000</double>
@@ -244,8 +260,9 @@
      </layout>
     </widget>
    </item>
+   <!-- Core Points -->
    <item>
-    <widget class="QGroupBox" name="groupBox_options">
+    <widget class="QGroupBox" name="groupBox_core">
      <property name="font">
       <font>
        <family>Times New Roman</family>
@@ -253,11 +270,11 @@
       </font>
      </property>
      <property name="title">
-      <string>Options</string>
+      <string>Core Points</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_options">
+     <layout class="QGridLayout" name="gridLayout_core">
       <item row="0" column="0" colspan="2">
-       <widget class="QCheckBox" name="chk_computeLOD">
+       <widget class="QRadioButton" name="radio_useRefCloud">
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -265,16 +282,160 @@
          </size>
         </property>
         <property name="text">
-         <string>Compute LOD (Level of Detection)</string>
+         <string>Use cloud #1</string>
         </property>
         <property name="checked">
          <bool>true</bool>
         </property>
        </widget>
       </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QRadioButton" name="radio_subsampleRef">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Subsample cloud #1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="lbl_subsampleFactor">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Subsample factor</string>
+        </property>
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="dsb_subsampleFactor">
+        <property name="minimumSize">
+         <size>
+          <width>100</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="decimals">
+         <number>6</number>
+        </property>
+        <property name="minimum">
+         <double>1.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>99999.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QRadioButton" name="radio_useCompCloud">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Use cloud #2</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
+   <!-- Registration Error -->
+   <item>
+    <widget class="QGroupBox" name="groupBox_reg">
+     <property name="font">
+      <font>
+       <family>Times New Roman</family>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="title">
+      <string>Registration Error</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_reg">
+      <item row="0" column="0" colspan="2">
+       <widget class="QCheckBox" name="chk_regError">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Use registration error</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="lbl_regError">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Registration Error (m)</string>
+        </property>
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QDoubleSpinBox" name="dsb_regError">
+        <property name="minimumSize">
+         <size>
+          <width>100</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="decimals">
+         <number>6</number>
+        </property>
+        <property name="minimum">
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>99999.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.001000000000000</double>
+        </property>
+        <property name="value">
+         <double>0.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Buttons -->
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_btns">
      <item>
@@ -285,6 +446,32 @@
        <property name="sizeHint" stdset="0">
         <size>
          <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_guessParams">
+       <property name="font">
+        <font>
+         <family>Times New Roman</family>
+         <pointsize>11</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Guess Params</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
          <height>20</height>
         </size>
        </property>
@@ -310,7 +497,7 @@
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
+         <width>20</width>
          <height>20</height>
         </size>
        </property>

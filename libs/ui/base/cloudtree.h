@@ -145,6 +145,7 @@ namespace ct
         void markCloudInUse(const QString& id);
         void unmarkCloudInUse(const QString& id);
         void releaseAllInUse();
+        void refreshSelectedProperties();
 
     private:
         CloudRegistry* m_registry;

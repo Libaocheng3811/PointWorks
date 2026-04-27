@@ -2,16 +2,17 @@
 #include "ui_m3c2plugin.h"
 
 #include <cmath>
-#include <cstdio>
 #include <algorithm>
 #include <limits>
-#include "core/cloud.h"
 #include <numeric>
+#include <random>
+#include "core/cloud.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/search/kdtree.h>
 
 M3C2Plugin::M3C2Plugin(QWidget *parent) :
         ct::CustomDialog(parent), ui(new Ui::M3C2Plugin) {
@@ -19,11 +20,27 @@ M3C2Plugin::M3C2Plugin(QWidget *parent) :
 
     connect(ui->btn_ok, &QPushButton::clicked, this, &M3C2Plugin::onApply);
     connect(ui->btn_cancel, &QPushButton::clicked, this, &M3C2Plugin::onCancel);
+    connect(ui->btn_guessParams, &QPushButton::clicked, this, &M3C2Plugin::onGuessParams);
 
-    // Disable normal estimation params when using existing normals
-    connect(ui->chk_useNormals, &QCheckBox::toggled, this, [=](bool checked) {
-        ui->dsb_maxScale->setEnabled(!checked);
+    // Normal mode: enable/disable diameter spinbox
+    connect(ui->radio_computeNormals, &QRadioButton::toggled, this, [=](bool checked) {
+        ui->dsb_normalDiameter->setEnabled(checked);
     });
+
+    // Core points mode: enable/disable subsample factor
+    connect(ui->radio_subsampleRef, &QRadioButton::toggled, this, [=](bool checked) {
+        ui->dsb_subsampleFactor->setEnabled(checked);
+        ui->lbl_subsampleFactor->setEnabled(checked);
+    });
+
+    // Registration error: enable/disable value
+    connect(ui->chk_regError, &QCheckBox::toggled, this, [=](bool checked) {
+        ui->dsb_regError->setEnabled(checked);
+        ui->lbl_regError->setEnabled(checked);
+    });
+
+    // Initial state: use existing normals → diameter disabled
+    ui->dsb_normalDiameter->setEnabled(false);
 }
 
 M3C2Plugin::~M3C2Plugin() {
@@ -64,53 +81,104 @@ void M3C2Plugin::init() {
         }
     }
 
-    // Initial state for normal params
-    ui->dsb_maxScale->setEnabled(false);
-
     ui->btn_ok->setEnabled(true);
 }
 
-void M3C2Plugin::onApply() {
-    FILE* dbg = fopen("m3c2_debug.log", "a");
-    fprintf(dbg, "=== onApply ENTER ===\n"); fflush(dbg);
+void M3C2Plugin::onGuessParams() {
+    auto ref = ui->combo_ref->currentData().value<ct::Cloud::Ptr>();
+    auto comp = ui->combo_comp->currentData().value<ct::Cloud::Ptr>();
+    if (!ref || !comp) {
+        printW(QString("Select both clouds first"));
+        return;
+    }
 
+    // Estimate mean point spacing from reference cloud
+    auto refPCL = ref->toPCL_XYZ();
+    if (refPCL->empty()) return;
+
+    pcl::search::KdTree<pcl::PointXYZ> tree;
+    tree.setInputCloud(refPCL);
+
+    size_t n = std::min(refPCL->size(), static_cast<size_t>(10000));
+    std::vector<size_t> indices(refPCL->size());
+    std::iota(indices.begin(), indices.end(), 0);
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(indices.begin(), indices.end(), g);
+    indices.resize(n);
+
+    double total_dist = 0.0;
+    size_t valid = 0;
+    for (size_t idx : indices) {
+        std::vector<int> ki(2);
+        std::vector<float> sd(2);
+        if (tree.nearestKSearch(refPCL->points[idx], 2, ki, sd) >= 2) {
+            total_dist += std::sqrt(sd[1]);
+            valid++;
+        }
+    }
+    double mean_spacing = (valid > 0) ? (total_dist / valid) : 1.0;
+
+    // CloudCompare-like defaults:
+    // Normal Diameter = mean_spacing * 25 (diameter, not radius)
+    double normal_diameter = mean_spacing * 25.0;
+    // Projection Scale = normal_diameter (cylinder diameter, same as normal diameter)
+    double proj_scale = normal_diameter;
+    // Max Depth = proj_scale * 10
+    double max_depth = proj_scale * 10.0;
+
+    ui->dsb_normalDiameter->setValue(normal_diameter);
+    ui->dsb_projScale->setValue(proj_scale);
+    ui->dsb_maxDepth->setValue(max_depth);
+
+    printI(QString("Guessed params: mean_spacing=%.6f, normal_diam=%.3f, proj_scale=%.3f, max_depth=%.3f")
+           .arg(mean_spacing, 0, 'f', 6)
+           .arg(normal_diameter, 0, 'f', 3)
+           .arg(proj_scale, 0, 'f', 3)
+           .arg(max_depth, 0, 'f', 3));
+}
+
+void M3C2Plugin::onApply() {
     m_refCloud = ui->combo_ref->currentData().value<ct::Cloud::Ptr>();
     m_compCloud = ui->combo_comp->currentData().value<ct::Cloud::Ptr>();
-    fprintf(dbg, "clouds: ref=%p comp=%p\n", (void*)m_refCloud.get(), (void*)m_compCloud.get()); fflush(dbg);
 
     if (!m_refCloud || !m_compCloud) {
-        fprintf(dbg, "EXIT: invalid clouds\n"); fflush(dbg); fclose(dbg);
         printE(QString("Invalid clouds selected"));
         return;
     }
 
     if (m_refCloud == m_compCloud) {
-        fprintf(dbg, "EXIT: same cloud\n"); fflush(dbg); fclose(dbg);
         printW(QString("Reference and Compared clouds cannot be the same"));
         return;
     }
 
     ct::M3C2Params params;
-    params.use_existing_normals = ui->chk_useNormals->isChecked();
-    params.normal_max_scale = ui->dsb_maxScale->value();
-    params.proj_radius = ui->dsb_projRadius->value();
-    params.compute_lod = ui->chk_computeLOD->isChecked();
-    params.max_distance = ui->dsb_maxDepth->value();
-    fprintf(dbg, "params: use_normals=%d scale=%.3f proj=%.3f lod=%d maxd=%.3f\n",
-            params.use_existing_normals, params.normal_max_scale, params.proj_radius,
-            params.compute_lod, params.max_distance); fflush(dbg);
+    params.use_existing_normals = ui->radio_useExistingNormals->isChecked();
+    params.normal_diameter = ui->dsb_normalDiameter->value();
+    params.proj_diameter = ui->dsb_projScale->value();
+    params.max_depth = ui->dsb_maxDepth->value();
+    params.compute_lod = true;
 
-    // === Extract all data on the MAIN thread for thread safety ===
-    fprintf(dbg, "toPCL_XYZ ref...\n"); fflush(dbg);
+    // Core points mode
+    if (ui->radio_useRefCloud->isChecked()) {
+        params.core_points_mode = ct::M3C2Params::CorePointsMode::USE_REF_CLOUD;
+    } else if (ui->radio_subsampleRef->isChecked()) {
+        params.core_points_mode = ct::M3C2Params::CorePointsMode::SUBSAMPLE_REF;
+        params.subsample_factor = ui->dsb_subsampleFactor->value();
+    } else {
+        params.core_points_mode = ct::M3C2Params::CorePointsMode::USE_COMP_CLOUD;
+    }
+
+    // Registration error
+    params.use_registration_error = ui->chk_regError->isChecked();
+    params.registration_error = ui->dsb_regError->value();
+
+    // === Extract all data on the MAIN thread ===
     auto refPCL = m_refCloud->toPCL_XYZ();
-    fprintf(dbg, "toPCL_XYZ comp...\n"); fflush(dbg);
     auto compPCL = m_compCloud->toPCL_XYZ();
-    fprintf(dbg, "refPCL=%zu compPCL=%zu\n", refPCL->size(), compPCL->size()); fflush(dbg);
 
     pcl::PointCloud<pcl::Normal>::Ptr existingNormals;
-
     if (params.use_existing_normals && m_refCloud->hasNormals()) {
-        fprintf(dbg, "extracting normals...\n"); fflush(dbg);
         existingNormals.reset(new pcl::PointCloud<pcl::Normal>);
         size_t n_ref = refPCL->size();
         existingNormals->width = static_cast<uint32_t>(n_ref);
@@ -133,7 +201,6 @@ void M3C2Plugin::onApply() {
                 gi++;
             }
         }
-        fprintf(dbg, "normals extracted ok\n"); fflush(dbg);
     }
 
     this->hide();
@@ -151,60 +218,77 @@ void M3C2Plugin::onApply() {
     };
 
     auto ref = m_refCloud;
-    auto comp = m_compCloud;
     auto params_copy = params;
-    auto ref_id = ref->id();
 
     auto future = QtConcurrent::run([=]() -> ct::M3C2Result {
-        FILE* dbg2 = fopen("m3c2_debug.log", "a");
-        fprintf(dbg2, "worker thread START\n"); fflush(dbg2); fclose(dbg2);
-        auto r = ct::DistanceCalculator::calculateM3C2(refPCL, compPCL, existingNormals,
-                                                      params_copy, cancel, on_progress);
-        FILE* dbg3 = fopen("m3c2_debug.log", "a");
-        fprintf(dbg3, "worker thread END success=%d\n", r.success); fflush(dbg3); fclose(dbg3);
-        return r;
+        return ct::DistanceCalculator::calculateM3C2(refPCL, compPCL, existingNormals,
+                                                     params_copy, cancel, on_progress);
     });
 
     auto* watcher = new QFutureWatcher<ct::M3C2Result>(this);
     connect(watcher, &QFutureWatcher<ct::M3C2Result>::finished, this,
             [=]() {
-        FILE* dbg4 = fopen("m3c2_debug.log", "a");
-        fprintf(dbg4, "finished handler ENTER\n"); fflush(dbg4);
         ct::M3C2Result result = watcher->result();
-        fprintf(dbg4, "got result success=%d, closing progress\n", result.success); fflush(dbg4);
         m_progress->closeProgress();
         delete cancel;
 
         if (!result.success) {
             printE(QString("M3C2 failed: %1").arg(QString::fromStdString(result.error_msg)));
-            fprintf(dbg4, "EXIT: failed\n"); fflush(dbg4); fclose(dbg4);
             watcher->deleteLater();
             return;
         }
 
         printI(QString("M3C2 completed in %1 ms").arg(result.time_ms));
 
-        fprintf(dbg4, "addScalarField dist_size=%zu\n", result.signed_distances.size()); fflush(dbg4);
-        ref->addScalarField("M3C2_Distance", result.signed_distances);
-        fprintf(dbg4, "addScalarField DONE\n"); fflush(dbg4);
+        // Map core point results back to full reference cloud
+        size_t ref_size = static_cast<size_t>(ref->size());
+        bool is_use_comp = params_copy.core_points_mode == ct::M3C2Params::CorePointsMode::USE_COMP_CLOUD;
 
-        if (params_copy.compute_lod && !result.lod_values.empty()) {
-            ref->addScalarField("M3C2_LOD", result.lod_values);
+        if (is_use_comp) {
+            // USE_COMP_CLOUD: apply results to comp cloud instead
+            auto comp = m_compCloud;
+            if (comp && result.signed_distances.size() == comp->size()) {
+                comp->addScalarField("M3C2_Distance", result.signed_distances);
+                if (params_copy.compute_lod && !result.lod_values.empty()) {
+                    comp->addScalarField("M3C2_LOD", result.lod_values);
+                }
+                comp->updateColorByField("M3C2_Distance");
+                comp->setHasColors(true);
+                QString compId = QString::fromStdString(comp->id());
+                m_cloudview->invalidateCloudRender(compId);
+            }
+        } else {
+            // USE_REF_CLOUD or SUBSAMPLE_REF: expand results to full ref cloud
+            std::vector<float> full_dists(ref_size, std::numeric_limits<float>::quiet_NaN());
+            std::vector<float> full_lod(ref_size, std::numeric_limits<float>::quiet_NaN());
+
+            for (size_t i = 0; i < result.core_indices.size() && i < result.signed_distances.size(); ++i) {
+                size_t idx = result.core_indices[i];
+                if (idx < ref_size) {
+                    full_dists[idx] = result.signed_distances[i];
+                    if (i < result.lod_values.size()) {
+                        full_lod[idx] = result.lod_values[i];
+                    }
+                }
+            }
+
+            ref->addScalarField("M3C2_Distance", full_dists);
+            if (params_copy.compute_lod && !result.lod_values.empty()) {
+                ref->addScalarField("M3C2_LOD", full_lod);
+            }
+
+            ref->updateColorByField("M3C2_Distance");
+            ref->setHasColors(true);
+
+            QString refId = QString::fromStdString(ref->id());
+            m_cloudview->invalidateCloudRender(refId);
         }
 
-        fprintf(dbg4, "updateColorByField\n"); fflush(dbg4);
-        ref->updateColorByField("M3C2_Distance",
-                                 std::numeric_limits<float>::lowest(),
-                                 std::numeric_limits<float>::max(),
-                                 ct::ColormapType::JET,
-                                 true);
-        ref->setHasColors(true);
-
-        fprintf(dbg4, "invalidateCloudRender + refresh\n"); fflush(dbg4);
-        QString refId = QString::fromStdString(ref->id());
-        m_cloudview->invalidateCloudRender(refId);
         m_cloudview->refresh();
-        fprintf(dbg4, "refresh DONE\n"); fflush(dbg4);
+
+        // Rebuild property panel so the new scalar field appears in the Color dropdown
+        // and SFDisplayPanel shows the correct histogram + scalar bar
+        m_cloudtree->refreshSelectedProperties();
 
         // Print statistics
         const auto& dists = result.signed_distances;

@@ -13,12 +13,13 @@
 #include <pcl/common/centroid.h>
 #include <pcl/PolygonMesh.h>
 #include <pcl/conversions.h>
+#include <pcl/filters/voxel_grid.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
 #include <omp.h>
 #include <cmath>
-#include <cstdio>
+#include <algorithm>
 #include <limits>
 #include <numeric>
 #include <random>
@@ -225,13 +226,6 @@ namespace ct {
         return static_cast<float>(perp - R);
     }
 
-    // Debug log helper
-    static FILE* m3c2_log() {
-        static FILE* f = fopen("m3c2_debug.log", "a");
-        return f;
-    }
-    #define M3C2_DBG(fmt, ...) do { if(auto*_f=m3c2_log()){fprintf(_f,fmt,__VA_ARGS__);fflush(_f);} } while(0)
-
     // ================================================================
     // Internal helpers: M3C2
     // ================================================================
@@ -271,8 +265,6 @@ namespace ct {
         std::atomic<bool>* cancel,
         const std::function<void(int)>& on_progress) {
 
-        M3C2_DBG("estimateNormalsManual: n=%zu radius=%.4f\n", cloud->size(), radius);
-
         size_t n = cloud->size();
         out_normals.reset(new pcl::PointCloud<pcl::Normal>);
         out_normals->width = n;
@@ -281,16 +273,13 @@ namespace ct {
 
         if (n == 0) return;
 
-        M3C2_DBG("estimateNormalsManual: building KdTree...\n");
         pcl::search::KdTree<PointXYZ> tree;
         tree.setInputCloud(cloud);
-        M3C2_DBG("estimateNormalsManual: KdTree built, starting loop\n");
 
         if (on_progress) on_progress(30);
         if (cancel && cancel->load()) return;
 
         size_t report_interval = n / 50 + 1;
-        size_t log_interval = n / 10 + 1;
 
         for (size_t i = 0; i < n; ++i) {
             if (cancel && cancel->load()) return;
@@ -335,15 +324,10 @@ namespace ct {
             out_normals->points[i].normal_y = normal.y();
             out_normals->points[i].normal_z = normal.z();
 
-            if (i % log_interval == 0) {
-                M3C2_DBG("normals: %zu/%zu done\n", i, n);
-            }
-
             if (on_progress && i % report_interval == 0)
                 on_progress(30 + static_cast<int>(i * 30 / n));
         }
 
-        M3C2_DBG("estimateNormalsManual DONE\n");
         if (on_progress) on_progress(60);
     }
 
@@ -358,10 +342,23 @@ namespace ct {
         size_t comp_n = comp_cloud->size();
         if (comp_n == 0) return;
 
+        // Random sampling for unbiased centroid estimation
         size_t sample = std::min(comp_n, static_cast<size_t>(10000));
-        for (size_t i = 0; i < sample; ++i) {
-            const auto& p = comp_cloud->points[i];
-            comp_center += Eigen::Vector3d(p.x, p.y, p.z);
+        if (sample < comp_n) {
+            std::vector<size_t> indices(comp_n);
+            std::iota(indices.begin(), indices.end(), 0);
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(indices.begin(), indices.end(), g);
+            for (size_t i = 0; i < sample; ++i) {
+                const auto& p = comp_cloud->points[indices[i]];
+                comp_center += Eigen::Vector3d(p.x, p.y, p.z);
+            }
+        } else {
+            for (size_t i = 0; i < comp_n; ++i) {
+                const auto& p = comp_cloud->points[i];
+                comp_center += Eigen::Vector3d(p.x, p.y, p.z);
+            }
         }
         comp_center /= static_cast<double>(sample);
 
@@ -847,6 +844,40 @@ namespace ct {
     // M3C2 Public API
     // ================================================================
 
+    // Subsample a point cloud by voxel grid, returning indices of kept points
+    static pcl::PointCloud<PointXYZ>::Ptr subsampleCloud(
+            const pcl::PointCloud<PointXYZ>::Ptr& cloud,
+            double target_spacing,
+            std::vector<size_t>& kept_indices) {
+        kept_indices.clear();
+        if (target_spacing <= 0 || cloud->empty()) {
+            kept_indices.resize(cloud->size());
+            std::iota(kept_indices.begin(), kept_indices.end(), 0);
+            return cloud;
+        }
+
+        pcl::VoxelGrid<PointXYZ> vox;
+        vox.setInputCloud(cloud);
+        vox.setLeafSize(static_cast<float>(target_spacing),
+                        static_cast<float>(target_spacing),
+                        static_cast<float>(target_spacing));
+        pcl::PointCloud<PointXYZ>::Ptr output(new pcl::PointCloud<PointXYZ>);
+        vox.filter(*output);
+
+        // Build mapping from subsampled points back to original indices
+        // by finding nearest neighbor for each output point in original cloud
+        pcl::search::KdTree<PointXYZ> tree;
+        tree.setInputCloud(cloud);
+        kept_indices.resize(output->size());
+        for (size_t i = 0; i < output->size(); ++i) {
+            std::vector<int> ki(1);
+            std::vector<float> sd(1);
+            tree.nearestKSearch(output->points[i], 1, ki, sd);
+            kept_indices[i] = static_cast<size_t>(ki[0]);
+        }
+        return output;
+    }
+
     static M3C2Result calculateM3C2Impl(
             const pcl::PointCloud<PointXYZ>::Ptr& refCloud,
             const pcl::PointCloud<PointXYZ>::Ptr& compCloud,
@@ -858,26 +889,19 @@ namespace ct {
         if (cancel) cancel->store(false);
 
         if (!refCloud || !compCloud || refCloud->empty() || compCloud->empty()) {
-            M3C2_DBG("EXIT: invalid input\n");
-            return {{}, {}, {}, 0, false, "Invalid input clouds"};
+            return {{}, {}, {}, {}, 0, false, "Invalid input clouds"};
         }
-
-        M3C2_DBG("ref=%zu comp=%zu\n", refCloud->size(), compCloud->size());
 
         pcl::console::TicToc timer;
         timer.tic();
 
-        size_t n_ref = refCloud->size();
-
         // Step 0: Auto-estimate parameters
-        M3C2_DBG("Step0: estimateMeanPointSpacing\n");
         double mean_spacing = estimateMeanPointSpacing(refCloud);
-        M3C2_DBG("mean_spacing=%.4f\n", mean_spacing);
-        double normal_scale = (params.normal_max_scale > 0) ? params.normal_max_scale : mean_spacing * 5.0;
-        double proj_radius = (params.proj_radius > 0) ? params.proj_radius : normal_scale * 2.0;
 
-        // Auto-estimate max depth: use merged bounding box diagonal
-        double max_depth = params.max_distance;
+        // normal_diameter: CloudCompare uses diameter (not radius). Convert to radius for internal use.
+        double normal_radius = (params.normal_diameter > 0) ? (params.normal_diameter / 2.0) : mean_spacing * 5.0;
+        double proj_radius = (params.proj_diameter > 0) ? (params.proj_diameter / 2.0) : normal_radius * 2.0;
+        double max_depth = params.max_depth;
         if (max_depth <= 0) {
             Eigen::Vector4f ref_min, ref_max, comp_min, comp_max;
             pcl::getMinMax3D(*refCloud, ref_min, ref_max);
@@ -888,68 +912,85 @@ namespace ct {
             max_depth = diag * 0.1;
         }
 
+        // Determine core points cloud
+        pcl::PointCloud<PointXYZ>::Ptr corePoints;
+        pcl::PointCloud<pcl::Normal>::Ptr coreNormals;
+        std::vector<size_t> core_indices;
+
+        if (params.core_points_mode == M3C2Params::CorePointsMode::SUBSAMPLE_REF) {
+            double sub_spacing = mean_spacing * params.subsample_factor;
+            corePoints = subsampleCloud(refCloud, sub_spacing, core_indices);
+        } else if (params.core_points_mode == M3C2Params::CorePointsMode::USE_COMP_CLOUD) {
+            corePoints = compCloud;
+            // core_indices empty — results don't map to ref cloud
+        } else {
+            corePoints = refCloud;
+            core_indices.resize(refCloud->size());
+            std::iota(core_indices.begin(), core_indices.end(), 0);
+        }
+
+        size_t n_core = corePoints->size();
+
         if (on_progress) on_progress(5);
 
         // Step 1: Normal estimation
-        M3C2_DBG("Step1: use_existing=%d normals=%p size=%zu\n",
-                params.use_existing_normals, (void*)existingNormals.get(),
-                existingNormals ? existingNormals->size() : 0);
-        pcl::PointCloud<pcl::Normal>::Ptr normals;
-        std::vector<float> normals_quality;
-
-        if (params.use_existing_normals && existingNormals && existingNormals->size() == n_ref) {
-            M3C2_DBG("Step1: using existing normals\n");
-            normals = existingNormals;
-            normals_quality.assign(n_ref, 1.0f);
-            if (on_progress) on_progress(60);
+        if (params.use_existing_normals && existingNormals &&
+            existingNormals->size() == refCloud->size() &&
+            params.core_points_mode == M3C2Params::CorePointsMode::USE_REF_CLOUD) {
+            // Use existing normals directly (only for USE_REF_CLOUD mode)
+            coreNormals = existingNormals;
         } else {
-            M3C2_DBG("Step1: estimateNormalsManual radius=%.4f\n", normal_scale);
-            estimateNormalsManual(refCloud, normal_scale, normals, cancel, on_progress);
-            normals_quality.assign(n_ref, 1.0f);
+            // Need to compute normals on core points
+            estimateNormalsManual(corePoints, normal_radius, coreNormals, cancel, on_progress);
         }
-        M3C2_DBG("Step1 DONE\n");
+
+        std::vector<float> normals_quality(n_core, 1.0f);
 
         if (cancel && cancel->load()) {
-            return {{}, {}, {}, 0, false, "M3C2 canceled during normal estimation"};
+            return {{}, {}, {}, {}, 0, false, "M3C2 canceled during normal estimation"};
         }
 
         // Step 2: Orient normals toward compared cloud
-        M3C2_DBG("Step2: orient normals\n");
-        orientNormalsTowardComp(refCloud, normals, compCloud);
-        M3C2_DBG("Step2 DONE\n");
+        orientNormalsTowardComp(corePoints, coreNormals, compCloud);
 
         if (on_progress) on_progress(70);
 
         // Step 3: Compute projection distances
-        M3C2_DBG("Step3: distances\n");
         std::vector<float> signed_distances;
         std::vector<float> neighbor_counts;
-        computeM3C2Distances(refCloud, normals, compCloud,
+        computeM3C2Distances(corePoints, coreNormals, compCloud,
                               proj_radius, max_depth,
                               signed_distances, neighbor_counts,
                               cancel, on_progress);
-        M3C2_DBG("Step3 DONE\n");
 
         if (cancel && cancel->load()) {
-            return {{}, {}, {}, 0, false, "M3C2 canceled during distance computation"};
+            return {{}, {}, {}, {}, 0, false, "M3C2 canceled during distance computation"};
         }
 
         // Step 4: Compute LOD
-        M3C2_DBG("Step4: LOD\n");
         std::vector<float> lod_values;
         if (params.compute_lod) {
-            computeLODValues(refCloud, normals, compCloud,
+            computeLODValues(corePoints, coreNormals, compCloud,
                               proj_radius, lod_values,
                               cancel, on_progress);
+
+            // Add registration error to LOD if enabled
+            if (params.use_registration_error && params.registration_error > 0) {
+                for (size_t i = 0; i < lod_values.size(); ++i) {
+                    if (!std::isnan(lod_values[i])) {
+                        lod_values[i] = std::sqrt(lod_values[i] * lod_values[i] +
+                                                   params.registration_error * params.registration_error);
+                    }
+                }
+            }
         }
-        M3C2_DBG("Step4 DONE, returning success\n");
 
         if (cancel && cancel->load()) {
-            return {{}, {}, {}, 0, false, "M3C2 canceled during LOD computation"};
+            return {{}, {}, {}, {}, 0, false, "M3C2 canceled during LOD computation"};
         }
 
         return {signed_distances, lod_values, normals_quality,
-                static_cast<float>(timer.toc()), true, ""};
+                core_indices, static_cast<float>(timer.toc()), true, ""};
     }
 
     M3C2Result DistanceCalculator::calculateM3C2(
@@ -959,10 +1000,7 @@ namespace ct {
             const M3C2Params& params,
             std::atomic<bool>* cancel,
             std::function<void(int)> on_progress) {
-        M3C2_DBG(">>> calculateM3C2 ENTRY\n");
-        auto result = calculateM3C2Impl(refCloud, compCloud, existingNormals, params, cancel, on_progress);
-        M3C2_DBG("<<< calculateM3C2 EXIT success=%d\n", result.success);
-        return result;
+        return calculateM3C2Impl(refCloud, compCloud, existingNormals, params, cancel, on_progress);
     }
 
     // ================================================================

@@ -417,11 +417,13 @@ namespace ct
                         v->removePointCloud(cid);
                         v->removeShape(QString::fromStdString(cloud->boxId()));
                         v->removePointCloud(QString::fromStdString(cloud->normalId()));
+                        v->hideScalarBar();
                     }
                 } else {
                     m_cloudview->removePointCloud(cid);
                     m_cloudview->removeShape(QString::fromStdString(cloud->boxId()));
                     m_cloudview->removePointCloud(QString::fromStdString(cloud->normalId()));
+                    m_cloudview->hideScalarBar();
                 }
                 m_registry->unregisterCloud(c);
                 // 清理关联的 PolygonMesh / TexturedMesh
@@ -477,6 +479,13 @@ namespace ct
         m_cloudview->setAutoRender(true);
         m_cloudview->refresh();
         printI(tr("remove all clouds done."));
+    }
+
+    void CloudTree::refreshSelectedProperties()
+    {
+        if (!selectedItems().isEmpty()) {
+            itemSelectionChangedEvent();
+        }
     }
 
     void CloudTree::saveCloudItem(QTreeWidgetItem *item) {

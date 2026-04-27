@@ -20,9 +20,10 @@ namespace ct {
 
     // M3C2 result
     struct M3C2Result {
-        std::vector<float> signed_distances;  // 有符号距离
+        std::vector<float> signed_distances;  // 有符号距离 (per core point)
         std::vector<float> lod_values;        // LOD 置信区间 (compute_lod=true)
         std::vector<float> normals_quality;   // 法线质量 (0~1)
+        std::vector<size_t> core_indices;     // Core point indices in reference cloud
         float time_ms = 0;
         bool success = true;
         std::string error_msg;
