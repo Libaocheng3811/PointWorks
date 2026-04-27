@@ -6,32 +6,58 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>440</height>
+    <width>420</width>
+    <height>480</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>400</width>
-    <height>380</height>
+    <width>420</width>
+    <height>420</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>Filters</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_5">
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>12</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>12</number>
+   </property>
+   <property name="spacing">
+    <number>8</number>
+   </property>
+   <!-- Filter Type Selection -->
    <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>Parameters</string>
+    <widget class="QGroupBox" name="groupBox_type">
+     <property name="font">
+      <font>
+       <family>Times New Roman</family>
+       <pointsize>11</pointsize>
+      </font>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_4">
+     <property name="title">
+      <string>Filter Type</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_type">
+      <property name="spacing">
+       <number>6</number>
+      </property>
       <item>
        <widget class="QComboBox" name="cbox_type">
-        <property name="font">
-         <font>
-          <family>微软雅黑</family>
-         </font>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>28</height>
+         </size>
         </property>
         <item>
          <property name="text">
@@ -45,61 +71,89 @@
         </item>
         <item>
          <property name="text">
-          <string>StatisticalOutlierRemoval</string>
+          <string>Statistical Outlier Removal</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>RadiusOutlierRemoval</string>
+          <string>Radius Outlier Removal</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>ConditionalRemoval</string>
+          <string>Conditional Removal</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>GridMinimum</string>
+          <string>Grid Minimum</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>LocalMaximum</string>
+          <string>Local Maximum</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>ShadowPoints</string>
+          <string>Shadow Points</string>
          </property>
         </item>
        </widget>
       </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Parameters -->
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="font">
+      <font>
+       <family>Times New Roman</family>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="title">
+      <string>Parameters</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <property name="spacing">
+       <number>6</number>
+      </property>
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
          <number>0</number>
         </property>
+        <!-- Page 0: PassThrough -->
         <widget class="QWidget" name="PassThrough">
          <layout class="QGridLayout" name="gridLayout_pt">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>Field Name:</string>
+             <string>Field Name</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QComboBox" name="cbox_field_name">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Provide the name of the field to be used for filtering data.</string>
@@ -139,18 +193,22 @@
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_2">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>Min:</string>
+             <string>Min</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="spacing">
+             <number>6</number>
+            </property>
             <item>
              <widget class="QSlider" name="slider_min">
               <property name="orientation">
@@ -160,10 +218,11 @@
             </item>
             <item>
              <widget class="QDoubleSpinBox" name="dspin_min">
-              <property name="font">
-               <font>
-                <family>微软雅黑</family>
-               </font>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>25</height>
+               </size>
               </property>
               <property name="toolTip">
                <string>The minimum allowed field value</string>
@@ -186,18 +245,22 @@
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_3">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>Max:</string>
+             <string>Max</string>
             </property>
            </widget>
           </item>
           <item row="2" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <property name="spacing">
+             <number>6</number>
+            </property>
             <item>
              <widget class="QSlider" name="slider_max">
               <property name="orientation">
@@ -207,10 +270,11 @@
             </item>
             <item>
              <widget class="QDoubleSpinBox" name="dspin_max">
-              <property name="font">
-               <font>
-                <family>微软雅黑</family>
-               </font>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>25</height>
+               </size>
               </property>
               <property name="toolTip">
                <string>The maximum allowed field value</string>
@@ -231,7 +295,7 @@
             </item>
            </layout>
           </item>
-          <item row="3" column="1">
+          <item row="3" column="0" colspan="2">
            <spacer name="verticalSpacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -246,16 +310,27 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 1: VoxelGrid -->
         <widget class="QWidget" name="VoxelGrid">
          <layout class="QGridLayout" name="gridLayout_vg">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0" colspan="2">
            <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="spacing">
+             <number>16</number>
+            </property>
             <item>
              <widget class="QCheckBox" name="check_same_value">
-              <property name="font">
-               <font>
-                <family>微软雅黑</family>
-               </font>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
               </property>
               <property name="text">
                <string>Same Value</string>
@@ -267,10 +342,11 @@
             </item>
             <item>
              <widget class="QCheckBox" name="check_approximate">
-              <property name="font">
-               <font>
-                <family>微软雅黑</family>
-               </font>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
               </property>
               <property name="text">
                <string>Approximate</string>
@@ -281,22 +357,24 @@
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_lx">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>lx:</string>
+             <string>Leaf Size X</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
            <widget class="QDoubleSpinBox" name="dspin_leafx">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Set the voxel grid leaf size.</string>
@@ -317,13 +395,14 @@
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_ly">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>ly:</string>
+             <string>Leaf Size Y</string>
             </property>
            </widget>
           </item>
@@ -332,10 +411,11 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="decimals">
              <number>3</number>
@@ -353,13 +433,14 @@
           </item>
           <item row="3" column="0">
            <widget class="QLabel" name="label_lz">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>lz:</string>
+             <string>Leaf Size Z</string>
             </property>
            </widget>
           </item>
@@ -368,10 +449,11 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="decimals">
              <number>3</number>
@@ -387,7 +469,7 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
+          <item row="4" column="0" colspan="2">
            <spacer name="verticalSpacer_2">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -402,26 +484,35 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 2: Statistical Outlier Removal -->
         <widget class="QWidget" name="StatisticalOutlierRemoval">
          <layout class="QGridLayout" name="gridLayout_sor">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_4">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>MeanK:</string>
+             <string>Mean K</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QSpinBox" name="spin_meank">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Set the number of points (k) to use for mean distance estimation</string>
@@ -436,22 +527,24 @@
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_5">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>StddevMulThresh:</string>
+             <string>Std Dev Multiplier</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
            <widget class="QDoubleSpinBox" name="dspin_stddevmulthresh">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Set the standard deviation multiplier threshold</string>
@@ -467,7 +560,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="2" column="0" colspan="2">
            <spacer name="verticalSpacer_3">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -482,26 +575,35 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 3: Radius Outlier Removal -->
         <widget class="QWidget" name="RadiusOutlierRemoval">
          <layout class="QGridLayout" name="gridLayout_ror">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_6">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>RadiusSearch:</string>
+             <string>Search Radius</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QDoubleSpinBox" name="dspin_radius">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Set the sphere radius for determining k-nearest neighbors</string>
@@ -519,22 +621,24 @@
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_7">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>MinNeighbors:</string>
+             <string>Min Neighbors</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
            <widget class="QSpinBox" name="spin_minneiborsinradius">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Minimum number of neighbors in the given search radius</string>
@@ -547,7 +651,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="2" column="0" colspan="2">
            <spacer name="verticalSpacer_4">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -562,23 +666,19 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 4: Conditional Removal -->
         <widget class="QWidget" name="ConditionalRemoval">
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-          </font>
-         </property>
          <layout class="QVBoxLayout" name="verticalLayout_7">
+          <property name="spacing">
+           <number>8</number>
+          </property>
           <item>
            <widget class="QTableWidget" name="table_condition">
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>120</height>
+              <height>150</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">font: 9pt &quot;微软雅黑&quot;;</string>
             </property>
             <attribute name="horizontalHeaderStretchLastSection">
              <bool>true</bool>
@@ -602,13 +702,14 @@
             </item>
             <item>
              <widget class="QPushButton" name="btn_add_con">
-              <property name="font">
-               <font>
-                <family>微软雅黑</family>
-               </font>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>28</height>
+               </size>
               </property>
               <property name="text">
-               <string/>
+               <string>Add Row</string>
               </property>
               <property name="icon">
                <iconset resource="../resources/res.qrc">
@@ -618,8 +719,14 @@
             </item>
             <item>
              <widget class="QPushButton" name="btn_clear_con">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>28</height>
+               </size>
+              </property>
               <property name="text">
-               <string/>
+               <string>Remove Row</string>
               </property>
               <property name="icon">
                <iconset resource="../resources/res.qrc">
@@ -631,26 +738,35 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 5: Grid Minimum -->
         <widget class="QWidget" name="GridMinimum">
          <layout class="QGridLayout" name="gridLayout_gm">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_8">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>Resolution:</string>
+             <string>Resolution</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QDoubleSpinBox" name="dspin_resolution">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="decimals">
              <number>3</number>
@@ -663,7 +779,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="1" column="0" colspan="2">
            <spacer name="verticalSpacer_5">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -678,26 +794,35 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 6: Local Maximum -->
         <widget class="QWidget" name="LocalMaximun">
          <layout class="QGridLayout" name="gridLayout_lm">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_9">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>Radius:</string>
+             <string>Search Radius</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QDoubleSpinBox" name="dspin_radius_3">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="decimals">
              <number>3</number>
@@ -710,7 +835,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="1" column="0" colspan="2">
            <spacer name="verticalSpacer_6">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -725,26 +850,35 @@
           </item>
          </layout>
         </widget>
+        <!-- Page 7: Shadow Points -->
         <widget class="QWidget" name="ShadowPoints">
          <layout class="QGridLayout" name="gridLayout_sp">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_10">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="text">
-             <string>Threshold:</string>
+             <string>Threshold</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QDoubleSpinBox" name="dspin_threshold">
-            <property name="font">
-             <font>
-              <family>微软雅黑</family>
-             </font>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="decimals">
              <number>3</number>
@@ -757,7 +891,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="1" column="0" colspan="2">
            <spacer name="verticalSpacer_7">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -774,109 +908,173 @@
         </widget>
        </widget>
       </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QCheckBox" name="check_reverse">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/reverse.svg</normaloff>:/res/icon/reverse.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="check_refresh">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/view-refresh.svg</normaloff>:/res/icon/view-refresh.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_preview">
-          <property name="font">
-           <font>
-            <family>微软雅黑</family>
-           </font>
-          </property>
-          <property name="text">
-           <string>Preview</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/preview.svg</normaloff>:/res/icon/preview.svg</iconset>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="Line" name="line">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QPushButton" name="btn_add">
-          <property name="font">
-           <font>
-            <family>微软雅黑</family>
-           </font>
-          </property>
-          <property name="text">
-           <string>Add</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/add.svg</normaloff>:/res/icon/add.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_apply">
-          <property name="font">
-           <font>
-            <family>微软雅黑</family>
-           </font>
-          </property>
-          <property name="text">
-           <string>Apply</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/apply1.svg</normaloff>:/res/icon/apply1.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_reset">
-          <property name="font">
-           <font>
-            <family>微软雅黑</family>
-           </font>
-          </property>
-          <property name="text">
-           <string>Reset</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/reset.svg</normaloff>:/res/icon/reset.svg</iconset>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
      </layout>
     </widget>
+   </item>
+   <!-- Options Row: Reverse + Auto Refresh -->
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_options">
+     <property name="spacing">
+      <number>16</number>
+     </property>
+     <item>
+      <widget class="QCheckBox" name="check_reverse">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Reverse</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/res.qrc">
+         <normaloff>:/res/icon/reverse.svg</normaloff>:/res/icon/reverse.svg</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="check_refresh">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Auto Refresh</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/res.qrc">
+         <normaloff>:/res/icon/view-refresh.svg</normaloff>:/res/icon/view-refresh.svg</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_preview">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_preview">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Preview</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/res.qrc">
+         <normaloff>:/res/icon/preview.svg</normaloff>:/res/icon/preview.svg</iconset>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <!-- Separator -->
+   <item>
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <!-- Action Buttons -->
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="spacing">
+      <number>8</number>
+     </property>
+     <item>
+      <spacer name="horizontalSpacer_left">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_add">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Add</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/res.qrc">
+         <normaloff>:/res/icon/add.svg</normaloff>:/res/icon/add.svg</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_apply">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Apply</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/res.qrc">
+         <normaloff>:/res/icon/apply1.svg</normaloff>:/res/icon/apply1.svg</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_reset">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Reset</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/res.qrc">
+         <normaloff>:/res/icon/reset.svg</normaloff>:/res/icon/reset.svg</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_right">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
