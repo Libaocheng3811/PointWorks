@@ -34,6 +34,9 @@ public:
     void markModified();
     void clearModified();
 
+    /// 打开指定路径的项目文件（供外部调用，如拖拽打开）
+    bool openProject(const QString& path);
+
 signals:
     void windowTitleChanged(const QString& title);
     void loadError(const QString& msg);
@@ -51,7 +54,6 @@ private:
 
     // 项目文件读写
     bool saveProject(const QString& path);
-    bool openProject(const QString& path);
 
     void collectCloudEntries(const QString& projectDir, ct::ProjectData& data);
     void collectTreeNodes(QList<ct::TreeNode>& roots);

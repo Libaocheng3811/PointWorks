@@ -3,6 +3,11 @@
 
 #include <QMainWindow>
 #include <QCloseEvent>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QSet>
+#include <QUrl>
 
 #include "ui_mainwindow.h"
 
@@ -48,11 +53,19 @@ protected:
     void moveEvent(QMoveEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
     void changeEvent(QEvent* event) override;
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dragMoveEvent(QDragMoveEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     Ui::MainWindow *ui;
     ProjectManager* m_project_manager = nullptr;
     ct::ViewportManager* m_viewport_mgr = nullptr;
+
+    bool isSupportedFile(const QString& suffix) const;
+    void handleDroppedFiles(const QList<QUrl>& urls);
+    void installDragFilterOnViews();
 
 private slots:
     void onTreeSelectionChanged();

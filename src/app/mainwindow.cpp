@@ -200,6 +200,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->cloudtree->setCloudView(m_viewport_mgr->activeView());
         ui->cloudtree->repopulateAllViews();
         emit ui->cloudtree->itemSelectionChanged();
+        installDragFilterOnViews();
     });
 
     connect(ui->actionShowDataTree, &QAction::toggled, [=](bool checked){
@@ -438,6 +439,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // 初始化：无选中时禁用
     updateActionEnableState(ct::SelectionInfo{});
+
+    // 为 CloudView 安装拖拽事件过滤器（VTK 控件默认不转发拖拽事件）
+    installDragFilterOnViews();
 }
 
 MainWindow::~MainWindow() {
@@ -542,4 +546,94 @@ void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
     ui->actionVegetation_Filters->setEnabled(singleCloud);
     ui->actionChange_Detection->setEnabled(totalClouds >= 2);
     ui->actionM3C2->setEnabled(totalClouds >= 2);
+}
+
+// ================================================================
+// 拖拽文件打开
+// ================================================================
+
+void MainWindow::installDragFilterOnViews()
+{
+    for (auto* view : m_viewport_mgr->allViews())
+        view->installEventFilter(this);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (!event->mimeData()->hasUrls()) return;
+    for (const auto& url : event->mimeData()->urls()) {
+        if (url.isLocalFile() && isSupportedFile(QFileInfo(url.toLocalFile()).suffix().toLower())) {
+            event->acceptProposedAction();
+            return;
+        }
+    }
+}
+
+void MainWindow::dragMoveEvent(QDragMoveEvent* event)
+{
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* event)
+{
+    if (!event->mimeData()->hasUrls()) return;
+    handleDroppedFiles(event->mimeData()->urls());
+    event->acceptProposedAction();
+}
+
+bool MainWindow::eventFilter(QObject* watched, QEvent* event)
+{
+    switch (event->type()) {
+    case QEvent::DragEnter:
+        dragEnterEvent(static_cast<QDragEnterEvent*>(event));
+        return true;
+    case QEvent::DragMove:
+        dragMoveEvent(static_cast<QDragMoveEvent*>(event));
+        return true;
+    case QEvent::Drop:
+        dropEvent(static_cast<QDropEvent*>(event));
+        return true;
+    default:
+        break;
+    }
+    return QMainWindow::eventFilter(watched, event);
+}
+
+bool MainWindow::isSupportedFile(const QString& suffix) const
+{
+    static const QSet<QString> supported = {
+        "ply", "pcd", "las", "laz", "e57", "txt", "asc", "xyz",
+        "obj", "stl", "vtk", "ifs",
+        "pwproj"
+    };
+    return supported.contains(suffix);
+}
+
+void MainWindow::handleDroppedFiles(const QList<QUrl>& urls)
+{
+    QStringList cloudFiles;
+    QStringList unsupportedFiles;
+
+    for (const auto& url : urls) {
+        if (!url.isLocalFile()) continue;
+        QString filepath = url.toLocalFile();
+        QString suffix = QFileInfo(filepath).suffix().toLower();
+
+        if (suffix == "pwproj") {
+            m_project_manager->openProject(filepath);
+        } else if (isSupportedFile(suffix)) {
+            cloudFiles.append(filepath);
+        } else {
+            unsupportedFiles.append(QFileInfo(filepath).fileName());
+        }
+    }
+
+    for (const auto& filepath : cloudFiles)
+        ui->cloudtree->loadCloudFile(filepath);
+
+    if (!unsupportedFiles.isEmpty()) {
+        QMessageBox::warning(this, tr("Unsupported Files"),
+            tr("The following files are not supported:\n%1").arg(unsupportedFiles.join("\n")));
+    }
 }

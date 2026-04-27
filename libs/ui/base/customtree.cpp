@@ -6,6 +6,7 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QMimeData>
 
 namespace ct
 {
@@ -180,16 +181,19 @@ CustomTree::CustomTree(QWidget *parent)
 
     void CustomTree::dragEnterEvent(QDragEnterEvent* event)
     {
+        if (event->mimeData()->hasUrls()) return;
         event->acceptProposedAction();
     }
 
     void CustomTree::dragMoveEvent(QDragMoveEvent* event)
     {
+        if (event->mimeData()->hasUrls()) return;
         event->acceptProposedAction();
     }
 
     void CustomTree::dropEvent(QDropEvent* event)
     {
+        if (event->mimeData()->hasUrls()) return;
         QTreeWidgetItem* target = itemAt(event->pos());
         QList<QTreeWidgetItem*> dragged = selectedItems();
 
