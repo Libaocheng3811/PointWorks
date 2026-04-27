@@ -13,8 +13,20 @@
 #include "core/exports.h"
 #include "core/field_types.h"
 #include <pcl/PolygonMesh.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 namespace ct {
+
+    // M3C2 result
+    struct M3C2Result {
+        std::vector<float> signed_distances;  // 有符号距离
+        std::vector<float> lod_values;        // LOD 置信区间 (compute_lod=true)
+        std::vector<float> normals_quality;   // 法线质量 (0~1)
+        float time_ms = 0;
+        bool success = true;
+        std::string error_msg;
+    };
 
     // Closest Point Set result
     struct CPSResult {
@@ -26,6 +38,16 @@ namespace ct {
 
     class DistanceCalculator {
     public:
+        // M3C2: Multiscale Model to Model Cloud Comparison
+        // Accepts pre-extracted PCL data — caller must extract on main thread for thread safety
+        static M3C2Result calculateM3C2(
+            const pcl::PointCloud<pcl::PointXYZ>::Ptr& refCloud,
+            const pcl::PointCloud<pcl::PointXYZ>::Ptr& compCloud,
+            const pcl::PointCloud<pcl::Normal>::Ptr& existingNormals,
+            const M3C2Params& params,
+            std::atomic<bool>* cancel = nullptr,
+            std::function<void(int)> on_progress = nullptr);
+
         // C2C: Cloud-to-Cloud distance
         static DistanceResult calculateC2C(const Cloud::Ptr& ref, const Cloud::Ptr& comp,
                                            const C2CParams& params,

@@ -120,6 +120,16 @@ namespace ct
         } cone_params;
     };
 
+    // M3C2: 多尺度点云比较
+    struct M3C2Params : DistanceParams {
+        double normal_min_scale = 0.0;       // 法线估计最小邻域半径 (0 = 自动估算)
+        double normal_max_scale = 0.0;       // 法线估计最大邻域半径 (0 = 自动, min_scale * 10)
+        double normal_step_scale = 2.0;      // 法线估计步进系数
+        double proj_radius = 0.0;            // 投影圆柱搜索半径 (0 = 自动, max_scale * 2)
+        bool use_existing_normals = true;     // 使用点云已有法线
+        bool compute_lod = true;              // 计算置信区间 LOD
+    };
+
     // CPS: 最邻近点集提取
     struct CPSParams : DistanceParams {
         bool keep_colors = true;        // 保留源点云颜色

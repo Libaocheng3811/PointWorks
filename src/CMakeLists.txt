@@ -39,6 +39,7 @@ set(Srcs
     plugins/csfplugin.cpp
     plugins/vegplugin.cpp
     plugins/changedetectplugin.cpp
+    plugins/m3c2plugin.cpp
     app/projectmanager.cpp
     )
 
@@ -85,6 +86,7 @@ set(Hdrs
     plugins/csfplugin.h
     plugins/vegplugin.h
     plugins/changedetectplugin.h
+    plugins/m3c2plugin.h
     )
 
 set(UIS

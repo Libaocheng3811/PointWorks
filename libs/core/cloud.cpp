@@ -1180,12 +1180,18 @@ namespace ct
             auto& block = m_all_blocks[k];
             auto sf_it = block->m_scalar_fields.find(field_name);
             if (block->empty() || sf_it == block->m_scalar_fields.end()) continue;
+            if (!block->m_colors) continue;
 
             const std::vector<float>& data = sf_it->second;
             size_t n = block->size();
+            size_t cn = block->m_colors->size();
+            size_t count = std::min(n, cn);
 
-            for (size_t i = 0; i < n; ++i) {
-                float norm = (data[i] - min_v) / range;
+            for (size_t i = 0; i < count; ++i) {
+                float v = data[i];
+                if (std::isnan(v)) continue;
+
+                float norm = (v - min_v) / range;
                 if (norm < 0.0f) norm = 0.0f;
                 if (norm > 1.0f) norm = 1.0f;
 
@@ -1233,11 +1239,14 @@ namespace ct
             auto& block = m_all_blocks[k];
             auto sf_it = block->m_scalar_fields.find(field_name);
             if (block->empty() || sf_it == block->m_scalar_fields.end()) continue;
+            if (!block->m_colors) continue;
 
             const std::vector<float>& data = sf_it->second;
             size_t n = block->size();
+            size_t cn = block->m_colors->size();
+            size_t count = std::min(n, cn);
 
-            for (size_t i = 0; i < n; ++i) {
+            for (size_t i = 0; i < count; ++i) {
                 float v = data[i];
 
                 if (std::isnan(v)) {

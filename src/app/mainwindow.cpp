@@ -36,6 +36,7 @@
 #include "plugins/csfplugin.h"
 #include "plugins/vegplugin.h"
 #include "plugins/changedetectplugin.h"
+#include "plugins/m3c2plugin.h"
 
 #include "tool/distance/cloud_cloud_dist_dialog.h"
 #include "tool/distance/cloud_mesh_dist_dialog.h"
@@ -305,6 +306,8 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<VegPlugin>("Vegetation Filters");});
     connect(ui->actionChange_Detection, &QAction::triggered, [=] {
         this->createModalDialog<ChangeDetectPlugin>("Change Detection");});
+    connect(ui->actionM3C2, &QAction::triggered, [=] {
+        this->createModalDialog<M3C2Plugin>("M3C2");});
 
     // distance submenu
     connect(ui->actionDistanceC2C, &QAction::triggered, [=] {
@@ -538,4 +541,5 @@ void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
     ui->actionCSF->setEnabled(singleCloud);
     ui->actionVegetation_Filters->setEnabled(singleCloud);
     ui->actionChange_Detection->setEnabled(totalClouds >= 2);
+    ui->actionM3C2->setEnabled(totalClouds >= 2);
 }

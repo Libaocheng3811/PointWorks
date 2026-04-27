@@ -278,6 +278,7 @@
     <addaction name="actionCSF"/>
     <addaction name="actionVegetation_Filters"/>
     <addaction name="actionChange_Detection"/>
+    <addaction name="actionM3C2"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -1539,6 +1540,17 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>Change Detection</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionM3C2">
+   <property name="text">
+    <string>M3C2</string>
    </property>
    <property name="font">
     <font>
