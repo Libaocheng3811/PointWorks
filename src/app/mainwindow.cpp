@@ -115,8 +115,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cloudtree->setMeshIcon(QIcon(MESH_ICON_PATH));
     ui->cloudtree->setGroupIcon(style()->standardIcon(QStyle::SP_DirOpenIcon));
 
-    // 设置属性表格列宽 - 第一列固定，第二列拉伸
-    ui->cloudtable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+    // 设置属性表格列宽 - 第一列可拖拽，第二列跟随面板宽度
+    ui->cloudtable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->cloudtable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->cloudtable->setColumnWidth(0, 140);
 

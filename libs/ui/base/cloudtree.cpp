@@ -1315,7 +1315,7 @@ namespace ct
             ct::Box box = cloud->box();
             ct::PointXYZ cmin = cloud->min();
             ct::PointXYZ cmax = cloud->max();
-            QString bboxText = QString("X: %1 (%2 - %3)\nY: %4 (%5 - %6)\nZ: %7 (%8 - %9)")
+            QString bboxText = QString("X: %1 (%2 : %3)\nY: %4 (%5 : %6)\nZ: %7 (%8 : %9)")
                 .arg(box.width, 0, 'f', 3).arg(cmin.x, 0, 'f', 3).arg(cmax.x, 0, 'f', 3)
                 .arg(box.height, 0, 'f', 3).arg(cmin.y, 0, 'f', 3).arg(cmax.y, 0, 'f', 3)
                 .arg(box.depth, 0, 'f', 3).arg(cmin.z, 0, 'f', 3).arg(cmax.z, 0, 'f', 3);
@@ -1324,15 +1324,41 @@ namespace ct
                 item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
         }
 
-        // Center
+        // Shifted box center
         {
             Eigen::Vector3f center = cloud->center();
             QString centerText = QString("X: %1\nY: %2\nZ: %3")
                 .arg(center.x(), 0, 'f', 3)
                 .arg(center.y(), 0, 'f', 3)
                 .arg(center.z(), 0, 'f', 3);
-            int centerRow = addTextRow("Center", centerText, 66);
+            int centerRow = addTextRow("Shifted box center", centerText, 66);
             if (auto item = m_table->item(centerRow, 1))
+                item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+        }
+
+        // Global box center
+        {
+            Eigen::Vector3f center = cloud->center();
+            Eigen::Vector3d shift = cloud->getGlobalShift();
+            Eigen::Vector3d globalCenter = center.cast<double>() - shift;
+            QString centerText = QString("X: %1\nY: %2\nZ: %3")
+                .arg(globalCenter.x(), 0, 'f', 3)
+                .arg(globalCenter.y(), 0, 'f', 3)
+                .arg(globalCenter.z(), 0, 'f', 3);
+            int centerRow = addTextRow("Global box center", centerText, 66);
+            if (auto item = m_table->item(centerRow, 1))
+                item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+        }
+
+        // Global Shift
+        {
+            Eigen::Vector3d shift = cloud->getGlobalShift();
+            QString shiftText = QString("X: %1\nY: %2\nZ: %3")
+                .arg(shift.x(), 0, 'f', 3)
+                .arg(shift.y(), 0, 'f', 3)
+                .arg(shift.z(), 0, 'f', 3);
+            int shiftRow = addTextRow("Global Shift", shiftText, 66);
+            if (auto item = m_table->item(shiftRow, 1))
                 item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
         }
 

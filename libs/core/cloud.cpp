@@ -1329,6 +1329,7 @@ namespace ct
         // 更新中心点
         Eigen::Vector3f center = 0.5f * (m_min.getVector3fMap() + m_max.getVector3fMap());
         m_box.pose.translation() = center;
+        m_box.translation = center;
 
         m_box.width = m_max.x - m_min.x;
         m_box.height = m_max.y - m_min.y;
