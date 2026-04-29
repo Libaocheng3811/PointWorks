@@ -206,6 +206,7 @@ void ChangeDetectPlugin::onApply() {
                 buf.normals.empty() ? nullptr : &buf.normals);
         }
         addedCloud->update();
+        addedCloud->setGlobalShift(phase2->getGlobalShift());
 
         // Extract removed points from phase1 (phase1→phase2 distance exceeds threshold)
         ct::Cloud::Ptr removedCloud(new ct::Cloud);
@@ -244,6 +245,7 @@ void ChangeDetectPlugin::onApply() {
                 buf.normals.empty() ? nullptr : &buf.normals);
         }
         removedCloud->update();
+        removedCloud->setGlobalShift(phase1->getGlobalShift());
 
         std::vector<ct::Cloud::Ptr> results;
 

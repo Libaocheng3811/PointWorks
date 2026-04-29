@@ -52,7 +52,7 @@ namespace ct
             m_OctreeRenders.remove(qid);
         }
 
-        auto renderer = std::make_shared<OctreeRenderer>(cloud, m_viewer->getRendererCollection()->GetFirstRenderer());
+        auto renderer = std::make_shared<OctreeRenderer>(cloud, m_render);
         m_OctreeRenders.insert(qid, renderer);
 
         renderer->invalidateCache();

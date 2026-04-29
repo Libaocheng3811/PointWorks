@@ -528,12 +528,23 @@ namespace ct
             showProgress("Saving E57...");
             bindWorker(m_io);
             m_io->saveCloudFile(cloud, filepath, true);
+        } else if (suffix == "las" || suffix == "laz") {
+            // LAS/LAZ 无需选择 binary/ascii（LAS 始终为二进制格式）
+            showProgress("Saving Point Cloud...");
+            bindWorker(m_io);
+            m_io->saveCloudFile(cloud, filepath, true);
+        } else if (suffix == "txt" || suffix == "xyz" || suffix == "csv") {
+            // TXT 始终为文本格式
+            showProgress("Saving Point Cloud...");
+            bindWorker(m_io);
+            m_io->saveCloudFile(cloud, filepath, false);
         } else {
-            // 点云保存路径（PLY mesh 也走这里，让用户选择 binary/ascii）
+            // PLY/PCD 让用户选择 binary/ascii
             QMessageBox message_box(QMessageBox::NoIcon, tr("Saved format"), tr("Save in binary or ascii format?"),
                                     QMessageBox::NoButton, this);
-            message_box.addButton(tr("Ascii"), QMessageBox::ActionRole);
-            message_box.addButton(tr("Binary"), QMessageBox::ActionRole)->setDefault(true);
+            QPushButton* btnAscii = message_box.addButton(tr("Ascii"), QMessageBox::ActionRole);
+            QPushButton* btnBinary = message_box.addButton(tr("Binary"), QMessageBox::ActionRole);
+            btnBinary->setDefault(true);
             message_box.addButton(QMessageBox::Cancel);
             int k = message_box.exec();
             if (k == QMessageBox::Cancel)
@@ -542,9 +553,11 @@ namespace ct
                 return;
             }
 
+            bool isBinary = (message_box.clickedButton() == btnBinary);
+
             showProgress("Saving Point Cloud...");
             bindWorker(m_io);
-            m_io->saveCloudFile(cloud, filepath, k);
+            m_io->saveCloudFile(cloud, filepath, isBinary);
         }
     }
 

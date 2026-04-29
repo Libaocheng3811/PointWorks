@@ -169,7 +169,7 @@ void AlignByCentersDialog::onAlign()
         auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_cloud);
         if (m_canceled.load()) return nullptr;
         pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_matrix);
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, source->getGlobalShift());
         return transformed;
     });
 
@@ -225,7 +225,7 @@ void AlignByCentersDialog::onApply()
     auto pcl_src = source->toPCL_XYZRGBN();
     auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, source->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     m_cloudtree->updateCloud(source, transformed);

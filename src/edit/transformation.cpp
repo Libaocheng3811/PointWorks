@@ -245,7 +245,7 @@ void Transformation::add()
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
         pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_transformed(new pcl::PointCloud<ct::PointXYZRGBN>);
         pcl::transformPointCloud(*pcl_cloud, *pcl_transformed, it->second);
-        ct::Cloud::Ptr new_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_transformed);
+        ct::Cloud::Ptr new_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_transformed, cloud->getGlobalShift());
         new_cloud->setId(TRANS_ADD_FLAG + cloud->id());
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
         m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
@@ -277,7 +277,7 @@ void Transformation::apply()
         m_cloudview->removePointCloud(sid);
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
         pcl::transformPointCloud(*pcl_cloud, *pcl_cloud, it->second);
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud);
+        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud, cloud->getGlobalShift());
         transformed->setId(cloud->id());
         m_cloudtree->updateCloud(cloud, transformed);
         m_trans_map.erase(cloud->id());
@@ -317,7 +317,7 @@ void Transformation::preview(const Eigen::Affine3f& affine3f)
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
         pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_transformed(new pcl::PointCloud<ct::PointXYZRGBN>);
         pcl::transformPointCloud(*pcl_cloud, *pcl_transformed, trans);
-        ct::Cloud::Ptr trans_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_transformed);
+        ct::Cloud::Ptr trans_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_transformed, cloud->getGlobalShift());
         trans_cloud->setId(tid.toStdString());
 
         m_cloudview->addPointCloud(trans_cloud);

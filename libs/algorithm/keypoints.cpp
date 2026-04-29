@@ -56,7 +56,7 @@ namespace ct
             pcl_keypoints->push_back(pt);
         }
 
-        auto result = Cloud::fromPCL_XYZRGB(*pcl_keypoints);
+        auto result = Cloud::fromPCL_XYZRGB(*pcl_keypoints, cloud->getGlobalShift());
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -109,7 +109,7 @@ namespace ct
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result, cloud->getGlobalShift());
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -168,7 +168,7 @@ namespace ct
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result, cloud->getGlobalShift());
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -215,7 +215,7 @@ namespace ct
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result, cloud->getGlobalShift());
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 
@@ -266,7 +266,7 @@ namespace ct
             pcl_result->push_back(p);
         }
 
-        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result);
+        auto result = Cloud::fromPCL_XYZRGBN(*pcl_result, cloud->getGlobalShift());
         result->setId(cloud->id());
         result->setPointSize(cloud->pointSize() + 2);
 

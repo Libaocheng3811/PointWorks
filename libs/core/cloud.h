@@ -119,8 +119,10 @@ namespace ct
         pcl::PointCloud<PointXYZRGB>::Ptr toPCL_XYZRGB() const;
         pcl::PointCloud<PointXYZRGBN>::Ptr toPCL_XYZRGBN() const;
 
-        static Ptr fromPCL_XYZRGBN(const pcl::PointCloud<PointXYZRGBN>& pcl_cloud);
-        static Ptr fromPCL_XYZRGB(const pcl::PointCloud<PointXYZRGB>& pcl_cloud);
+        static Ptr fromPCL_XYZRGBN(const pcl::PointCloud<PointXYZRGBN>& pcl_cloud,
+                                    const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero());
+        static Ptr fromPCL_XYZRGB(const pcl::PointCloud<PointXYZRGB>& pcl_cloud,
+                                  const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero());
 
         // ===== 几何与元数据 =====
         void update();

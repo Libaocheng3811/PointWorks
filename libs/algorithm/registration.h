@@ -367,7 +367,7 @@ namespace ct {
             pcl::PointCloud<PointXYZRGBN>::Ptr pcl_aligned(new pcl::PointCloud<PointXYZRGBN>);
             reg.align(*pcl_aligned);
 
-            ail_cloud = Cloud::fromPCL_XYZRGBN(*pcl_aligned);
+            ail_cloud = Cloud::fromPCL_XYZRGBN(*pcl_aligned, ctx.source_cloud->getGlobalShift());
             return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                     reg.getFinalTransformation(), (float)time.toc()};
         }
@@ -414,7 +414,7 @@ namespace ct {
             pcl::PointCloud<PointXYZRGBN>::Ptr pcl_aligned(new pcl::PointCloud<PointXYZRGBN>);
             reg.align(*pcl_aligned);
 
-            Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*pcl_aligned);
+            Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*pcl_aligned, ctx.source_cloud->getGlobalShift());
             return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                     reg.getFinalTransformation(), (float)time.toc()};
         }

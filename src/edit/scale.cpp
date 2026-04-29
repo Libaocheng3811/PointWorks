@@ -90,7 +90,7 @@ void Scale::preview(double x, double y, double z)
         pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_scaled(new pcl::PointCloud<ct::PointXYZRGBN>);
         pcl::transformPointCloud(*pcl_cloud, *pcl_scaled, trans);
 
-        ct::Cloud::Ptr scaled_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_scaled);
+        ct::Cloud::Ptr scaled_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_scaled, cloud->getGlobalShift());
         scaled_cloud->setId(sid);
 
         if (ui->check_keepentity->isChecked())

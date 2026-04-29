@@ -461,7 +461,7 @@ void FineRegistrationDialog::onApply()
     auto pcl_src = m_source->toPCL_XYZRGBN();
     auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     m_cloudtree->updateCloud(m_source, transformed);

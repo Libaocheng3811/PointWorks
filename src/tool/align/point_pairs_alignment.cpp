@@ -484,7 +484,7 @@ void PointPairsAlignment::onAlign()
         m_source_id = QString::fromStdString(source->id());
         // 深拷贝原始点云作为备份
         auto pcl_src = source->toPCL_XYZRGBN();
-        m_original_source_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src);
+        m_original_source_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src, source->getGlobalShift());
         m_original_source_cloud->setId(source->id());
     }
 
@@ -502,7 +502,7 @@ void PointPairsAlignment::onAlign()
         auto pcl_src = source_snap->toPCL_XYZRGBN();
         auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
         pcl::transformPointCloud(*pcl_copy, *pcl_copy, result_ptr->matrix.cast<float>());
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, source_snap->getGlobalShift());
         transformed->setId(PREVIEW_ID);
         return transformed;
     });
@@ -584,7 +584,7 @@ void PointPairsAlignment::onApply()
     auto pcl_src = m_original_source_cloud->toPCL_XYZRGBN();
     auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_last_result.matrix.cast<float>());
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy);
+    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_original_source_cloud->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     {

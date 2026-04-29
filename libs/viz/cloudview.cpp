@@ -182,31 +182,27 @@ namespace ct
     }
 
     void CloudView::updateRenderers() {
-        static vtkCamera* lastCam = nullptr;
-        static Eigen::Vector3f lastPos(0, 0, 0);
-        static double lastFocal[3] = {0, 0, 0};
-
         syncViewCubeOrientation();
 
         vtkCamera* cam = m_render->GetActiveCamera();
         double* pos = cam->GetPosition();
         double* focal = cam->GetFocalPoint();
 
-        bool cameraChanged = (lastCam != cam ||
-                              std::abs(pos[0] - lastPos.x()) > 0.01 ||
-                              std::abs(pos[1] - lastPos.y()) > 0.01 ||
-                              std::abs(pos[2] - lastPos.z()) > 0.01 ||
-                              std::abs(focal[0] - lastFocal[0]) > 0.01 ||
-                              std::abs(focal[1] - lastFocal[1]) > 0.01 ||
-                              std::abs(focal[2] - lastFocal[2]) > 0.01);
+        bool cameraChanged = (m_last_render_cam != cam ||
+                              std::abs(pos[0] - m_last_render_pos.x()) > 0.01 ||
+                              std::abs(pos[1] - m_last_render_pos.y()) > 0.01 ||
+                              std::abs(pos[2] - m_last_render_pos.z()) > 0.01 ||
+                              std::abs(focal[0] - m_last_render_focal[0]) > 0.01 ||
+                              std::abs(focal[1] - m_last_render_focal[1]) > 0.01 ||
+                              std::abs(focal[2] - m_last_render_focal[2]) > 0.01);
 
         if (!cameraChanged) return;
 
-        lastCam = cam;
-        lastPos = Eigen::Vector3f(pos[0], pos[1], pos[2]);
-        lastFocal[0] = focal[0];
-        lastFocal[1] = focal[1];
-        lastFocal[2] = focal[2];
+        m_last_render_cam = cam;
+        m_last_render_pos = Eigen::Vector3f(pos[0], pos[1], pos[2]);
+        m_last_render_focal[0] = focal[0];
+        m_last_render_focal[1] = focal[1];
+        m_last_render_focal[2] = focal[2];
 
         for (auto& renderer : m_OctreeRenders) {
             renderer->update();

@@ -54,7 +54,8 @@ namespace ct
 
     static std::vector<Cloud::Ptr> extractIndices(
         const pcl::PointCloud<PointXYZRGBN>::Ptr& pcl_cloud,
-        const PointIndicesPtr& indices, bool negative)
+        const PointIndicesPtr& indices, bool negative,
+        const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero())
     {
         std::vector<Cloud::Ptr> segmented_clouds;
         pcl::PointCloud<PointXYZRGBN>::Ptr pcl_segmented(new pcl::PointCloud<PointXYZRGBN>);
@@ -63,27 +64,28 @@ namespace ct
         extract.setIndices(indices);
         extract.setNegative(negative);
         extract.filter(*pcl_segmented);
-        segmented_clouds.push_back(Cloud::fromPCL_XYZRGBN(*pcl_segmented));
+        segmented_clouds.push_back(Cloud::fromPCL_XYZRGBN(*pcl_segmented, global_shift));
         return segmented_clouds;
     }
 
     static std::vector<Cloud::Ptr> extractClusters(
         const pcl::PointCloud<PointXYZRGBN>::Ptr& pcl_cloud,
-        const IndicesClustersPtr& clusters, bool negative)
+        const IndicesClustersPtr& clusters, bool negative,
+        const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero())
     {
         std::vector<Cloud::Ptr> segmented_clouds;
         PointIndicesPtr segmented_indices(new PointIndices);
         for (IndicesClusters::const_iterator it = clusters->begin(); it != clusters->end(); ++it)
         {
             Cloud::Ptr cloud_cluster = Cloud::fromPCL_XYZRGBN(
-                pcl::PointCloud<PointXYZRGBN>(*pcl_cloud, it->indices));
+                pcl::PointCloud<PointXYZRGBN>(*pcl_cloud, it->indices), global_shift);
             cloud_cluster->setId("cluster");
             segmented_clouds.push_back(cloud_cluster);
             segmented_indices->indices.insert(segmented_indices->indices.end(),
                                                it->indices.begin(), it->indices.end());
         }
         if (negative)
-            return extractIndices(pcl_cloud, segmented_indices, negative);
+            return extractIndices(pcl_cloud, segmented_indices, negative, global_shift);
         else
             return segmented_clouds;
     }
@@ -123,7 +125,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto clouds = extractIndices(pcl_cloud, indices, negative);
+        auto clouds = extractIndices(pcl_cloud, indices, negative, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {clouds, {}, static_cast<float>(time.toc()), cofes};
@@ -168,7 +170,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto clouds = extractIndices(pcl_cloud, indices, negative);
+        auto clouds = extractIndices(pcl_cloud, indices, negative, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {clouds, {}, static_cast<float>(time.toc()), cofes};
@@ -202,7 +204,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative);
+        auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative, cloud->getGlobalShift());
 
         // Build per-point labels
         std::vector<float> labels(pcl_cloud->size(), -1.0f);
@@ -268,7 +270,7 @@ namespace ct
                 all_indices->indices.insert(all_indices->indices.end(),
                                              it->indices.begin(), it->indices.end());
             }
-            auto neg_clouds = extractIndices(pcl_cloud, all_indices, true);
+            auto neg_clouds = extractIndices(pcl_cloud, all_indices, true, cloud->getGlobalShift());
             return {neg_clouds, {}, static_cast<float>(time.toc()), nullptr};
         }
 
@@ -465,7 +467,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative);
+        auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative, cloud->getGlobalShift());
 
         // Build per-point labels
         std::vector<float> labels(pcl_cloud->size(), -1.0f);
@@ -528,7 +530,7 @@ namespace ct
             // 返回种子点所属 segment 之外的所有点
             PointIndicesPtr seg_indices(new PointIndices);
             seg_indices->indices = seed_cluster.indices;
-            segmented_clouds = extractIndices(pcl_cloud, seg_indices, true);
+            segmented_clouds = extractIndices(pcl_cloud, seg_indices, true, cloud->getGlobalShift());
         } else {
             // 返回种子点所属 segment
             Cloud::Ptr cluster_cloud = Cloud::fromPCL_XYZRGBN(
@@ -584,7 +586,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative);
+        auto segmented_clouds = extractClusters(pcl_cloud, clusters, negative, cloud->getGlobalShift());
 
         // Build per-point labels
         std::vector<float> labels(pcl_cloud->size(), -1.0f);
@@ -724,7 +726,7 @@ namespace ct
         ecc.setInputCloud(doncloud_filtered);
         ecc.extract(*cluster_indices);
 
-        auto segmented_clouds = extractClusters(pcl_cloud, cluster_indices, negative);
+        auto segmented_clouds = extractClusters(pcl_cloud, cluster_indices, negative, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
@@ -767,7 +769,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto segmented_clouds = extractClusters(pcl_cloud, cluster_indices, false);
+        auto segmented_clouds = extractClusters(pcl_cloud, cluster_indices, false, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
@@ -939,7 +941,7 @@ namespace ct
         PointIndicesPtr inliers(new PointIndices);
         inliers->indices.swap(ground);
 
-        auto segmented_clouds = extractIndices(pcl_cloud, inliers, negative);
+        auto segmented_clouds = extractIndices(pcl_cloud, inliers, negative, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
@@ -973,7 +975,7 @@ namespace ct
         reportProgress(cancel, on_progress, 70);
 
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        auto segmented_clouds = extractIndices(pcl_cloud, indices_out, negative);
+        auto segmented_clouds = extractIndices(pcl_cloud, indices_out, negative, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
@@ -1043,7 +1045,7 @@ namespace ct
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);
 
-        auto segmented_clouds = extractIndices(pcl_cloud, indices, negative);
+        auto segmented_clouds = extractIndices(pcl_cloud, indices, negative, cloud->getGlobalShift());
 
         reportProgress(cancel, on_progress, 100);
         return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};

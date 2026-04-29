@@ -182,7 +182,9 @@ namespace ct {
 
         // 相机未动检测
         bool camChanged = (m_last_cam_pos - camPos).norm() > 0.01 ||
-                          std::abs(m_last_cam_dir[0] - dir[0]) > 0.001;
+                          std::abs(m_last_cam_dir[0] - dir[0]) > 0.001 ||
+                          std::abs(m_last_cam_dir[1] - dir[1]) > 0.001 ||
+                          std::abs(m_last_cam_dir[2] - dir[2]) > 0.001;
 
         if (!camChanged && !m_force_update) return;
 

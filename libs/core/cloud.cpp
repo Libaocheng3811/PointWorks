@@ -1340,6 +1340,12 @@ namespace ct
         if (m_box.height < 0.1) m_box.height = 0.1;
         if (m_box.depth < 0.1) m_box.depth = 0.1;
 
+        // 同步根节点包围盒（仅在根节点未分裂时安全）
+        // 子节点的包围盒在 splitNode 中从父节点 m_box 派生，不能随意修改
+        if (m_octree_root->isLeaf()) {
+            m_octree_root->m_box = m_box;
+        }
+
         // 更新类型字符串
         if (m_has_normals && m_has_rgb) m_type = CLOUD_TYPE_XYZRGBN;
         else if (m_has_normals) m_type = CLOUD_TYPE_XYZN;
@@ -1768,10 +1774,12 @@ namespace ct
         return *this;
     }
 
-    Cloud::Ptr Cloud::fromPCL_XYZRGBN(const pcl::PointCloud<PointXYZRGBN>& pcl_cloud)
+    Cloud::Ptr Cloud::fromPCL_XYZRGBN(const pcl::PointCloud<PointXYZRGBN>& pcl_cloud,
+                                       const Eigen::Vector3d& global_shift)
     {
         Cloud::Ptr cloud(new Cloud);
         if (pcl_cloud.empty()) return cloud;
+        cloud->setGlobalShift(global_shift);
 
         // 计算包围盒以初始化八叉树
         PointXYZRGBN min_pt, max_pt;
@@ -1824,9 +1832,11 @@ namespace ct
         return cloud;
     }
 
-    Cloud::Ptr Cloud::fromPCL_XYZRGB(const pcl::PointCloud<PointXYZRGB> &pcl_cloud) {
+    Cloud::Ptr Cloud::fromPCL_XYZRGB(const pcl::PointCloud<PointXYZRGB> &pcl_cloud,
+                                     const Eigen::Vector3d& global_shift) {
         Cloud::Ptr cloud(new Cloud);
         if (pcl_cloud.empty()) return cloud;
+        cloud->setGlobalShift(global_shift);
 
         // 计算包围盒以初始化八叉树
         PointXYZRGB min_pt, max_pt;

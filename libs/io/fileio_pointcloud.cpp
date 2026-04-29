@@ -658,7 +658,8 @@ bool FileIO::loadLAS(const QString &filename, Cloud::Ptr &cloud) {
 
     int fmt = lasreader->header.point_data_format;
     bool has_color = (fmt == 2 || fmt == 3 || fmt == 5 || fmt == 7);
-    if (has_color) cloud->enableColors();
+    // 注意：不在这里调用 enableColors()，因为 initOctree() 内部会调用 clear()
+    // 重置 m_has_rgb。颜色标志将在 initOctree() 之后设置。
 
     // 准备流式缓冲区
     CloudBatch batch;
@@ -691,9 +692,14 @@ bool FileIO::loadLAS(const QString &filename, Cloud::Ptr &cloud) {
         bool skipped = false;
         emit requestGlobalShift(Eigen::Vector3d(raw_x, raw_y, raw_z), suggested_shift, skipped);
 
-        if (!skipped) {
-            cloud->setGlobalShift(-suggested_shift);
+        if (skipped) {
+            // 用户点击了 Cancel，取消加载
+            lasreader->close();
+            delete lasreader;
+            return false;
         }
+
+        cloud->setGlobalShift(-suggested_shift);
     }
 
     float shift_x = static_cast<float>(suggested_shift.x());
@@ -715,6 +721,11 @@ bool FileIO::loadLAS(const QString &filename, Cloud::Ptr &cloud) {
     box.width *= 1.01; box.height *= 1.01; box.depth *= 1.01;
 
     cloud->initOctree(box);
+
+    // initOctree 内部调用 clear() 会重置 m_has_rgb/m_has_normals
+    // 必须在 initOctree 之后重新设置，否则 splitNode/insertPointToOctree
+    // 创建子节点时不会分配颜色/法线内存
+    if (has_color) cloud->enableColors();
 
     // 处理第一个点
     {
@@ -985,6 +996,14 @@ bool FileIO::saveLAS(const Cloud::Ptr &cloud, const QString &filename) {
         lasheader.x_offset = cloud->min().x + shift.x();
         lasheader.y_offset = cloud->min().y + shift.y();
         lasheader.z_offset = cloud->min().z + shift.z();
+
+        // 显式设置 header 的 bounding box，确保重新加载时 initOctree 使用正确的范围
+        lasheader.min_x = cloud->min().x + shift.x();
+        lasheader.min_y = cloud->min().y + shift.y();
+        lasheader.min_z = cloud->min().z + shift.z();
+        lasheader.max_x = cloud->max().x + shift.x();
+        lasheader.max_y = cloud->max().y + shift.y();
+        lasheader.max_z = cloud->max().z + shift.z();
     }
 
     LASwriter *laswriter = laswriteopener.open(&lasheader);
@@ -1411,9 +1430,9 @@ bool FileIO::savePCL(const Cloud::Ptr &cloud, const QString &filename, bool isBi
 
     // 并行填充数据
     Eigen::Vector3d shift = cloud->getGlobalShift();
-    float sx = (float)shift.x();
-    float sy = (float)shift.y();
-    float sz = (float)shift.z();
+    double sx = shift.x();
+    double sy = shift.y();
+    double sz = shift.z();
 
     uint8_t* base_ptr = msg.data.data();
     int step = msg.point_step;
@@ -1477,9 +1496,9 @@ bool FileIO::savePCL(const Cloud::Ptr &cloud, const QString &filename, bool isBi
 
             // --- 写入 XYZ ---
             const auto& p = pts[i];
-            float x = p.x + sx;
-            float y = p.y + sy;
-            float z = p.z + sz;
+            float x = (float)(p.x + sx);
+            float y = (float)(p.y + sy);
+            float z = (float)(p.z + sz);
 
             // 直接 memcpy 比 reinterpret_cast 更安全，且会被编译器优化
             memcpy(pt_ptr + 0, &x, 4);

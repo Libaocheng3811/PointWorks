@@ -205,7 +205,7 @@ void Normals::reverseNormals()
             pt.normal_y = -pt.normal_y;
             pt.normal_z = -pt.normal_z;
         }
-        it->second = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud);
+        it->second = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud, cloud->getGlobalShift());
         it->second->setId(cloud->id());
         it->second->setFilepath(cloud->filepath());
         it->second->setBox(cloud->box());

@@ -619,6 +619,11 @@ namespace ct {
         std::vector<Cloud::Ptr> m_visible_clouds;
         bool m_auto_render = true; //默认开启自动渲染
 
+        // updateRenderers 相机状态缓存（避免 static 变量跨实例共享）
+        vtkCamera* m_last_render_cam = nullptr;
+        Eigen::Vector3f m_last_render_pos = Eigen::Vector3f::Zero();
+        double m_last_render_focal[3] = {0, 0, 0};
+
         QMap<QString, std::shared_ptr<OctreeRenderer>> m_OctreeRenders;
         QSet<QString> m_coord_ids;
         QMap<QString, vtkSmartPointer<vtkBillboardTextActor3D>> m_badge_actors;

@@ -49,6 +49,7 @@ namespace ct
     // helper: synchronize properties and custom fields
     void syncCloudProperties(const Cloud::Ptr& source, Cloud::Ptr& target){
         target->setId(source->id());
+        target->setGlobalShift(source->getGlobalShift());
         target->setHasColors(source->hasColors());
 
         // TODO: PCL filters cannot return indices, so custom field info cannot be extracted via indices. Discarding custom fields for now.

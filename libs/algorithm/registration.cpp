@@ -536,7 +536,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }
@@ -599,7 +599,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }
@@ -664,7 +664,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }
@@ -716,7 +716,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }
@@ -771,7 +771,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }
@@ -823,7 +823,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }
@@ -879,7 +879,7 @@ namespace ct
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
 
-        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl);
+        Cloud::Ptr ail_cloud = Cloud::fromPCL_XYZRGBN(*ail_pcl, ctx.source_cloud->getGlobalShift());
         return {reg.hasConverged(), ail_cloud, reg.getFitnessScore(),
                 reg.getFinalTransformation(), (float)time.toc()};
     }

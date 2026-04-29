@@ -95,7 +95,7 @@ namespace ct
             reportProgress(on_progress, 90);
 
             // 转回 ct::Cloud
-            auto result = Cloud::fromPCL_XYZRGBN(*result_cloud);
+            auto result = Cloud::fromPCL_XYZRGBN(*result_cloud, cloud->getGlobalShift());
             result->setId(cloud->id());
             result->setFilepath(cloud->filepath());
             result->setBox(cloud->box());

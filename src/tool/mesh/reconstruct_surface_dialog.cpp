@@ -455,7 +455,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
         rs.setSample(static_cast<int>(target));
         auto filtered = pcl::PointCloud<ct::PointXYZRGBN>::Ptr(new pcl::PointCloud<ct::PointXYZRGBN>);
         rs.filter(*filtered);
-        work_cloud = ct::Cloud::fromPCL_XYZRGBN(*filtered);
+        work_cloud = ct::Cloud::fromPCL_XYZRGBN(*filtered, cloud->getGlobalShift());
     }
 
     // 确保 work_cloud 有 ID

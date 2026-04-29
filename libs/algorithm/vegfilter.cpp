@@ -171,7 +171,7 @@ namespace ct{
             extract.setIndices(v_idx_ptr);
             extract.setNegative(false);
             extract.filter(*pcl_veg);
-            veg_cloud = Cloud::fromPCL_XYZRGBN(*pcl_veg);
+            veg_cloud = Cloud::fromPCL_XYZRGBN(*pcl_veg, cloud->getGlobalShift());
             // 同步自定义字段
             syncAllScalarFields(cloud, veg_cloud, veg_indices);
         }
@@ -189,7 +189,7 @@ namespace ct{
             extract.setIndices(nv_idx_ptr);
             extract.setNegative(false);
             extract.filter(*pcl_non_veg);
-            non_veg_cloud = Cloud::fromPCL_XYZRGBN(*pcl_non_veg);
+            non_veg_cloud = Cloud::fromPCL_XYZRGBN(*pcl_non_veg, cloud->getGlobalShift());
             // 同步所有自定义字段
             syncAllScalarFields(cloud, non_veg_cloud, non_veg_indices);
         }
