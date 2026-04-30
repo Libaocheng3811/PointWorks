@@ -19,8 +19,7 @@ QT_END_NAMESPACE
 
 enum PickMode{
     PICK_SINGLE = 0, // 单点选取
-    PICK_PAIR = 1,   // 两点（显示距离）
-    PICK_MULTI = 2   // 多点（多边形）
+    PICK_MULTI = 1   // 多点（多边形）
 };
 
 class PickPoints : public ct::CustomDialog
@@ -33,13 +32,13 @@ public:
     ~PickPoints() override;
 
     virtual void init();
-    // 开始选点模式
-    void start();
+    // 停止选点模式（内部使用）
+    void stopPicking();
     // 将选中的点取出，单独成一项
     void add();
     // 重置功能
     virtual void reset();
-    virtual void deinit() { m_cloudview->clearInfo(); }
+    virtual void deinit() { stopPicking(); m_cloudview->clearInfo(); }
 
 private:
     void updateInfo(int index);

@@ -52,7 +52,7 @@ namespace ct
 
         void insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parent = nullptr,
                          bool selected = false, MountStrategy strategy = MountStrategy::Auto,
-                         SceneNodeType nodeType = NodeCloud);
+                         SceneNodeType nodeType = NodeCloud, bool auto_zoom = true);
 
         void addSiblingCloud(const Cloud::Ptr& sourceCloud, const Cloud::Ptr& resultCloud,
                              const QString& suffix = "-result");

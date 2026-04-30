@@ -31,7 +31,6 @@ PickPoints::PickPoints(QWidget *parent) :
     ui->infoBrowser->setVisible(false);
     ui->infoBrowser->setStyleSheet("QTextBrowser { border: 1px solid #CCCCCC; background-color: #F0F0F0; border-radius: 4px; }");
 
-    connect(ui->btn_start, &QPushButton::clicked, this, &PickPoints::start);
     connect(ui->btn_add, &QPushButton::clicked, this, &PickPoints::add);
     connect(ui->btn_reset, &QPushButton::clicked, this, &PickPoints::reset);
     connect(ui->btn_close, &QPushButton::clicked, this, &PickPoints::close);
@@ -51,51 +50,49 @@ void PickPoints::init()
 {
     connect(ui->cbox_type, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &PickPoints::updateInfo);
     this->updateInfo(ui->cbox_type->currentIndex());
+
+    // 打开弹窗即进入选点模式
+    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    if (selected_clouds.empty())
+    {
+        printW("Please select a cloud!");
+        return;
+    }
+    is_picking = true;
+    m_selected_cloud = selected_clouds.front();
+    m_cloudview->removeShape(QString::fromStdString(m_selected_cloud->boxId()));
+
+    m_cloudview->setCursor(Qt::CrossCursor);
+
+    connect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &PickPoints::mouseLeftPressed);
+    connect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &PickPoints::mouseLeftReleased);
+    connect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &PickPoints::mouseRightReleased);
+    connect(m_cloudview, &ct::CloudView::mouseMoved, this, &PickPoints::mouseMoved);
+    this->updateInfo(ui->cbox_type->currentIndex());
 }
 
-void PickPoints::start()
+void PickPoints::stopPicking()
 {
-    if (!is_picking)
-    {
-        std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
-        if (selected_clouds.empty())
-        {
-            printW("Please select a cloud!");
-            return;
-        }
-        is_picking = true;
-        // 如果同时选中了多个点云，只对第一个选中的点云进行操作
-        m_selected_cloud = selected_clouds.front();
-        m_cloudview->removeShape(QString::fromStdString(m_selected_cloud->boxId()));
+    if (!is_picking) return;
+    is_picking = false;
 
-        ui->btn_start->setIcon(QIcon(":/res/icon/stop.svg"));
+    disconnect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &PickPoints::mouseLeftPressed);
+    disconnect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &PickPoints::mouseLeftReleased);
+    disconnect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &PickPoints::mouseRightReleased);
+    disconnect(m_cloudview, &ct::CloudView::mouseMoved, this, &PickPoints::mouseMoved);
+    m_cloudview->unsetCursor();
 
-        connect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &PickPoints::mouseLeftPressed);
-        connect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &PickPoints::mouseLeftReleased);
-        connect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &PickPoints::mouseRightReleased);
-        connect(m_cloudview, &ct::CloudView::mouseMoved, this, &PickPoints::mouseMoved);
-        this->updateInfo(ui->cbox_type->currentIndex());
+    m_cloudview->removeShape(ARROW_ID);
+    m_cloudview->removeShape(POLYGONAL_ID);
+    m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
+    m_cloudview->clearInfo();
+
+    if(ui->infoBrowser->isVisible()){
+        ui->infoBrowser->setVisible(false);
+        this->adjustSize();
     }
-    else
-    {
-        is_picking = false;
-        disconnect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &PickPoints::mouseLeftPressed);
-        disconnect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &PickPoints::mouseLeftReleased);
-        disconnect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &PickPoints::mouseRightReleased);
-        disconnect(m_cloudview, &ct::CloudView::mouseMoved, this, &PickPoints::mouseMoved);
-        ui->btn_start->setIcon(QIcon(":/res/icon/start.svg"));
-        m_cloudview->removeShape(ARROW_ID);
-        m_cloudview->removeShape(POLYGONAL_ID);
-        m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
-        m_cloudview->clearInfo();
 
-        if(ui->infoBrowser->isVisible()){
-            ui->infoBrowser->setVisible(false);
-            this->adjustSize();
-        }
-
-        this->updateInfo(ui->cbox_type->currentIndex());
-    }
+    this->updateInfo(ui->cbox_type->currentIndex());
 }
 
 void PickPoints::add()
@@ -125,7 +122,7 @@ void PickPoints::add()
 
     QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(m_selected_cloud->id()));
     // 策略三：选点结果作为子节点挂载
-    m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Child);
+    m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Child, ct::SceneNodeType::NodeCloud, false);
 
     m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
     m_pick_cloud->clear();
@@ -143,7 +140,7 @@ void PickPoints::add()
 // 重置当前PickPoints类中所有相关状态和视图
 void PickPoints::reset()
 {
-    if (is_picking) this->start();
+    stopPicking();
     pick_start = false;
     if (!m_pick_cloud->empty()){
         m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
@@ -151,7 +148,6 @@ void PickPoints::reset()
     }
     m_selected_cloud = nullptr;
 
-    // 移除形状，也就是视图中绘制的形状，例如箭头和矩形框
     m_cloudview->removeShape(POLYGONAL_ID);
     m_cloudview->removeShape(ARROW_ID);
 
@@ -163,15 +159,19 @@ void PickPoints::reset()
 
 void PickPoints::updateInfo(int index)
 {
-    QString modeStr = "";
-    if (index == PICK_SINGLE) modeStr = "Single Point";
-    else if (index == PICK_PAIR) modeStr = "Two Points(Diatance)";
-    else modeStr = "Polygon";
+    // 切换模式时清理视觉状态
+    pick_start = false;
+    if (!m_pick_cloud->empty()){
+        m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
+        m_pick_cloud->clear();
+    }
+    m_cloudview->removeShape(ARROW_ID);
+    m_cloudview->removeShape(POLYGONAL_ID);
 
+    QString modeStr = (index == PICK_SINGLE) ? "Single Point" : "Polygon";
     QString status = is_picking ? "[ON]" : "[OFF]";
     m_cloudview->showInfo(QString("PickPoints %1(%2)").arg(status).arg(modeStr), 1);
 
-    //切换模式时隐藏面板
     if (index != PICK_SINGLE){
         if (ui->infoBrowser->isVisible()){
             ui->infoBrowser->setVisible(false);
@@ -264,7 +264,6 @@ void PickPoints::mouseLeftPressed(const ct::PointXY &pt)
         m_pick_cloud->addPoint(current_pt);
         m_pick_cloud->setId(m_selected_cloud->id() + PICKING_PRE_FLAG);
 
-        //高亮显示红点
         m_pick_cloud->setPointSize(15);
         m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
         m_cloudview->addPointCloud(m_pick_cloud);
@@ -273,29 +272,6 @@ void PickPoints::mouseLeftPressed(const ct::PointXY &pt)
         updatePanelInfo(res);
 
         printI(QString("Picked Point: (%1, %2, %3)").arg(current_pt.x).arg(current_pt.y).arg(current_pt.z));
-    }
-    else if (mode == PICK_PAIR){
-        if(ui->infoBrowser->isVisible()){
-            ui->infoBrowser->setVisible(false);
-            this->adjustSize();
-        }
-
-        if (!pick_start){
-            //第一点
-            m_pick_point = pt;
-            m_pick_cloud->clear();
-
-            m_pick_cloud->addPoint(current_pt);
-
-            m_pick_cloud->setPointSize(15);
-            m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
-            m_cloudview->addPointCloud(m_pick_cloud);
-            m_cloudview->setPointCloudColor(m_pick_cloud, ct::Color::Red);
-            m_cloudview->removeShape(ARROW_ID);
-
-            pick_start = true;
-            m_cloudview->showInfo("Pick End Point...", 3);
-        } // 第二点在 mouseLeftReleased 中处理
     }
     else if(mode == PICK_MULTI){
         if(ui->infoBrowser->isVisible()){
@@ -320,44 +296,8 @@ void PickPoints::mouseLeftPressed(const ct::PointXY &pt)
     }
 }
 
-void PickPoints::mouseLeftReleased(const ct::PointXY &pt)
+void PickPoints::mouseLeftReleased(const ct::PointXY &)
 {
-    // 仅处理两点模式的第二点
-    if (ui->cbox_type->currentIndex() == PICK_PAIR && pick_start){
-        if(m_pick_point.x == pt.x && m_pick_point.y == pt.y) return;
-
-        ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
-        if (!res.valid) return;
-
-        ct::PointXYZRGBN end_pt = res.point;
-
-        m_pick_cloud->addPoint(end_pt);
-
-        //画线
-        m_pick_cloud->setPointSize(15);
-        m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
-        m_cloudview->addPointCloud(m_pick_cloud);
-        m_cloudview->setPointCloudColor(m_pick_cloud, ct::Color::Red);
-
-        ct::PointXYZRGBN start_pt;
-        ct::PointXYZ first_pt;
-        if (m_pick_cloud->getFirstPoint(first_pt)) {
-            start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
-        }
-
-        m_cloudview->addArrow(end_pt, start_pt, ARROW_ID, true, ct::Color::Green);
-
-        float distance = (start_pt.getVector3fMap() - end_pt.getVector3fMap()).norm();
-
-        m_cloudview->showInfo(QString("Distance: %1").arg(distance), 5, ct::Color::Yellow);
-
-        pick_start = false;
-
-        if(ui->infoBrowser->isVisible()){
-            ui->infoBrowser->setVisible(false);
-            this->adjustSize();
-        }
-    }
 }
 
 void PickPoints::mouseRightReleased(const ct::PointXY&)
@@ -382,7 +322,6 @@ void PickPoints::mouseMoved(const ct::PointXY &pt)
 
     ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
     if (!res.valid){
-        if (ui->cbox_type->currentIndex() == PICK_PAIR) m_cloudview->removeShape(ARROW_ID);
         if (ui->cbox_type->currentIndex() == PICK_MULTI) m_cloudview->removeShape(POLYGONAL_ID);
         return;
     }
@@ -390,17 +329,7 @@ void PickPoints::mouseMoved(const ct::PointXY &pt)
     ct::PointXYZRGBN  current_hover_pt = res.point;
     int mode = ui->cbox_type->currentIndex();
 
-    if (mode == PICK_PAIR){
-        if (m_pick_cloud->empty()) return;
-
-        ct::PointXYZRGBN start_pt;
-        ct::PointXYZ first_pt;
-        if (m_pick_cloud->getFirstPoint(first_pt)) {
-            start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
-        }
-        m_cloudview->addArrow(current_hover_pt, start_pt, ARROW_ID, true, ct::Color::Green);
-    }
-    else if (mode == PICK_MULTI){
+    if (mode == PICK_MULTI){
         // 创建临时点云用于显示多边形
         ct::Cloud::Ptr tmp_cloud = std::make_shared<ct::Cloud>();
         tmp_cloud->addPoint(current_hover_pt);

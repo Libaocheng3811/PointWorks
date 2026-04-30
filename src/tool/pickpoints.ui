@@ -41,29 +41,9 @@
           </property>
           <property name="icon">
            <iconset resource="../resources/res.qrc">
-            <normaloff>:/res/icon/format-segment-line.svg</normaloff>:/res/icon/format-segment-line.svg</iconset>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../resources/res.qrc">
             <normaloff>:/res/icon/format-add-node.svg</normaloff>:/res/icon/format-add-node.svg</iconset>
           </property>
          </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btn_start">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="../resources/res.qrc">
-           <normaloff>:/res/icon/start.svg</normaloff>:/res/icon/start.svg</iconset>
-         </property>
         </widget>
        </item>
        <item>

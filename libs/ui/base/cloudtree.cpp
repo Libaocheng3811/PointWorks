@@ -253,7 +253,7 @@ namespace ct
 
 
     void CloudTree::insertCloud(const Cloud::Ptr& cloud, QTreeWidgetItem* parentItem,
-                                 bool selected, MountStrategy strategy, SceneNodeType nodeType)
+                                 bool selected, MountStrategy strategy, SceneNodeType nodeType, bool auto_zoom)
     {
         // check cloud id
         if (cloud == nullptr) return;
@@ -323,7 +323,7 @@ namespace ct
             targetView->addBox(cloud);
         }
 
-        if (!cloud->empty()) {
+        if (auto_zoom && !cloud->empty()) {
             Eigen::Vector3f min_pt = cloud->min().getVector3fMap();
             Eigen::Vector3f max_pt = cloud->max().getVector3fMap();
             targetView->zoomToBounds(min_pt, max_pt);
