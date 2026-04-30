@@ -36,6 +36,7 @@ PickPoints::PickPoints(QWidget *parent) :
     connect(ui->btn_close, &QPushButton::clicked, this, &PickPoints::close);
 
     ui->cbox_type->setCurrentIndex(0);
+    updateButtonStates();
 
     QTimer::singleShot(0, this, [this](){
         this->adjustSize();
@@ -69,6 +70,7 @@ void PickPoints::init()
     connect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &PickPoints::mouseRightReleased);
     connect(m_cloudview, &ct::CloudView::mouseMoved, this, &PickPoints::mouseMoved);
     this->updateInfo(ui->cbox_type->currentIndex());
+    updateButtonStates();
 }
 
 void PickPoints::stopPicking()
@@ -135,18 +137,16 @@ void PickPoints::add()
     }
 
     printI(QString("Add picking cloud[id:%1] done.").arg(QString::fromStdString(new_cloud->id())));
+    updateButtonStates();
 }
 
-// 重置当前PickPoints类中所有相关状态和视图
 void PickPoints::reset()
 {
-    stopPicking();
     pick_start = false;
     if (!m_pick_cloud->empty()){
         m_cloudview->removePointCloud(QString::fromStdString(m_pick_cloud->id()));
         m_pick_cloud->clear();
     }
-    m_selected_cloud = nullptr;
 
     m_cloudview->removeShape(POLYGONAL_ID);
     m_cloudview->removeShape(ARROW_ID);
@@ -155,6 +155,7 @@ void PickPoints::reset()
         ui->infoBrowser->setVisible(false);
         this->adjustSize();
     }
+    updateButtonStates();
 }
 
 void PickPoints::updateInfo(int index)
@@ -178,6 +179,7 @@ void PickPoints::updateInfo(int index)
             this->adjustSize();
         }
     }
+    updateButtonStates();
 }
 
 void PickPoints::updatePanelInfo(const ct::PickResult& res) {
@@ -249,6 +251,13 @@ void PickPoints::updatePanelInfo(const ct::PickResult& res) {
     }
 }
 
+void PickPoints::updateButtonStates()
+{
+    bool hasPicked = !m_pick_cloud->empty();
+    ui->btn_add->setEnabled(hasPicked);
+    ui->btn_reset->setEnabled(hasPicked);
+}
+
 void PickPoints::mouseLeftPressed(const ct::PointXY &pt)
 {
     ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
@@ -270,6 +279,7 @@ void PickPoints::mouseLeftPressed(const ct::PointXY &pt)
         m_cloudview->setPointCloudColor(m_pick_cloud, ct::Color::Red);
 
         updatePanelInfo(res);
+        updateButtonStates();
 
         printI(QString("Picked Point: (%1, %2, %3)").arg(current_pt.x).arg(current_pt.y).arg(current_pt.z));
     }
@@ -312,6 +322,7 @@ void PickPoints::mouseRightReleased(const ct::PointXY&)
             m_cloudview->setPointCloudSize(QString::fromStdString(m_pick_cloud->id()), m_pick_cloud->pointSize() + 3);
             m_cloudview->addPolygon(m_pick_cloud, POLYGONAL_ID, ct::Color::Green);
             pick_start = false;
+            updateButtonStates();
         }
     }
 }

@@ -126,6 +126,10 @@ namespace ct
         void renameCloudItem(QTreeWidgetItem* item, const QString& name);
         QString makeUniqueName(const QString& desiredName);
 
+    public:
+        // 供工具对话框使用：按 cloud id 查找 item 并重命名
+        void renameCloudById(const QString& old_id, const QString& new_id);
+
     signals:
         void removedCloudId(const QString&);
         void cloudInserted(Cloud::Ptr cloud);

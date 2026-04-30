@@ -386,6 +386,12 @@ namespace ct
                 .arg(QString::fromStdString(cloud->id())).arg(cloud->size()).arg(QString::fromStdString(new_cloud->id())).arg(new_cloud->size()));
     }
 
+    void CloudTree::renameCloudById(const QString& old_id, const QString& new_id)
+    {
+        QTreeWidgetItem* item = getItemById(old_id);
+        if (item) renameCloudItem(item, new_id);
+    }
+
     void CloudTree::removeCloudItem(QTreeWidgetItem *item)
     {
         if (!item) return;

@@ -43,6 +43,7 @@ public:
 private:
     void updateInfo(int index);
     void updatePanelInfo(const ct::PickResult& res);
+    void updateButtonStates();
 
 public slots:
     void mouseLeftPressed(const ct::PointXY& pt);

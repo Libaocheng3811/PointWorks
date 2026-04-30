@@ -228,6 +228,15 @@ namespace ct {
          */
         Cloud::Ptr areaPick(const std::vector<PointXY>& points, const Cloud::Ptr& cloud, bool in_out = false);
 
+        /**
+         * @brief 一次遍历同时输出区域内外两个点云，避免二次遍历
+         * @return {inside_cloud, outside_cloud}
+         */
+        std::pair<Cloud::Ptr, Cloud::Ptr> areaPickSplit(
+            const std::vector<PointXY>& points,
+            const Cloud::Ptr& cloud,
+            bool in_out = false);
+
 
         ///////////////////////////////////////////////////////
         // remove

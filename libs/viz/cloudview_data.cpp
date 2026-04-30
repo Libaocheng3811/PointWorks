@@ -992,6 +992,123 @@ namespace ct
         return result_cloud;
     }
 
+    std::pair<ct::Cloud::Ptr, ct::Cloud::Ptr>
+    CloudView::areaPickSplit(const std::vector<PointXY>& poly_points,
+                              const Cloud::Ptr& cloud, bool in_out)
+    {
+        if (poly_points.size() < 3 || !cloud) return {nullptr, nullptr};
+
+        Cloud::Ptr inside_cloud(new Cloud);
+        Cloud::Ptr outside_cloud(new Cloud);
+        inside_cloud->initOctree(cloud->box());
+        outside_cloud->initOctree(cloud->box());
+
+        if (cloud->hasColors()) { inside_cloud->enableColors(); outside_cloud->enableColors(); }
+        if (cloud->hasNormals()) { inside_cloud->enableNormals(); outside_cloud->enableNormals(); }
+
+        std::vector<std::string> scalar_names = cloud->getScalarFieldNames();
+
+        int size = poly_points.size();
+        std::vector<float> constant(size);
+        std::vector<float> multiple(size);
+        int i, j = size - 1;
+        for (i = 0; i < size; i++) {
+            if (poly_points[j].y == poly_points[i].y) {
+                constant[i] = poly_points[i].x;
+                multiple[i] = 0;
+            } else {
+                constant[i] = poly_points[i].x - (poly_points[i].y * poly_points[j].x) / (poly_points[j].y - poly_points[i].y) +
+                              (poly_points[i].y * poly_points[i].x) / (poly_points[j].y - poly_points[i].y);
+                multiple[i] = (poly_points[j].x - poly_points[i].x) / (poly_points[j].y - poly_points[i].y);
+            }
+            j = i;
+        }
+
+        auto worldToDisplay = [&](const pcl::PointXYZ& pt, double out[3]) {
+            m_render->SetWorldPoint(pt.x, pt.y, pt.z, 1.0);
+            m_render->WorldToDisplay();
+            m_render->GetDisplayPoint(out);
+        };
+
+        const auto& blocks = cloud->getBlocks();
+
+        std::vector<PointXYZ> in_pts, out_pts;
+        std::vector<ColorRGB> in_colors, out_colors;
+        std::vector<CompressedNormal> in_normals, out_normals;
+        std::unordered_map<std::string, std::vector<float>> in_scalars, out_scalars;
+
+        size_t batch_limit = 50000;
+        in_pts.reserve(batch_limit);
+        out_pts.reserve(batch_limit);
+
+        auto flushBatch = [&](Cloud::Ptr& target, std::vector<PointXYZ>& pts,
+                              std::vector<ColorRGB>& colors,
+                              std::vector<CompressedNormal>& normals,
+                              std::unordered_map<std::string, std::vector<float>>& scalars) {
+            target->addPoints(pts,
+                              colors.empty() ? nullptr : &colors,
+                              normals.empty() ? nullptr : &normals,
+                              scalars.empty() ? nullptr : &scalars);
+            pts.clear(); colors.clear(); normals.clear();
+            for (auto& v : scalars) v.second.clear();
+        };
+
+        for (const auto& block : blocks) {
+            if (block->empty()) continue;
+
+            size_t n = block->size();
+            for (size_t k = 0; k < n; k++) {
+                const auto& pt = block->m_points[k];
+                double p[3];
+                worldToDisplay(pt, p);
+
+                bool oddNodes = in_out;
+                bool current = poly_points[size - 1].y > p[1];
+                bool previous;
+
+                for (int m = 0; m < size; m++) {
+                    previous = current;
+                    current = poly_points[m].y > p[1];
+                    if (current != previous)
+                        oddNodes ^= (p[1] * multiple[m] + constant[m] < p[0]);
+                }
+
+                auto& dst_pts = oddNodes ? in_pts : out_pts;
+                auto& dst_colors = oddNodes ? in_colors : out_colors;
+                auto& dst_normals = oddNodes ? in_normals : out_normals;
+                auto& dst_scalars = oddNodes ? in_scalars : out_scalars;
+
+                dst_pts.push_back(pt);
+
+                if (cloud->hasColors() && block->m_colors)
+                    dst_colors.push_back((*block->m_colors)[k]);
+
+                if (cloud->hasNormals() && block->m_normals)
+                    dst_normals.push_back((*block->m_normals)[k]);
+
+                for (const auto& name : scalar_names) {
+                    if (block->m_scalar_fields.count(name))
+                        dst_scalars[name].push_back(block->m_scalar_fields[name][k]);
+                    else
+                        dst_scalars[name].push_back(0.0f);
+                }
+
+                if (dst_pts.size() >= batch_limit)
+                    flushBatch(oddNodes ? inside_cloud : outside_cloud,
+                               dst_pts, dst_colors, dst_normals, dst_scalars);
+            }
+        }
+
+        if (!in_pts.empty())
+            flushBatch(inside_cloud, in_pts, in_colors, in_normals, in_scalars);
+        if (!out_pts.empty())
+            flushBatch(outside_cloud, out_pts, out_colors, out_normals, out_scalars);
+
+        inside_cloud->update();
+        outside_cloud->update();
+        return {inside_cloud, outside_cloud};
+    }
+
     ///////////////////////////////////////////////////////////////////
     // remove
     void CloudView::removePointCloud(const QString &id)
