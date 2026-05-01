@@ -74,12 +74,14 @@ void ViewCube::updateCameraOrientation(const Vector3f& dir, const Vector3f& up)
 
 void ViewCube::updateBasis()
 {
-    m_right = m_cameraDir.cross(m_cameraUp).normalized();
+    // m_cameraDir points from focal point TO camera (not view direction).
+    // Use the reversed cross order to get the correct screen-right vector.
+    m_right = m_cameraUp.cross(m_cameraDir).normalized();
     if (m_right.norm() < 1e-6f) {
         m_right = Vector3f(1, 0, 0);
         if (std::abs(m_cameraDir.x()) > 0.9f) m_right = Vector3f(0, 0, 1);
     }
-    m_projUp = m_right.cross(m_cameraDir).normalized();
+    m_projUp = m_cameraDir.cross(m_right).normalized();
 }
 
 // ============================================================
@@ -168,7 +170,7 @@ void ViewCube::applyDragRotation(int dx, int dy)
     m_cameraUp  = rotateAround(m_cameraUp,  m_projUp, angleH).normalized();
     updateBasis();
 
-    float angleV = dy * sensitivity;
+    float angleV = -dy * sensitivity;
     m_cameraDir = rotateAround(m_cameraDir, m_right, angleV).normalized();
     m_cameraUp  = rotateAround(m_cameraUp,  m_right, angleV).normalized();
     updateBasis();

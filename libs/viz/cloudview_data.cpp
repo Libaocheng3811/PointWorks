@@ -1317,12 +1317,24 @@ namespace ct
     void CloudView::addCoordinateSystem(const Coord& coord)
     {
         QString qid = QString::fromStdString(coord.id);
-        if (m_viewer->contains(qid.toStdString()))
-            m_viewer->removeCoordinateSystem(qid.toStdString());
+        std::string sid = qid.toStdString();
+        if (m_viewer->contains(sid))
+            m_viewer->removeShape(sid);
 
-        vtkObject::GlobalWarningDisplayOff();
-        m_viewer->addCoordinateSystem(coord.scale, coord.pose, qid.toStdString());
-        vtkObject::GlobalWarningDisplayOn();
+        double s = coord.scale;
+        const auto& m = coord.pose.matrix();
+        double ox = m(0,3), oy = m(1,3), oz = m(2,3);
+
+        // 三根坐标轴用 PCL addArrow 绘制（红X 绿Y 蓝Z），绕过 vtkDataSetSurfaceFilter
+        ct::PointXYZRGBN origin, xEnd, yEnd, zEnd;
+        origin.x = ox; origin.y = oy; origin.z = oz;
+        xEnd.x = ox + m(0,0)*s; xEnd.y = oy + m(1,0)*s; xEnd.z = oz + m(2,0)*s;
+        yEnd.x = ox + m(0,1)*s; yEnd.y = oy + m(1,1)*s; yEnd.z = oz + m(2,1)*s;
+        zEnd.x = ox + m(0,2)*s; zEnd.y = oy + m(1,2)*s; zEnd.z = oz + m(2,2)*s;
+
+        m_viewer->addArrow(xEnd, origin, 1.0, 0.0, 0.0, false, sid + "_x");
+        m_viewer->addArrow(yEnd, origin, 0.0, 1.0, 0.0, false, sid + "_y");
+        m_viewer->addArrow(zEnd, origin, 0.0, 0.0, 1.0, false, sid + "_z");
 
         m_coord_ids.insert(qid);
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
@@ -1330,15 +1342,22 @@ namespace ct
 
     void CloudView::removeCoordinateSystem(const QString& id)
     {
-        m_viewer->removeCoordinateSystem(id.toStdString());
+        std::string sid = id.toStdString();
+        m_viewer->removeShape(sid + "_x");
+        m_viewer->removeShape(sid + "_y");
+        m_viewer->removeShape(sid + "_z");
         m_coord_ids.remove(id);
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
     void CloudView::removeAllCoordinateSystems()
     {
-        for (const auto& id : m_coord_ids)
-            m_viewer->removeCoordinateSystem(id.toStdString());
+        for (const auto& id : m_coord_ids) {
+            std::string sid = id.toStdString();
+            m_viewer->removeShape(sid + "_x");
+            m_viewer->removeShape(sid + "_y");
+            m_viewer->removeShape(sid + "_z");
+        }
         m_coord_ids.clear();
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }

@@ -2,6 +2,7 @@
 #include "ui_coordinate.h"
 
 #include <QRegularExpression>
+#include <cmath>
 
 Coordinate::Coordinate(QWidget* parent)
     : CustomDialog(parent), ui(new Ui::Coordinate)
@@ -36,7 +37,23 @@ void Coordinate::init()
                 m_origin_coord.scale = value;
                 m_cloudview->addCoordinateSystem(m_origin_coord);
             });
-    m_cloudview->addCoordinateSystem(m_origin_coord);
+
+    // 根据场景包围盒自动计算合适的坐标轴长度（对角线的 5%）
+    double autoScale = 1.0;
+    auto clouds = m_cloudtree->getAllClouds();
+    if (!clouds.empty()) {
+        double maxDiag = 0;
+        for (auto& cloud : clouds) {
+            auto box = cloud->box();
+            double diag = std::sqrt(box.width * box.width +
+                                     box.height * box.height +
+                                     box.depth * box.depth);
+            maxDiag = std::max(maxDiag, diag);
+        }
+        if (maxDiag > 0)
+            autoScale = maxDiag * 0.10;
+    }
+    ui->dspin_scale->setValue(autoScale);
 }
 
 void Coordinate::deinit()
@@ -73,7 +90,10 @@ void Coordinate::reset()
 
 void Coordinate::addCoord()
 {
-    if (ui->lineEdit_coord_id->text().isEmpty()) return;
+    if (ui->lineEdit_coord_id->text().isEmpty()) {
+        printW("Coordinate ID is empty, please enter an ID first!");
+        return;
+    }
     QString id = ui->lineEdit_coord_id->text();
     if (m_cloudview->contains(id)) {
         printW(QString("The coordinate id[%1] already exists!").arg(id));
@@ -81,12 +101,16 @@ void Coordinate::addCoord()
     }
     Eigen::Affine3f affine;
     if (!parseMatrixText(ui->txt_matrix->toPlainText(), affine)) {
-        printW("The transformation matrix format is wrong");
+        printW("The transformation matrix format is wrong (need 4x4 matrix)");
         return;
     }
     ct::Coord add_coord(id.toStdString(), ui->dspin_scale->value(), affine);
     m_cloudview->addCoordinateSystem(add_coord);
-    printI(QString("Add coordinate[id:%1] done.").arg(id));
+    m_cloudview->resetCamera();
+
+    Eigen::Vector3f t = affine.translation();
+    printI(QString("Add coordinate[id:%1] done. position=(%2, %3, %4) scale=%5")
+               .arg(id).arg(t.x()).arg(t.y()).arg(t.z()).arg(add_coord.scale));
 }
 
 void Coordinate::closeCoord()

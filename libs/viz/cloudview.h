@@ -492,6 +492,9 @@ namespace ct {
             if (m_textured_mesh_actors.contains(id)) {
                 return true;
             }
+            if (m_coord_ids.contains(id)) {
+                return true;
+            }
             // 调用pcl::visualization::PCLVisualizer::Ptr类的contains方法，返回一个bool值，表示是否包含这个id
             return m_viewer->contains(id.toStdString());
         }
