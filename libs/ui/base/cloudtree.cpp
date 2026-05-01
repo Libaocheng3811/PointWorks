@@ -442,7 +442,12 @@ namespace ct
                 // 清理附属 shape（如边界多段线）
                 QString shape_id = c->data(0, NodeShapeIdRole).toString();
                 if (!shape_id.isEmpty()) {
-                    resolveView(c)->removeShape(shape_id);
+                    if (m_viewport_mgr) {
+                        for (auto* v : m_viewport_mgr->allViews())
+                            v->removeShape(shape_id);
+                    } else {
+                        m_cloudview->removeShape(shape_id);
+                    }
                     m_registry->unregisterShape(shape_id);
                     m_registry->unregisterCloudPolyline(shape_id);
                 }
@@ -604,10 +609,14 @@ namespace ct
         }
 
         item->setText(0, finalName);
-        CloudView* cv = resolveView(item);
-        cv->removePointCloud(QString::fromStdString(cloud->id()));
-        cv->removePointCloud(QString::fromStdString(cloud->normalId()));
-        cv->removeShape(QString::fromStdString(cloud->boxId()));
+        QList<CloudView*> views = resolveViews(item);
+        if (views.isEmpty()) views = { m_cloudview };
+        QString oldId = QString::fromStdString(cloud->id());
+        for (CloudView* cv : views) {
+            cv->removePointCloud(oldId);
+            cv->removePointCloud(QString::fromStdString(cloud->normalId()));
+            cv->removeShape(QString::fromStdString(cloud->boxId()));
+        }
 
         m_registry->updateItemId(QString::fromStdString(cloud->id()), finalName, item);
         cloud->setId(finalName.toStdString());
@@ -1902,9 +1911,13 @@ namespace ct
                 for (QTreeWidgetItem* ch : children) {
                     Cloud::Ptr c = getCloud(ch);
                     if (c) {
-                        CloudView* cv = resolveView(ch);
-                        cv->removePointCloud(QString::fromStdString(c->id()));
-                        cv->removeShape(QString::fromStdString(c->id()));
+                        QList<CloudView*> views = resolveViews(ch);
+                        if (views.isEmpty()) views = { m_cloudview };
+                        QString cid = QString::fromStdString(c->id());
+                        for (CloudView* cv : views) {
+                            cv->removePointCloud(cid);
+                            cv->removeShape(cid);
+                        }
                     }
                     m_registry->unregisterCloud(ch);
                 }
@@ -1937,10 +1950,14 @@ namespace ct
         const bool wasBlocked = this->blockSignals(true);
         if (originItem->checkState(0) == Qt::Checked){
             originItem->setCheckState(0, Qt::Unchecked);
-            CloudView* originView = resolveView(originItem);
-            originView->removePointCloud(QString::fromStdString(originCloud->id()));
-            originView->removeShape(QString::fromStdString(originCloud->id()));
-            originView->removePointCloud(QString::fromStdString(originCloud->normalId()));
+            QList<CloudView*> originViews = resolveViews(originItem);
+            if (originViews.isEmpty()) originViews = { m_cloudview };
+            QString originCid = QString::fromStdString(originCloud->id());
+            for (CloudView* cv : originViews) {
+                cv->removePointCloud(originCid);
+                cv->removeShape(originCid);
+                cv->removePointCloud(QString::fromStdString(originCloud->normalId()));
+            }
         }
         this->blockSignals(wasBlocked);
 
@@ -1970,10 +1987,13 @@ namespace ct
         Cloud::Ptr cloud = getCloud(item);
         float opacity = cloud ? cloud->opacity() : 1.0f;
 
-        CloudView* cv = item ? resolveView(item) : m_cloudview;
-        cv->addMeshActor(mesh, cloudId);
-        if (opacity < 1.0f) {
-            cv->setTextureMeshOpacity(cloudId, opacity);
+        QList<CloudView*> views = item ? resolveViews(item) : QList<CloudView*>{ m_cloudview };
+        if (views.isEmpty()) views = { m_cloudview };
+        for (CloudView* cv : views) {
+            cv->addMeshActor(mesh, cloudId);
+            if (opacity < 1.0f) {
+                cv->setTextureMeshOpacity(cloudId, opacity);
+            }
         }
 
         // 如果该节点当前被选中，刷新属性栏以显示正确的面数等信息
@@ -2000,10 +2020,13 @@ namespace ct
         Cloud::Ptr cloud = getCloud(item);
         float opacity = cloud ? cloud->opacity() : 1.0f;
 
-        CloudView* cv2 = item ? resolveView(item) : m_cloudview;
-        cv2->addMeshActorFromPolydata(polydata, cloudId);
-        if (opacity < 1.0f) {
-            cv2->setTextureMeshOpacity(cloudId, opacity);
+        QList<CloudView*> views = item ? resolveViews(item) : QList<CloudView*>{ m_cloudview };
+        if (views.isEmpty()) views = { m_cloudview };
+        for (CloudView* cv : views) {
+            cv->addMeshActorFromPolydata(polydata, cloudId);
+            if (opacity < 1.0f) {
+                cv->setTextureMeshOpacity(cloudId, opacity);
+            }
         }
 
         if (item && item->isSelected()) {
@@ -2015,10 +2038,13 @@ namespace ct
     {
         m_registry->unregisterMesh(cloudId);
         QTreeWidgetItem* item = getItemById(cloudId);
-        CloudView* cv = item ? resolveView(item) : m_cloudview;
-        cv->removeTexturedMesh(cloudId);
-        cv->removePolygonMesh(cloudId);
-        cv->removeShape(cloudId);
+        QList<CloudView*> views = item ? resolveViews(item) : QList<CloudView*>{ m_cloudview };
+        if (views.isEmpty()) views = { m_cloudview };
+        for (CloudView* cv : views) {
+            cv->removeTexturedMesh(cloudId);
+            cv->removePolygonMesh(cloudId);
+            cv->removeShape(cloudId);
+        }
 
         if (item) {
             item->setData(0, NodeMeshIdRole, QVariant());
@@ -2057,7 +2083,10 @@ namespace ct
         m_registry->registerCloudPolyline(shapeId, cloud);
 
         // 立即绘制折线
-        resolveView(parentItem)->addPolylineFromCloud(cloud, shapeId);
+        QList<CloudView*> polyViews = resolveViews(parentItem);
+        if (polyViews.isEmpty()) polyViews = { m_cloudview };
+        for (CloudView* cv : polyViews)
+            cv->addPolylineFromCloud(cloud, shapeId);
     }
 
     void CloudTree::registerTexturedMesh(const QString& cloudId, const TexturedMeshPtr& texturedMesh)
@@ -2072,13 +2101,18 @@ namespace ct
 
         if (!texturedMesh->objFilePath.empty()) {
             // 纹理 mesh 用 VTK actor 渲染表面，移除之前注册的无纹理 mesh 和点云避免遮挡
-            CloudView* cv = item ? resolveView(item) : m_cloudview;
-            cv->removePolygonMesh(cloudId);
-            cv->removePointCloud(cloudId);
-            cv->addTexturedMesh(QString::fromStdString(texturedMesh->objFilePath), cloudId);
+            QList<CloudView*> views = item ? resolveViews(item) : QList<CloudView*>{ m_cloudview };
+            if (views.isEmpty()) views = { m_cloudview };
+            for (CloudView* cv : views) {
+                cv->removePolygonMesh(cloudId);
+                cv->removePointCloud(cloudId);
+                cv->addTexturedMesh(QString::fromStdString(texturedMesh->objFilePath), cloudId);
+            }
         } else {
-            CloudView* cv = item ? resolveView(item) : m_cloudview;
-            cv->addMeshActor(texturedMesh->mesh, cloudId);
+            QList<CloudView*> views = item ? resolveViews(item) : QList<CloudView*>{ m_cloudview };
+            if (views.isEmpty()) views = { m_cloudview };
+            for (CloudView* cv : views)
+                cv->addMeshActor(texturedMesh->mesh, cloudId);
         }
     }
 
@@ -2086,13 +2120,18 @@ namespace ct
     {
         m_registry->unregisterTexturedMesh(cloudId);
         QTreeWidgetItem* item = getItemById(cloudId);
-        CloudView* cv = item ? resolveView(item) : m_cloudview;
-        cv->removeTexturedMesh(cloudId);
+        QList<CloudView*> views = item ? resolveViews(item) : QList<CloudView*>{ m_cloudview };
+        if (views.isEmpty()) views = { m_cloudview };
+        for (CloudView* cv : views) {
+            cv->removeTexturedMesh(cloudId);
+        }
 
         // 同时清理普通 mesh 引用
         m_registry->unregisterMesh(cloudId);
-        cv->removePolygonMesh(cloudId);
-        cv->removeShape(cloudId);
+        for (CloudView* cv : views) {
+            cv->removePolygonMesh(cloudId);
+            cv->removeShape(cloudId);
+        }
 
         if (item) {
             item->setData(0, NodeMeshIdRole, QVariant());

@@ -105,6 +105,7 @@ void Cutting::stopPicking()
     m_cloudview->unsetCursor();
 
     m_cloudview->removeShape(POLYGONAL_ID);
+    m_cloudview->removeRect2D(POLYGONAL_ID);
     this->updateInfo(ui->cbox_type->currentIndex());
 }
 
@@ -163,6 +164,7 @@ void Cutting::reset()
 {
     pick_start = false;
     m_cloudview->removeShape(POLYGONAL_ID);
+    m_cloudview->removeRect2D(POLYGONAL_ID);
     for (auto& cut_cloud : m_cutting_map)
     {
         m_cloudview->removePointCloud(QString::fromStdString(cut_cloud.second->id()));
@@ -254,6 +256,8 @@ void Cutting::mouseLeftPressed(const ct::PointXY &pt)
     if (!pick_start)
     {
         m_pick_points.clear();
+        m_cloudview->removeShape(POLYGONAL_ID);
+        m_cloudview->removeRect2D(POLYGONAL_ID);
         m_pick_points.push_back(pt);
         pick_start = true;
     }
@@ -263,8 +267,13 @@ void Cutting::mouseLeftReleased(const ct::PointXY &pt)
 {
     if (pick_start)
     {
-        if ((m_pick_points.front().x == pt.x) && (m_pick_points.front().y == pt.y))
+        float dx = pt.x - m_pick_points.front().x;
+        float dy = pt.y - m_pick_points.front().y;
+        if (dx * dx + dy * dy < 400.0f)
+        {
+            m_cloudview->removeRect2D(POLYGONAL_ID);
             return;
+        }
 
         if (ui->cbox_type->currentIndex() == CUT_TYPE_RECTANGULAR)
         {
@@ -273,6 +282,7 @@ void Cutting::mouseLeftReleased(const ct::PointXY &pt)
             m_pick_points.push_back(p1);
             m_pick_points.push_back(pt);
             m_pick_points.push_back(p2);
+            m_cloudview->removeRect2D(POLYGONAL_ID);
             m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, ct::Color::Green);
             pick_start = false;
             updateButtonStates();
@@ -295,6 +305,8 @@ void Cutting::mouseRightReleased(const ct::PointXY &pt)
             m_pick_points.push_back(p1);
             m_pick_points.push_back(pt);
             m_pick_points.push_back(p2);
+            m_cloudview->removeRect2D(POLYGONAL_ID);
+            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, ct::Color::Green);
             pick_start = false;
             updateButtonStates();
         }
@@ -314,13 +326,11 @@ void Cutting::mouseMoved(const ct::PointXY &pt)
     {
         if (ui->cbox_type->currentIndex() == CUT_TYPE_RECTANGULAR)
         {
-            std::vector<ct::PointXY> pre_points = m_pick_points;
-            ct::PointXY p1(pre_points.front().x, pt.y);
-            ct::PointXY p2(pt.x, pre_points.front().y);
-            pre_points.push_back(p1);
-            pre_points.push_back(pt);
-            pre_points.push_back(p2);
-            m_cloudview->addPolygon2D(pre_points, POLYGONAL_ID, ct::Color::Green);
+            float dx = pt.x - m_pick_points.front().x;
+            float dy = pt.y - m_pick_points.front().y;
+            if (dx * dx + dy * dy < 400.0f)  // 最小 20 像素距离阈值
+                return;
+            m_cloudview->updateRect2D(m_pick_points.front(), pt, POLYGONAL_ID);
         }
         else
         {

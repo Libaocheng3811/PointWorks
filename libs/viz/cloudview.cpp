@@ -7,7 +7,9 @@ VTK_MODULE_INIT(vtkRenderingVolumeOpenGL2)
 VTK_MODULE_INIT(vtkRenderingFreeType)
 
 #include <vtkCamera.h>
+#include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkBillboardTextActor3D.h>
 #include <vtkCommand.h>
 #include <vtkNew.h>
 
@@ -154,7 +156,19 @@ namespace ct
     {
         if (this->interactor()) {
             this->interactor()->RemoveObserver(m_observer_tag);
+            if (m_interaction_tag)
+                this->interactor()->RemoveObserver(m_interaction_tag);
         }
+
+        for (auto it = m_textured_mesh_actors.begin(); it != m_textured_mesh_actors.end(); ++it) {
+            for (const auto& actor : it.value())
+                m_render->RemoveActor(actor);
+        }
+        m_textured_mesh_actors.clear();
+
+        for (auto it = m_badge_actors.begin(); it != m_badge_actors.end(); ++it)
+            m_render->RemoveActor(it.value());
+        m_badge_actors.clear();
 
         m_OctreeRenders.clear();
     }

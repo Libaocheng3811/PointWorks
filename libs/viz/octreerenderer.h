@@ -70,6 +70,9 @@ namespace ct{
         // 为节点创建或获取缓存的 Actor
         vtkActor* getOrCreateActor(OctreeNode* node, bool is_lod);
 
+        // 缓存驱逐：移除长时间不可见的 Actor 以释放 GPU 资源
+        void evictHiddenActors();
+
         // 辅助计算
         bool isBoxInFrustum(const Box& box, const double* planes);
         float projectSize(const Box& box, const Eigen::Vector3f& camPos, float pixelsPerUnit);
@@ -103,6 +106,11 @@ namespace ct{
         float m_base_threshold = 100.0f; // 基础阈值 (像素)
         // 限制同屏渲染的最大点数
         size_t m_point_budget = 20000000; // 默认 1000万点
+
+        // 缓存驱逐
+        std::unordered_map<OctreeNode*, int> m_hidden_frames; // 每个隐藏节点的连续不可见帧数
+        static constexpr size_t MAX_CACHED_ACTORS = 500;      // 驱逐阈值
+        static constexpr int EVICTION_FRAMES = 5;            // 连续隐藏多少帧后可驱逐
     };
 
 }// namespace ct

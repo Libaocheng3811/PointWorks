@@ -64,6 +64,7 @@ namespace ct {
             }
         }
         m_actor_cache.clear();
+        m_hidden_frames.clear();
     }
 
     void OctreeRenderer::setVisibility(bool visible) {
@@ -85,6 +86,7 @@ namespace ct {
         }
         m_actor_cache.clear();
         m_current_visible_nodes.clear();
+        m_hidden_frames.clear();
         m_force_update = true;
     }
 
@@ -301,6 +303,28 @@ namespace ct {
         }
 
         m_current_visible_nodes = std::move(next_visible_set);
+
+        // 5. 缓存驱逐：跟踪隐藏帧数，超限时移除不可见 Actor
+        for (auto* node : m_current_visible_nodes)
+            m_hidden_frames.erase(node);
+        for (auto& [node, actor] : m_actor_cache) {
+            if (m_current_visible_nodes.find(node) == m_current_visible_nodes.end())
+                m_hidden_frames[node]++;
+        }
+        if (m_actor_cache.size() > MAX_CACHED_ACTORS)
+            evictHiddenActors();
+    }
+
+    void OctreeRenderer::evictHiddenActors() {
+        for (auto it = m_hidden_frames.begin(); it != m_hidden_frames.end(); ) {
+            if (it->second >= EVICTION_FRAMES && m_actor_cache.count(it->first)) {
+                m_vtk_renderer->RemoveActor(m_actor_cache[it->first]);
+                m_actor_cache.erase(it->first);
+                it = m_hidden_frames.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
 
     vtkActor* OctreeRenderer::getOrCreateActor(OctreeNode* node, bool is_lod)

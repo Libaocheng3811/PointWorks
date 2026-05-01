@@ -8,6 +8,7 @@
 #include "octreerenderer.h"
 
 class vtkActor;
+class vtkPolyData;
 
 #include "QVTKOpenGLNativeWidget.h"
 #include <pcl/PolygonMesh.h>
@@ -207,6 +208,22 @@ namespace ct {
          */
         void addPolygon2D(const std::vector<PointXY>& points,
                           const QString& id = "polyline", const ColorRGB& rgb = Color::White);
+
+        /**
+         * @brief 添加轻量 2D 矩形 overlay（屏幕空间，不经过八叉树/PCL）
+         */
+        void addRect2D(const PointXY& p1, const PointXY& p2, const QString& id,
+                       const ColorRGB& rgb = Color::Green);
+
+        /**
+         * @brief 更新已有 2D 矩形 overlay 的顶点（就地修改，无分配）
+         */
+        void updateRect2D(const PointXY& p1, const PointXY& p2, const QString& id);
+
+        /**
+         * @brief 移除 2D 矩形 overlay
+         */
+        void removeRect2D(const QString& id);
 
 
         // point pick
@@ -641,6 +658,13 @@ namespace ct {
         unsigned long m_interaction_tag = 0; //保存交互回调的 ID
 
         ScalarBarWidget* m_scalar_bar_widget = nullptr;
+
+        // 轻量矩形框 overlay（用于裁剪框选预览，就地更新顶点）
+        struct Rect2DActor {
+            vtkSmartPointer<vtkActor> actor;
+            vtkSmartPointer<vtkPolyData> polydata;
+        };
+        QMap<QString, Rect2DActor> m_rect2d_actors;
 
     };
 } // namespace ct

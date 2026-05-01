@@ -826,6 +826,91 @@ namespace ct
         this->addPolygon(cloud, id, rgb);
     }
 
+    ///////////////////////////////////////////////////////////////////
+    // Lightweight rectangle overlay (wireframe, for cutting preview)
+    void CloudView::addRect2D(const PointXY& p1, const PointXY& p2, const QString& id,
+                              const ColorRGB& rgb)
+    {
+        removeRect2D(id);
+
+        // 用 displayToWorld 将 2D 像素坐标转为 3D 世界坐标（与 addPolygon2D 相同的方式）
+        auto w1 = displayToWorld(p1);
+        auto w2 = displayToWorld(p2);
+        auto w3 = displayToWorld(PointXY(p1.x, p2.y));
+        auto w4 = displayToWorld(PointXY(p2.x, p1.y));
+
+        auto points = vtkSmartPointer<vtkPoints>::New();
+        points->SetNumberOfPoints(5); // 4 corners + 1 closing point
+        points->SetPoint(0, w1.x, w1.y, w1.z);
+        points->SetPoint(1, w4.x, w4.y, w4.z);
+        points->SetPoint(2, w2.x, w2.y, w2.z);
+        points->SetPoint(3, w3.x, w3.y, w3.z);
+        points->SetPoint(4, w1.x, w1.y, w1.z); // close loop
+
+        auto lines = vtkSmartPointer<vtkCellArray>::New();
+        lines->InsertNextCell(5);
+        for (int i = 0; i < 5; i++) lines->InsertCellPoint(i);
+
+        auto polydata = vtkSmartPointer<vtkPolyData>::New();
+        polydata->SetPoints(points);
+        polydata->SetLines(lines);
+
+        auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        mapper->SetInputData(polydata);
+
+        auto actor = vtkSmartPointer<vtkActor>::New();
+        actor->SetMapper(mapper);
+        actor->GetProperty()->SetColor(rgb.rf(), rgb.gf(), rgb.bf());
+        actor->GetProperty()->SetLineWidth(2);
+        actor->GetProperty()->SetRepresentationToWireframe();
+        actor->GetProperty()->SetAmbient(1.0);
+        actor->GetProperty()->SetDiffuse(0.0);
+        actor->PickableOff();
+
+        m_render->AddActor(actor);
+
+        Rect2DActor entry;
+        entry.actor = actor;
+        entry.polydata = polydata;
+        m_rect2d_actors[id] = entry;
+
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::updateRect2D(const PointXY& p1, const PointXY& p2, const QString& id)
+    {
+        auto it = m_rect2d_actors.find(id);
+        if (it == m_rect2d_actors.end()) {
+            addRect2D(p1, p2, id);
+            return;
+        }
+
+        auto w1 = displayToWorld(p1);
+        auto w2 = displayToWorld(p2);
+        auto w3 = displayToWorld(PointXY(p1.x, p2.y));
+        auto w4 = displayToWorld(PointXY(p2.x, p1.y));
+
+        vtkPoints* pts = it.value().polydata->GetPoints();
+        pts->SetPoint(0, w1.x, w1.y, w1.z);
+        pts->SetPoint(1, w4.x, w4.y, w4.z);
+        pts->SetPoint(2, w2.x, w2.y, w2.z);
+        pts->SetPoint(3, w3.x, w3.y, w3.z);
+        pts->SetPoint(4, w1.x, w1.y, w1.z);
+        pts->Modified();
+        it.value().polydata->Modified();
+
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
+    void CloudView::removeRect2D(const QString& id)
+    {
+        auto it = m_rect2d_actors.find(id);
+        if (it == m_rect2d_actors.end()) return;
+        m_render->RemoveActor(it.value().actor);
+        m_rect2d_actors.erase(it);
+        if (m_auto_render) m_viewer->getRenderWindow()->Render();
+    }
+
     // point pick
     PickResult CloudView::singlePick(const ct::PointXY &pos, const QString& target_cloud_id)
     {
@@ -1120,6 +1205,14 @@ namespace ct
 
         m_OctreeRenders.remove(id);
 
+        // 清理同 ID 关联的纹理网格 Actor
+        auto tmit = m_textured_mesh_actors.find(id);
+        if (tmit != m_textured_mesh_actors.end()) {
+            for (const auto& actor : tmit.value())
+                m_render->RemoveActor(actor);
+            m_textured_mesh_actors.erase(tmit);
+        }
+
         std::string preview_id = id.toStdString() + "_preview";
         if (m_viewer->contains(preview_id)) m_viewer->removePointCloud(preview_id);
         if (m_viewer->contains(id.toStdString())) m_viewer->removePointCloud(id.toStdString());
@@ -1159,6 +1252,14 @@ namespace ct
     {
         m_visible_clouds.clear();
         m_OctreeRenders.clear();
+
+        // 清理所有纹理网格 Actor
+        for (auto it = m_textured_mesh_actors.begin(); it != m_textured_mesh_actors.end(); ++it) {
+            for (const auto& actor : it.value())
+                m_render->RemoveActor(actor);
+        }
+        m_textured_mesh_actors.clear();
+
         m_viewer->removeAllPointClouds();
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
