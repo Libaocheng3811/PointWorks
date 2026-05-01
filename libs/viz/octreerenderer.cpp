@@ -257,7 +257,7 @@ namespace ct {
                 for (int i = 0; i < 8; ++i) {
                     if (node->m_children[i]) {
                         float childSize = projectSize(node->m_children[i]->m_box, camPos, pixelsPerUnit);
-                        queue.push({node->m_children[i], childSize});
+                        queue.push({node->m_children[i].get(), childSize});
                     }
                 }
             }

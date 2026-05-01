@@ -642,7 +642,7 @@ namespace ct {
         ViewCube* m_view_cube = nullptr;
 
         // 维护一个正在显示的Cloud::Ptr列表，方便进行预览模式切换
-        std::vector<Cloud::Ptr> m_visible_clouds;
+        std::vector<std::weak_ptr<Cloud>> m_visible_clouds;
         bool m_auto_render = true; //默认开启自动渲染
 
         // updateRenderers 相机状态缓存（避免 static 变量跨实例共享）

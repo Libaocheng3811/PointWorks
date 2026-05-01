@@ -30,6 +30,8 @@
 
 #include <cmath>
 #include <limits>
+#include <algorithm>
+#include <unordered_map>
 
 namespace ct
 {
@@ -39,10 +41,12 @@ namespace ct
     void CloudView::addPointCloud(const Cloud::Ptr &cloud)
     {
         bool found = false;
-        for (auto& c : m_visible_clouds){
-            if (c->id() == cloud->id()) {
-                found = true;
-                break;
+        for (auto& weak_c : m_visible_clouds){
+            if (auto c = weak_c.lock()) {
+                if (c->id() == cloud->id()) {
+                    found = true;
+                    break;
+                }
             }
         }
         if (!found) m_visible_clouds.push_back(cloud);
@@ -167,17 +171,47 @@ namespace ct
         if (m_viewer->contains(std_id))
             m_viewer->removeShape(std_id);
 
-        auto srcPCL = source_points->toPCL_XYZRGB();
-        auto tgtPCL = target_points->toPCL_XYZRGB();
+        // PCL addCorrespondences 按 index 引用点云，只需提取实际被引用的子集
+        std::vector<int> srcIndices, tgtIndices;
+        srcIndices.reserve(correspondences->size());
+        tgtIndices.reserve(correspondences->size());
+        for (const auto& c : *correspondences) {
+            srcIndices.push_back(c.index_query);
+            tgtIndices.push_back(c.index_match);
+        }
+        // 去重并排序，确保 PCL 索引映射正确
+        std::sort(srcIndices.begin(), srcIndices.end());
+        srcIndices.erase(std::unique(srcIndices.begin(), srcIndices.end()), srcIndices.end());
+        std::sort(tgtIndices.begin(), tgtIndices.end());
+        tgtIndices.erase(std::unique(tgtIndices.begin(), tgtIndices.end()), tgtIndices.end());
+
+        // 建立 old_idx → new_idx 的映射
+        std::unordered_map<int, int> srcMap, tgtMap;
+        for (int i = 0; i < (int)srcIndices.size(); ++i) srcMap[srcIndices[i]] = i;
+        for (int i = 0; i < (int)tgtIndices.size(); ++i) tgtMap[tgtIndices[i]] = i;
+
+        // 重建 correspondences 使用重映射后的索引
+        pcl::Correspondences remapped;
+        remapped.reserve(correspondences->size());
+        for (const auto& c : *correspondences) {
+            pcl::Correspondence rc;
+            rc.index_query = srcMap[c.index_query];
+            rc.index_match = tgtMap[c.index_match];
+            rc.distance = c.distance;
+            remapped.push_back(rc);
+        }
+
+        auto srcPCL = source_points->toPCL_XYZRGB(srcIndices);
+        auto tgtPCL = target_points->toPCL_XYZRGB(tgtIndices);
 
         if (!m_viewer->contains(std_id))
-            m_viewer->addCorrespondences<pcl::PointXYZRGB>(srcPCL, tgtPCL, *correspondences, std_id);
+            m_viewer->addCorrespondences<pcl::PointXYZRGB>(srcPCL, tgtPCL, remapped, std_id);
         else
-            m_viewer->updateCorrespondences<pcl::PointXYZRGB>(srcPCL, tgtPCL, *correspondences, std_id);
+            m_viewer->updateCorrespondences<pcl::PointXYZRGB>(srcPCL, tgtPCL, remapped, std_id);
 
         if (line_width > 1) {
             auto shape_map = m_viewer->getShapeActorMap();
-            for (int i = 0; i < (int)correspondences->size(); i++) {
+            for (int i = 0; i < (int)remapped.size(); i++) {
                 auto it = shape_map->find(std_id + "_line_" + std::to_string(i));
                 if (it != shape_map->end()) {
                     auto* actor = vtkActor::SafeDownCast(it->second);
@@ -1200,7 +1234,10 @@ namespace ct
     {
         std::string sid = id.toStdString();
         auto it = std::remove_if(m_visible_clouds.begin(), m_visible_clouds.end(),
-                                 [&](const Cloud::Ptr& cloud) { return cloud->id() == sid; });
+                                 [&](const std::weak_ptr<Cloud>& weak_c) {
+                                     if (auto c = weak_c.lock()) return c->id() == sid;
+                                     return true; // expired → remove
+                                 });
         m_visible_clouds.erase(it, m_visible_clouds.end());
 
         m_OctreeRenders.remove(id);
@@ -1282,7 +1319,11 @@ namespace ct
         QString qid = QString::fromStdString(coord.id);
         if (m_viewer->contains(qid.toStdString()))
             m_viewer->removeCoordinateSystem(qid.toStdString());
+
+        vtkObject::GlobalWarningDisplayOff();
         m_viewer->addCoordinateSystem(coord.scale, coord.pose, qid.toStdString());
+        vtkObject::GlobalWarningDisplayOn();
+
         m_coord_ids.insert(qid);
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }

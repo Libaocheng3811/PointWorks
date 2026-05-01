@@ -8,6 +8,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <random>
 #include <memory>
 #include <vector>
 
@@ -118,6 +119,9 @@ namespace ct
         pcl::PointCloud<PointXYZ>::Ptr toPCL_XYZ() const;
         pcl::PointCloud<PointXYZRGB>::Ptr toPCL_XYZRGB() const;
         pcl::PointCloud<PointXYZRGBN>::Ptr toPCL_XYZRGBN() const;
+
+        // 按全局索引列表提取子集（避免全量深拷贝）
+        pcl::PointCloud<PointXYZRGB>::Ptr toPCL_XYZRGB(const std::vector<int>& indices) const;
 
         static Ptr fromPCL_XYZRGBN(const pcl::PointCloud<PointXYZRGBN>& pcl_cloud,
                                     const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero());
@@ -246,6 +250,8 @@ namespace ct
         std::string m_current_color_mode = "RGB (Default)";
 
         static std::vector<float> s_jet_lut;
+
+        mutable std::mt19937 m_rng{std::random_device{}()};
     };
 }
 

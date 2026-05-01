@@ -254,10 +254,12 @@ namespace ct
     void CloudView::setPointCloudColor(const QString &id, const ColorRGB &rgb)
     {
         std::string sid = id.toStdString();
-        for(auto& c : m_visible_clouds) {
-            if (c->id() == sid) {
-                setPointCloudColor(c, rgb);
-                return;
+        for(auto& weak_c : m_visible_clouds) {
+            if (auto c = weak_c.lock()) {
+                if (c->id() == sid) {
+                    setPointCloudColor(c, rgb);
+                    return;
+                }
             }
         }
     }
@@ -291,12 +293,14 @@ namespace ct
     void CloudView::setPointCloudSize(const QString &id, float size)
     {
         std::string sid = id.toStdString();
-        for(auto& c : m_visible_clouds) {
-            if (c->id() == sid) {
-                c->setPointSize(size);
+        for(auto& weak_c : m_visible_clouds) {
+            if (auto c = weak_c.lock()) {
+                if (c->id() == sid) {
+                    c->setPointSize(size);
 
-                if (m_OctreeRenders.contains(id)) m_OctreeRenders[id]->update();
-                break;
+                    if (m_OctreeRenders.contains(id)) m_OctreeRenders[id]->update();
+                    break;
+                }
             }
         }
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
@@ -305,11 +309,13 @@ namespace ct
     void CloudView::setPointCloudOpacity(const QString &id, float value)
     {
         std::string sid = id.toStdString();
-        for(auto& c : m_visible_clouds) {
-            if (c->id() == sid) {
-                c->setOpacity(value);
-                if (m_OctreeRenders.contains(id)) m_OctreeRenders[id]->update();
-                break;
+        for(auto& weak_c : m_visible_clouds) {
+            if (auto c = weak_c.lock()) {
+                if (c->id() == sid) {
+                    c->setOpacity(value);
+                    if (m_OctreeRenders.contains(id)) m_OctreeRenders[id]->update();
+                    break;
+                }
             }
         }
 

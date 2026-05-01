@@ -266,21 +266,13 @@ namespace ct
                     // 阶段 B: 蓄水池已满，进行随机替换
                     // 以 k/n 的概率决定是否保留当前点 (k=容量, n=当前总数)
                 else {
-                    // 使用简单的 rand() 即可满足视觉随机性，不需要过于沉重的随机引擎
-                    // 生成 [0, total_points - 1] 之间的随机数
-                    // 注意：m_total_points_in_node 在前面已经++了
-
-                    // 概率逻辑：如果随机数落在 [0, capacity-1] 区间内，则替换该位置的点
-                    // 这样保证了所有流过的点被选中的概率都是 capacity / total
                     size_t capacity = m_config.maxLODPoints;
                     size_t current_n = node->m_total_points_in_node;
 
-                    // 简单的伪随机生成 (比 std::mt19937 快)
-                    // 如果 rand() 最大值较小，对于极大量点可能分布不匀，但在 LOD 视觉欺骗上通常足够
-                    // 如果需要更高质量，可使用 std::hash 或线性同余
-                    if ((size_t)rand() % current_n < capacity) {
-                        size_t replace_idx = rand() % capacity;
-                        node->m_lod_points[replace_idx] = lod_pt;
+                    std::uniform_int_distribution<size_t> dist_n(0, current_n - 1);
+                    if (dist_n(m_rng) < capacity) {
+                        std::uniform_int_distribution<size_t> dist_k(0, capacity - 1);
+                        node->m_lod_points[dist_k(m_rng)] = lod_pt;
                         node->m_lod_dirty = true;
                     }
                 }
@@ -312,7 +304,7 @@ namespace ct
                 );
 
                 // 创建新节点
-                auto newChild = new OctreeNode(childBox, node->m_depth + 1, node);
+                auto newChild = std::make_unique<OctreeNode>(childBox, node->m_depth + 1, node);
 
                 // 新节点初始化为叶子，分配 Block
                 newChild->m_block = std::make_shared<CloudBlock>();
@@ -343,11 +335,11 @@ namespace ct
                 // 注册到全局列表
                 m_all_blocks.push_back(newChild->m_block);
 
-                node->m_children[childIdx] = newChild;
+                node->m_children[childIdx] = std::move(newChild);
             }
 
             // 递归插入子节点
-            return insertPointToOctree(node->m_children[childIdx], pt, color, normal);
+            return insertPointToOctree(node->m_children[childIdx].get(), pt, color, normal);
         }
     }
 
@@ -399,11 +391,10 @@ namespace ct
                     node->m_lod_points.push_back(lod_pt);
                 } else {
                     // 蓄水池已满，以 (capacity / (i+1)) 的概率随机替换
-                    // 这里 i 是当前处理的第 i 个点，相当于流中的 index
-                    // 注意：rand() 并不是最高效的随机，但在分裂操作中通常不是瓶颈
-                    if ((size_t)rand() % (i + 1) < lod_capacity) {
-                        size_t replace_idx = rand() % lod_capacity;
-                        node->m_lod_points[replace_idx] = lod_pt;
+                    std::uniform_int_distribution<size_t> dist_i(0, i);
+                    if (dist_i(m_rng) < lod_capacity) {
+                        std::uniform_int_distribution<size_t> dist_k(0, lod_capacity - 1);
+                        node->m_lod_points[dist_k(m_rng)] = lod_pt;
                     }
                 }
 
@@ -435,7 +426,7 @@ namespace ct
                 );
 
                 // 创建子节点
-                auto newChild = new OctreeNode(childBox, node->m_depth + 1, node);
+                auto newChild = std::make_unique<OctreeNode>(childBox, node->m_depth + 1, node);
                 newChild->m_block = std::make_shared<CloudBlock>();
 
                 // 【配置驱动】根据 Config 预留内存，避免后续 push_back 导致频繁扩容
@@ -472,7 +463,7 @@ namespace ct
 
                 // 注册到全局列表
                 m_all_blocks.push_back(newChild->m_block);
-                node->m_children[childIdx] = newChild;
+                node->m_children[childIdx] = std::move(newChild);
             }
 
             // =========================================================
@@ -599,7 +590,7 @@ namespace ct
                 OctreeNode* leaf = m_octree_root.get();
                 while (leaf && !leaf->isLeaf()) {
                     int idx = leaf->getChildIndex(pts[i]);
-                    leaf = leaf->m_children[idx];
+                    leaf = leaf->m_children[idx].get();
                 }
                 m_last_insert_node = leaf;
             }
@@ -857,6 +848,57 @@ namespace ct
         return m_cached_xyzrgbn;
     }
 
+    pcl::PointCloud<PointXYZRGB>::Ptr Cloud::toPCL_XYZRGB(const std::vector<int>& indices) const
+    {
+        // 预排序索引以启用单遍 block 遍历 (O(n) 而非 O(n*B))
+        std::vector<std::pair<int, size_t>> sorted;
+        sorted.reserve(indices.size());
+        for (size_t qi = 0; qi < indices.size(); ++qi)
+            sorted.emplace_back(indices[qi], qi);
+        std::sort(sorted.begin(), sorted.end());
+
+        auto result = std::make_shared<pcl::PointCloud<PointXYZRGB>>();
+        result->resize(indices.size());
+
+        size_t block_offset = 0;
+        size_t block_idx = 0;
+
+        for (const auto& [gidx, orig_qi] : sorted) {
+            if (gidx < 0) continue;
+
+            // 向前推进 block_offset 直到覆盖 gidx
+            while (block_idx < m_all_blocks.size()) {
+                size_t bs = m_all_blocks[block_idx]->size();
+                if (gidx < (int)(block_offset + bs)) break;
+                block_offset += bs;
+                ++block_idx;
+            }
+
+            if (block_idx >= m_all_blocks.size()) break;
+
+            auto& block = m_all_blocks[block_idx];
+            size_t local = gidx - block_offset;
+            if (local >= block->size()) continue;
+
+            auto& dst = result->points[orig_qi];
+            dst.x = block->m_points[local].x;
+            dst.y = block->m_points[local].y;
+            dst.z = block->m_points[local].z;
+
+            if (block->m_colors) {
+                dst.r = (*block->m_colors)[local].r;
+                dst.g = (*block->m_colors)[local].g;
+                dst.b = (*block->m_colors)[local].b;
+            } else {
+                dst.r = 255; dst.g = 255; dst.b = 255;
+            }
+        }
+
+        result->width = indices.size();
+        result->height = 1;
+        return result;
+    }
+
     // =========================================================
     // TODO 渲染接口 (临时方案：依然返回拼接点云)
     // =========================================================
@@ -912,6 +954,7 @@ namespace ct
             if (block->m_scalar_fields.erase(name) > 0) {
                 found = true;
             }
+            block->rebuildScalarPtrCache();
         }
         m_scalar_cache.erase(name);
         return found;
@@ -920,6 +963,8 @@ namespace ct
     void Cloud::clearScalarFields()
     {
         for (auto& block : m_all_blocks) {
+            block->m_scalar_fields.clear();
+            block->rebuildScalarPtrCache();
             block->m_scalar_fields.clear();
         }
         m_scalar_cache.clear();
@@ -1001,7 +1046,7 @@ namespace ct
             std::fill(block->m_colors->begin(), block->m_colors->end(), rgb);
 
             block->m_is_dirty = true; // 确保标记为脏
-            block->m_vtk_polydata.reset(); // 释放旧缓存
+            block->m_is_dirty = true; // 释放旧缓存
         }
         if (m_octree_root) {
             updateLODColorRecursive(m_octree_root.get(), rgb);
@@ -1063,7 +1108,7 @@ namespace ct
                 hsv2rgb(hue, 1.0f, 1.0f, (*block->m_colors)[i].r, (*block->m_colors)[i].g, (*block->m_colors)[i].b);
             }
             block->m_is_dirty = true;
-            block->m_vtk_polydata.reset();
+            block->markDirty();
         }
 
         // =========================================================
@@ -1093,7 +1138,7 @@ namespace ct
             // 2. 递归子节点
             for (int i = 0; i < 8; ++i) {
                 if (node->m_children[i]) {
-                    updateLOD(node->m_children[i]);
+                    updateLOD(node->m_children[i].get());
                 }
             }
         };
@@ -1128,7 +1173,7 @@ namespace ct
         // 递归子节点
         for (int i = 0; i < 8; ++i) {
             if (node->m_children[i]) {
-                updateLODColorRecursive(node->m_children[i], rgb);
+                updateLODColorRecursive(node->m_children[i].get(), rgb);
             }
         }
     }
@@ -1204,7 +1249,7 @@ namespace ct
                 (*block->m_colors)[i].b = packed & 0xFF;
             }
             block->m_is_dirty = true;
-            block->m_vtk_polydata.reset();
+            block->markDirty();
         }
 
         // 同步更新LOD节点颜色（原地刷新，避免全量重建）
@@ -1270,7 +1315,7 @@ namespace ct
                     (*block->m_colors)[i].b = packed & 0xFF;
                 }
                 block->m_is_dirty = true;
-                block->m_vtk_polydata.reset();
+                block->markDirty();
             }
         }
 
@@ -1431,7 +1476,7 @@ namespace ct
         else {
             // 内部节点：递归
             for (int i = 0; i < 8; ++i) {
-                updateRecursive(node->m_children[i], min_pt, max_pt, count);
+                updateRecursive(node->m_children[i].get(), min_pt, max_pt, count);
             }
         }
     }
@@ -1552,6 +1597,7 @@ namespace ct
 
             // 标量场 (std::map 具有值语义，直接赋值会触发深拷贝)
             dst_block->m_scalar_fields = src_block->m_scalar_fields;
+            dst_block->rebuildScalarPtrCache();
 
             // 备份颜色
             if (src_block->m_backup_colors)
@@ -1570,7 +1616,7 @@ namespace ct
             if (src_node->m_children[i]) {
                 // 递归调用，并将返回的 unique_ptr 所有权释放给裸指针数组 m_children
                 // 注意：这里传入 new_node.get() 作为 parent
-                new_node->m_children[i] = cloneOctreeRecursive(src_node->m_children[i], new_node.get()).release();
+                new_node->m_children[i] = cloneOctreeRecursive(src_node->m_children[i].get(), new_node.get());
             }
         }
 
@@ -1591,7 +1637,7 @@ namespace ct
         // 先递归处理所有子节点（自底向上构建）
         for (int i = 0; i < 8; ++i) {
             if (node->m_children[i]) {
-                generateLODRecursive(node->m_children[i]);
+                generateLODRecursive(node->m_children[i].get());
             }
         }
 
@@ -1607,7 +1653,7 @@ namespace ct
         candidates.reserve(target_lod_size * 8);
 
         for (int i = 0; i < 8; ++i) {
-            OctreeNode* child = node->m_children[i];
+            OctreeNode* child = node->m_children[i].get();
             if (!child) continue;
 
             if (child->isLeaf()) {
@@ -1682,7 +1728,7 @@ namespace ct
         if (y >= node->m_box.translation.y()) index |= 2;
         if (z >= node->m_box.translation.z()) index |= 4;
 
-        return findLeafBlockForPoint(node->m_children[index], x, y, z);
+        return findLeafBlockForPoint(node->m_children[index].get(), x, y, z);
     }
 
     void Cloud::refreshLODColorsFromBlocks(OctreeNode* node)
@@ -1727,7 +1773,7 @@ namespace ct
 
         for (int i = 0; i < 8; ++i) {
             if (node->m_children[i]) {
-                refreshLODColorsFromBlocks(node->m_children[i]);
+                refreshLODColorsFromBlocks(node->m_children[i].get());
             }
         }
     }

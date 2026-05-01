@@ -28,16 +28,21 @@ namespace ct{
         std::unique_ptr<std::vector<ct::CompressedNormal>> m_normals;
         std::unordered_map<std::string, std::vector<float>> m_scalar_fields;
 
+        // 标量场指针缓存，避免 addPoint 逐点哈希查找
+        std::vector<std::pair<std::string, std::vector<float>*>> m_scalar_ptrs;
+        void rebuildScalarPtrCache() {
+            m_scalar_ptrs.clear();
+            m_scalar_ptrs.reserve(m_scalar_fields.size());
+            for (auto& kv : m_scalar_fields)
+                m_scalar_ptrs.emplace_back(kv.first, &kv.second);
+        }
+
         // --- 空间属性 ---
         Box m_box;
 
         // --- 渲染状态 ---
-        // DESIGN NOTE: 以下字段由渲染层（ct_viz）管理，存放在核心层是为了实现 O(1) 查找性能。
-        // 使用 shared_ptr<void> 类型擦除，避免核心层对 VTK 的编译依赖。
-        std::shared_ptr<void> m_vtk_polydata;  // VTK 缓存（由 OctreeRenderer 管理）
         bool m_is_visible = true;
         bool m_is_dirty = true;                 // 标记是否需要重新构建 VTK 缓存
-        size_t m_gpu_handle = 0;
 
         // --- 辅助方法 ---
         size_t size() const { return m_points.size(); }
@@ -49,10 +54,9 @@ namespace ct{
 
             if (m_normals) m_normals->push_back(ct::CompressedNormal());
 
-            if (!m_scalar_fields.empty()) {
-                for (auto it = m_scalar_fields.begin(); it != m_scalar_fields.end(); ++it) {
-                    it->second.push_back(0.0f);
-                }
+            if (!m_scalar_ptrs.empty()) {
+                for (auto& [name, ptr] : m_scalar_ptrs)
+                    ptr->push_back(0.0f);
             }
             m_is_dirty = true;
         }
@@ -84,17 +88,15 @@ namespace ct{
                 m_normals->push_back(normal ? *normal : ct::CompressedNormal());
             }
 
-            // 同步标量场
-            if (!m_scalar_fields.empty()) {
-                for (auto it = m_scalar_fields.begin(); it != m_scalar_fields.end(); ++it) {
+            // 同步标量场（使用预缓存指针避免逐点哈希）
+            if (!m_scalar_ptrs.empty()) {
+                for (auto& [name, ptr] : m_scalar_ptrs) {
                     float val = 0.0f;
                     if (scalars) {
-                        auto sc_it = scalars->find(it->first);
-                        if (sc_it != scalars->end()) {
-                            val = sc_it->second;
-                        }
+                        auto sc_it = scalars->find(name);
+                        if (sc_it != scalars->end()) val = sc_it->second;
                     }
-                    it->second.push_back(val);
+                    ptr->push_back(val);
                 }
             }
             m_is_dirty = true;
@@ -110,7 +112,6 @@ namespace ct{
                 it->second.clear();
             }
 
-            m_vtk_polydata.reset();
             m_is_dirty = true;
         }
 
@@ -121,6 +122,7 @@ namespace ct{
                 if (!m_points.empty()) {
                     vec.resize(m_points.size(), 0.0f);
                 }
+                rebuildScalarPtrCache();
             }
         }
 
@@ -138,17 +140,12 @@ namespace ct{
         OctreeNode(const Box& box, int depth, OctreeNode* parent = nullptr)
                 : m_box(box), m_depth(depth), m_parent(parent)
         {
-            for(int i=0; i<8; ++i) m_children[i] = nullptr;
         }
 
-        ~OctreeNode() {
-            for(int i=0; i<8; ++i) {
-                if(m_children[i]) delete m_children[i];
-            }
-        }
+        ~OctreeNode() = default;
 
         OctreeNode* m_parent = nullptr;
-        OctreeNode* m_children[8];
+        std::unique_ptr<OctreeNode> m_children[8];
 
         Box m_box;
         int m_depth;

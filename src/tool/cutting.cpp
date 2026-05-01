@@ -143,12 +143,10 @@ void Cutting::confirm()
         if (remain_cloud && !remain_cloud->empty())
         {
             m_cloudview->removePointCloud(orig_id);
-            // 不设 id，让 swap 后 cloud 保留原 id
             m_cloudtree->updateCloud(cloud, remain_cloud, false);
-            m_cloudtree->setCloudChecked(cloud);
-            // 重命名：原 id → 原 id-remaining
+            // renameCloudById 内部会删除旧 id 的渲染器，需要手动重建
             m_cloudtree->renameCloudById(orig_id, orig_id + "-remaining");
-            cloud->setId((orig_id + "-remaining").toStdString());
+            m_cloudview->addPointCloud(cloud);
         }
 
         m_cutting_map.erase(it);
