@@ -153,6 +153,37 @@ struct CompressedNormal { uint16_t data; }; // 球面坐标编码，2 bytes
 
 色图定义。使用 `std::string` / `std::vector<std::string>`，**无 Qt 依赖**。UI 层使用 `QString::fromStdString()` 转换。
 
+## FieldTypes (libs/core/field_types.h)
+
+标量场、距离计算和配准参数的类型定义。定义了距离方法枚举、配准参数结构体等共享类型。
+
+```cpp
+// 距离方法枚举
+enum class DistanceMethod { C2C, C2M, C2P, CPS };
+
+// 配准参数
+struct RegistrationParams { ... };
+```
+
+## Statistics (libs/core/statistics.h)
+
+统计计算工具，提供点云基本统计信息计算（点数、包围盒、分辨率等）。
+
+## TexturedMesh (libs/core/textured_mesh.h)
+
+纹理网格数据结构，从 `libs/io/` 移入（核心数据类型）。
+
+```cpp
+struct TexturedMesh {
+    pcl::PolygonMesh mesh;        // 基础网格
+    std::string texture_path;     // 纹理图片路径
+    std::string material_name;    // 材质名称
+    // OBJ MTL 材质参数
+};
+```
+
+> `textured_mesh.h` 仍依赖 `pcl/PolygonMesh.h`，这是 `ct_core` 中唯一的 PCL 类型依赖。长期可通过 `shared_ptr<void>` 类型擦除移除。
+
 ## ViewParams (libs/core/view_params.h)
 
 相机参数和视图选项，从 `projectfile.h` 移出，使 `ct_viz` 不再依赖 `ct_io`。
@@ -168,6 +199,26 @@ public:
         const pcl::PolygonMesh& mesh);
 };
 ```
+
+## ViewCube (libs/viz/viewcube.h)
+
+三维视图方向指示器（ViewCube），提供直观的视角导航。
+
+**功能**:
+- 可拖拽的立方体方向指示器，显示当前相机朝向
+- 点击面/边/角快速切换到标准视角（Top/Front/Right/Back/Bottom/Left）
+- 支持鼠标拖拽旋转相机
+- 坐标轴颜色标注（X=红, Y=绿, Z=蓝）
+
+## ScalarBarWidget (libs/viz/scalar_bar_widget.h)
+
+标量场色度条控件，显示标量场的颜色映射范围和图例。
+
+**功能**:
+- 显示标量场的最小值/最大值范围
+- 渲染当前使用的色图（Jet、Rainbow 等）
+- 支持标量场切换时动态更新
+- 与 CloudView 的标量场显示联动
 
 ## 大点云处理策略
 

@@ -113,7 +113,8 @@ refactor(render): 优化八叉树渲染性能
 使用全局坐标偏移功能。
 
 ### Q: Python 初始化失败？
-检查 `MY_NATIVE_PYTHON_DIR` 路径是否正确指向 Python 3.9 安装目录。
+Python 路径通过 QSettings（注册表 `PointWorks/PointWorks` → `python_home`）动态配置，
+也可通过 Options → Display Settings → Python 页面设置。默认使用嵌入式 Python 3.9。
 
 ### Q: `#undef slots` 编译错误？
 pybind11 头文件必须在 `#undef slots` 之后包含。

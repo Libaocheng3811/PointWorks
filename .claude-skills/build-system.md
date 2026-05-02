@@ -122,6 +122,23 @@ target_link_libraries(ct_algorithm PRIVATE CSF_Lib)
 add_subdirectory(3rdparty/pybind11)
 ```
 
+### E57Format + Xerces-C（预编译）
+```cmake
+# E57 格式依赖 Xerces-C XML 解析库，两者均以预编译静态库方式引入
+add_library(E57Format STATIC IMPORTED)
+set_target_properties(E57Format PROPERTIES
+    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/3rdparty/libE57/lib/E57Format.lib
+    INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/3rdparty/libE57/include
+)
+add_library(xerces-c STATIC IMPORTED)
+set_target_properties(xerces-c PROPERTIES
+    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/3rdparty/Xerces-C/lib/xerces-c_3.lib
+    INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/3rdparty/Xerces-C/include
+)
+# ct_io 链接 E57Format 和 xerces-c
+target_link_libraries(ct_io PRIVATE E57Format xerces-c)
+```
+
 ## 文件格式支持
 
 | 格式 | 扩展名 | 读取 | 写入 | 说明 |

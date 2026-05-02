@@ -9,17 +9,21 @@ PointWorks 是一个功能丰富的点云处理软件，提供点云可视化、
 ## 功能特性
 
 ### 核心功能
-- **点云可视化** - 基于 VTK 的三维交互式可视化，支持 LOD 自适应渲染
+- **点云可视化** - 基于 VTK 的三维交互式可视化，支持 LOD 自适应渲染、多视窗显示
+- **ViewCube 导航** - 可拖拽方向指示器，快速切换标准视角
 - **多格式数据导入/导出** - 支持 LAS/LAZ、PLY、PCD、TXT、E57、OBJ、STL、VTK 等
 - **滤波处理** - 直通滤波、体素降采样、统计离群点移除等
-- **点云配准** - ICP、IA-RANSAC、NDT 等多种配准算法
-- **特征提取** - PFH、FPFH、VFH、SHOT 等特征描述符
+- **点云配准** - ICP、GICP、IA-RANSAC、NDT 等多种配准算法
+- **特征提取** - PFH、FPFH、VFH、SHOT、CVFH、ESF 等特征描述符
 - **地面分割** - CSF 布料模拟滤波
-- **植被分割** - 多种植被指数 (ExG、NGRDI、CIVE)
+- **植被分割** - 多种植被指数 (ExG、NGRDI、CIVE、ExG_ExR)
 - **变化检测** - 点云距离计算与分析（C2C、C2M、M3C2）
 - **曲面重建** - 点云到网格转换、凸包计算、边界提取
 - **分割** - 形状检测、形态学滤波、区域生长、聚类、超体素
-- **嵌入式 Python** - 通过 pybind11 嵌入 Python 脚本引擎，支持自定义数据处理
+- **嵌入式 Python** - 通过 pybind11 嵌入 Python 脚本引擎，两层 API，100+ 函数
+- **多视窗显示** - 独立相机控制的多视窗布局
+- **国际化** - 支持中文/英文界面切换
+- **拖拽打开** - 支持文件拖拽直接导入
 
 ### 大点云处理
 - **八叉树空间索引** - 高效的空间分割与查询
@@ -151,7 +155,7 @@ PointWorks/
 - PassThrough、VoxelGrid、StatisticalOutlierRemoval、RadiusOutlierRemoval、ConditionalRemoval、GridMinimum、LocalMaximum
 
 ### 配准
-- ICP、ICPWithNormals、IA-RANSAC、SCPR、NDT
+- ICP、ICPWithNormals、GICP、IA-RANSAC、SCPR、NDT
 
 ### 分割
 - 形状检测、形态学滤波、区域生长、欧式聚类、超体素
@@ -160,12 +164,14 @@ PointWorks/
 - 曲面重建、凸包计算、边界提取
 
 ### 距离与变化检测
-- 云对云距离、云对网格距离、云对基元距离、最近点集距离
+- 云对云距离（C2C）、云对网格距离（C2M）、云对基元距离、最近点集距离
+- M3C2 多尺度模型对比距离
 
 ### 插件
 - **CSF Plugin** - 地面点分割（布料模拟）
 - **VegPlugin** - 植被分割（4 种植被指数 + Otsu 自动阈值）
-- **ChangeDetectPlugin** - 变化检测（多种距离方法 + Jet 色带）
+- **ChangeDetectPlugin** - 变化检测（C2C/C2M 距离 + Jet 色带）
+- **M3C2 Plugin** - M3C2 多尺度模型对比距离计算
 
 ## 技术亮点
 

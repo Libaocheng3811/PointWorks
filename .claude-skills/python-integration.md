@@ -28,6 +28,14 @@ PointWorks 采用 **两层 API + 管道模式**，兼顾便捷性和灵活性：
 // src/app/main.cpp
 int main() {
     QApplication app;
+
+    // 从 QSettings 读取用户自定义 Python 路径（优先级高于嵌入式 Python）
+    QSettings settings("PointWorks", "PointWorks");
+    QString customPy = settings.value("python_home").toString();
+    if (!customPy.isEmpty()) {
+        ct::PythonManager::instance().setCustomPythonHome(customPy.toStdString());
+    }
+
     ct::PythonManager::instance().initialize();  // Py_Initialize + 注册模块
     MainWindow w;
     w.show();
@@ -440,5 +448,6 @@ libs/python/
 
 - **ct_python** 为 OBJECT 库（非 STATIC/SHARED），编译产物直接链接到 pointworks 可执行文件
 - pybind11 通过 `3rdparty/pybind11` git submodule 引入
-- Python 路径硬编码为 `MY_NATIVE_PYTHON_DIR`，需根据本地环境修改
+- Python 路径通过 QSettings 动态配置（注册表键 `PointWorks/PointWorks` → `python_home`），
+  也可通过 Options → Display Settings → Python 页面交互式设置
 - `#undef slots` 必须在包含 pybind11 头文件之前，解决 Qt `slots` 宏与 Python `object.h` 的冲突

@@ -48,15 +48,22 @@ m_progress->runAsync("任务名称",
 
 ## Features (libs/algorithm/features.h)
 
-支持的描述符：PFH, FPFH, VFH, SHOT, ESF, GASD
+支持的描述符：
+
+| 类别 | 描述符 |
+|------|--------|
+| 局部描述子 | PFH, FPFH, SHOT, SHOTColor, RSD, GRSD |
+| 全局描述子 | VFH, CVFH, ESF, GASD, GASDColor, CRH |
+| 局部参考帧 | SHOT_LRF, BOARD, FLARE |
+| 其他 | ShapeContext3D, UniqueShapeContext, BoundaryEstimation |
 
 ## Registration (libs/algorithm/registration.h)
 
-配准算法：ICP, ICPWithNormals, ICPNonLinear, IA-RANSAC, SCPR, FPCS, KFPCS, NDT
+配准算法：ICP, ICPWithNormals, ICPNonLinear, GICP, IA-RANSAC, SCPR, FPCS, KFPCS, NDT
 
 ## Keypoints (libs/algorithm/keypoints.h)
 
-关键点检测：ISS, Harris3D, SIFT3D, NARF
+关键点检测：ISS, Harris3D, SIFT3D, Trajkovic
 
 ## Normals (libs/algorithm/normals.h)
 
@@ -87,7 +94,12 @@ struct SurfaceResult {
 
 ## DistanceCalculator (libs/algorithm/distancecalculator.h)
 
-点云距离计算（变化检测）。支持 C2C、C2M、C2P、CPS 等距离方法。参数类型定义在 `libs/core/field_types.h`。
+点云距离计算（变化检测）。支持 C2C、C2M、C2P、CPS、M3C2 等距离方法。参数类型定义在 `libs/core/field_types.h`。
+
+**M3C2 (Multiscale Model to Model Cloud Comparison)**:
+- 多尺度法线投影距离计算
+- 支持自定义投影半径和核大小
+- 适用于地形变化检测场景
 
 ## utils.h (libs/algorithm/utils.h)
 

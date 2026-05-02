@@ -122,10 +122,42 @@ ct::createDialog<DisplaySettingsDialog>(parent, "Display Settings",
 | RangeImage | src/tool/rangeimage.h | 深度图、边界提取、法线估计 |
 | Sampling | src/tool/sampling.h | 点云采样 |
 | Measure | src/tool/measure.h | 距离测量 |
-| AlignByCenters | src/tool/align_by_centers.h | 中心对齐 |
-| GlobalRegistration | src/tool/global_registration.h | 全局配准 |
-| FineRegistration | src/tool/fine_registration.h | 精配准 |
-| PointPairsAlignment | src/tool/point_pairs_alignment.h | 点对配准 |
+
+### 配准工具 (src/tool/align/)
+
+| 工具 | 文件 | 功能 |
+|------|------|------|
+| AlignByCenters | src/tool/align/align_by_centers.h | 中心对齐 |
+| GlobalRegistration | src/tool/align/global_registration.h | 全局配准 |
+| FineRegistration | src/tool/align/fine_registration.h | 精配准 |
+| PointPairsAlignment | src/tool/align/point_pairs_alignment.h | 点对配准 |
+
+### 距离工具 (src/tool/distance/)
+
+| 工具 | 文件 | 功能 |
+|------|------|------|
+| CloudCloudDist | src/tool/distance/cloud_cloud_dist_dialog.h | 云对云距离 |
+| CloudMeshDist | src/tool/distance/cloud_mesh_dist_dialog.h | 云对网格距离 |
+| CloudPrimitiveDist | src/tool/distance/cloud_primitive_dist_dialog.h | 云对基元距离 |
+| ClosestPointSet | src/tool/distance/closest_point_set_dialog.h | 最近点集 |
+
+### 网格工具 (src/tool/mesh/)
+
+| 工具 | 文件 | 功能 |
+|------|------|------|
+| ReconstructSurface | src/tool/mesh/reconstruct_surface_dialog.h | 曲面重建（Poisson/Greedy/MC） |
+| ComputeHull | src/tool/mesh/compute_hull_dialog.h | 凸包/凹包计算 |
+| ExtractBoundary | src/tool/mesh/extract_boundary_dialog.h | 边界提取 |
+
+### 分割工具 (src/tool/segmentation/)
+
+| 工具 | 文件 | 功能 |
+|------|------|------|
+| ShapeDetection | src/tool/segmentation/shape_detection_dialog.h | 形状检测（RANSAC） |
+| MorphologicalFilter | src/tool/segmentation/morphological_filter_dialog.h | 形态学滤波 |
+| RegionGrowing | src/tool/segmentation/region_growing_dialog.h | 区域生长 |
+| Clustering | src/tool/segmentation/clustering_dialog.h | 欧式聚类/DBSCAN |
+| Supervoxel | src/tool/segmentation/supervoxel_dialog.h | 超体素分割 |
 
 ## 编辑工具列表 (src/edit/)
 
@@ -136,7 +168,7 @@ ct::createDialog<DisplaySettingsDialog>(parent, "Display Settings",
 | Transformation | src/edit/transformation.h | 点云变换（平移/旋转/矩阵） |
 | Normals | src/edit/normals.h | 法线编辑 |
 | Scale | src/edit/scale.h | 尺度缩放 |
-| Coordinate | src/edit/coordinate.h | 坐标系操作 |
+| Coordinate | src/edit/coordinate.h | 坐标系显示与对比（支持自定义位置、缩放、变换矩阵） |
 
 ## 选项设置 (src/options/)
 
@@ -160,9 +192,28 @@ class Plugin : public ct::CustomDialog {
 
 | 插件 | 文件 | 功能 |
 |------|------|------|
-| CSFPlugin | src/plugins/csfplugin.h | 地面点分割 |
-| VegPlugin | src/plugins/vegplugin.h | 植被分割（4 种植被指数 + Otsu） |
-| ChangeDetectPlugin | src/plugins/changedetectplugin.h | 变化检测（多种距离方法 + Jet 色带） |
+| CSFPlugin | src/plugins/csfplugin.h | 地面点分割（布料模拟） |
+| VegPlugin | src/plugins/vegplugin.h | 植被分割（4 种植被指数 + Otsu 自动阈值） |
+| ChangeDetectPlugin | src/plugins/changedetectplugin.h | 变化检测（C2C/C2M 距离 + Jet 色带） |
+| M3C2Plugin | src/plugins/m3c2plugin.h | M3C2 多尺度模型对比距离计算 |
 
 > 注意：`changedetectplugin.cpp` 仍直接访问 `CloudBlock` 内部（`->m_points` 等），
 > 因为该文件使用 block 批量遍历模式，`forEachPoint` 无法直接替代，需后续迭代处理。
+
+## ViewCube (libs/viz/viewcube.h)
+
+视图方向指示器，作为可视化辅助组件嵌入在 CloudView 中。
+
+**功能**:
+- 可拖拽立方体显示当前相机朝向
+- 点击面/边/角切换标准视角（Top/Front/Right 等）
+- 坐标轴颜色标注（X=红, Y=绿, Z=蓝）
+- 鼠标拖拽旋转相机
+
+## 多视窗 (MainWindow)
+
+主窗口支持多视窗显示，每个视窗独立的 CloudView 实例，支持独立相机控制和点云渲染。
+
+## 国际化 (i18n)
+
+支持中文/英文切换，翻译文件位于 `src/resources/trans/zh_CN.ts`，通过 `LanguageManager` 管理。
