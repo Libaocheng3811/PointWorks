@@ -131,6 +131,8 @@
     <addaction name="actionShowConsole"/>
     <addaction name="actionPythonConsole"/>
     <addaction name="actionPythonEditor"/>
+    <addaction name="separator"/>
+    <addaction name="actionScreenshot"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="font">
@@ -701,6 +703,8 @@ QScrollBar::sub-line:horizontal {
    <addaction name="actionRightSideView"/>
    <addaction name="actionBottomView"/>
    <addaction name="actionResetcamera"/>
+   <addaction name="separator"/>
+   <addaction name="actionScreenshot"/>
   </widget>
   <widget class="QToolBar" name="PythonBar">
    <property name="windowTitle">
@@ -1822,6 +1826,28 @@ QScrollBar::sub-line:horizontal {
      <family>Microsoft YaHei UI</family>
      <pointsize>10</pointsize>
     </font>
+   </property>
+  </action>
+  <action name="actionScreenshot">
+   <property name="icon">
+    <iconset resource="../resources/res.qrc">
+     <normaloff>:/res/icon/screenshoot.svg</normaloff>:/res/icon/screenshoot.svg
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Save Screenshot</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+P</string>
    </property>
   </action>
  </widget>

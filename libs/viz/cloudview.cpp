@@ -12,8 +12,14 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 #include <vtkBillboardTextActor3D.h>
 #include <vtkCommand.h>
 #include <vtkNew.h>
+#include <vtkWindowToImageFilter.h>
+#include <vtkPNGWriter.h>
+#include <vtkJPEGWriter.h>
+#include <vtkBMPWriter.h>
+#include <vtkTIFFWriter.h>
 
 #include <QDropEvent>
+#include <QFileInfo>
 #include <QUrl>
 
 #include <cmath>
@@ -773,6 +779,36 @@ namespace ct
     void CloudView::setScalarBarShowZero(bool show)
     {
         m_scalar_bar_widget->setShowZeroLine(show);
+    }
+
+    bool CloudView::captureScreenshot(const QString& filePath)
+    {
+        if (!m_renderwindow) return false;
+
+        m_renderwindow->Render();
+
+        vtkNew<vtkWindowToImageFilter> windowToImage;
+        windowToImage->SetInput(m_renderwindow);
+        windowToImage->SetInputBufferTypeToRGB();
+        windowToImage->SetScale(1);
+        windowToImage->ReadFrontBufferOn();
+        windowToImage->ShouldRerenderOff();
+        windowToImage->Update();
+
+        m_renderwindow->Render();
+
+        vtkImageData* imgData = windowToImage->GetOutput();
+        int dims[3];
+        imgData->GetDimensions(dims);
+        int w = dims[0], h = dims[1];
+        auto* pixels = static_cast<unsigned char*>(imgData->GetScalarPointer());
+
+        QImage qimg(w, h, QImage::Format_RGB888);
+        for (int y = 0; y < h; y++) {
+            memcpy(qimg.scanLine(y), pixels + (h - 1 - y) * w * 3, w * 3);
+        }
+
+        return qimg.save(filePath);
     }
 
 } // namespace ct

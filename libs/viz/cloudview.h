@@ -583,6 +583,13 @@ namespace ct {
         void setTextureMeshRepresentation(const QString& cloud_id, int type);
 
         /**
+         * @brief 截取当前视窗为图片
+         * @param filePath 保存路径（扩展名决定格式：png/jpg/bmp/tif）
+         * @return 是否保存成功
+         */
+        bool captureScreenshot(const QString& filePath);
+
+        /**
          * @brief 查询纹理 mesh 是否正在显示
          */
         bool hasTextureMeshDisplayed(const QString& cloud_id) const;

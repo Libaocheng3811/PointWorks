@@ -12,8 +12,6 @@ void HelpLauncher::showAbout(QWidget* parent) {
     QDialog dlg(parent);
     dlg.setWindowTitle("About PointWorks");
     dlg.setFixedSize(420, 280);
-    dlg.setWindowFlags(dlg.windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
     auto* layout = new QVBoxLayout(&dlg);
 
     // Logo
@@ -38,9 +36,9 @@ void HelpLauncher::showAbout(QWidget* parent) {
 
     // Description
     auto* descLabel = new QLabel(
-        "3D Point Cloud Processing Software\n"
-        "Built with Qt5, VTK, PCL & Python",
-        &dlg);
+            "3D Point Cloud Processing Software\n"
+            "Built with Qt5, VTK, PCL & Python",
+            &dlg);
     descLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(descLabel);
 
@@ -48,9 +46,9 @@ void HelpLauncher::showAbout(QWidget* parent) {
 
     // Credits
     auto* creditLabel = new QLabel(
-        "<small>This software uses open-source libraries including "
-        "Qt, PCL, VTK, pybind11, LASlib, and CSF.</small>",
-        &dlg);
+            "<small>This software uses open-source libraries including "
+            "Qt, PCL, VTK, pybind11, LASlib, and CSF.</small>",
+            &dlg);
     creditLabel->setAlignment(Qt::AlignCenter);
     creditLabel->setWordWrap(true);
     layout->addWidget(creditLabel);
@@ -64,6 +62,8 @@ void HelpLauncher::showAbout(QWidget* parent) {
     auto* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, &dlg);
     QObject::connect(buttonBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     layout->addWidget(buttonBox);
+    dlg.setWindowFlags(dlg.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
 
     dlg.exec();
 }

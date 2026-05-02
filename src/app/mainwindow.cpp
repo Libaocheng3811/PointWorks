@@ -165,6 +165,17 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionShowAxes->setChecked(true);
     ui->actionShowID->setChecked(true);
 
+    // screenshot
+    connect(ui->actionScreenshot, &QAction::triggered, this, [=](){
+        QString defaultName = "screenshot_" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + ".png";
+        QString path = QFileDialog::getSaveFileName(
+            this, tr("Save Screenshot"), defaultName,
+            "PNG (*.png);;JPEG (*.jpg);;BMP (*.bmp);;TIFF (*.tif)");
+        if (!path.isEmpty()) {
+            m_viewport_mgr->activeView()->captureScreenshot(path);
+        }
+    });
+
     // view — 布局切换
     auto* layoutGroup = new QActionGroup(this);
     layoutGroup->addAction(ui->actionViewportSingle);
