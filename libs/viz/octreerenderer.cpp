@@ -50,11 +50,11 @@ namespace ct {
             m_last_point_size = m_cloud->pointSize();
             m_last_opacity = m_cloud->opacity();
 
-            // 自适应 Actor 缓存上限：叶子 block 数 + 30% 余量给 LOD 节点
+            // 自适应 Actor 缓存上限：叶子 block 数的 50%，限制在 [200, 1500]
             size_t totalBlocks = m_cloud->getBlocks().size();
             if (totalBlocks > 0) {
-                m_max_cached_actors = std::max((size_t)500, totalBlocks + totalBlocks / 3);
-                m_max_cached_actors = std::min(m_max_cached_actors, (size_t)5000);
+                m_max_cached_actors = std::max((size_t)200, totalBlocks / 2);
+                m_max_cached_actors = std::min(m_max_cached_actors, (size_t)1500);
             }
         }
     }

@@ -96,6 +96,7 @@ namespace ct
         est.setRefine(do_refine);
         est.setNumberOfThreads(1);
         est.compute(*keypoints_temp);
+        pcl_cloud.reset();
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);
@@ -154,6 +155,7 @@ namespace ct
         est.setAngleThreshold(pcl::deg2rad(angle));
         est.setNumberOfThreads(1);
         est.compute(*keypoints_temp);
+        pcl_cloud.reset();
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);
@@ -253,6 +255,7 @@ namespace ct
         est.setSecondThreshold(second_threshold);
         est.setNumberOfThreads(1);
         est.compute(*keypoints_temp);
+        pcl_cloud.reset();
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 70);

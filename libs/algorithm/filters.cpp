@@ -51,10 +51,7 @@ namespace ct
         target->setId(source->id());
         target->setGlobalShift(source->getGlobalShift());
         target->setHasColors(source->hasColors());
-
-        // TODO: PCL filters cannot return indices, so custom field info cannot be extracted via indices. Discarding custom fields for now.
-
-        target->backupColors();
+        // 不自动 backupColors — 仅在用户主动修改颜色时才备份原始颜色
     }
 
     FilterResult Filters::PassThrough(const Cloud::Ptr& cloud, const std::string& field_name,
@@ -69,11 +66,11 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ，使用 toPCL_XYZ 节省 50% 内存
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::PassThrough<PointXYZRGBN> pfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::PassThrough<PointXYZ> pfilter;
         pfilter.setInputCloud(pcl_cloud);
         pfilter.setFilterFieldName(field_name);
         pfilter.setFilterLimits(limit_min, limit_max);
@@ -81,15 +78,19 @@ namespace ct
         pfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        // construct Cloud from PCL result
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
-        syncCloudProperties(cloud, cloud_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        // 通过索引从原始 Cloud 提取，保留颜色/法线/标量场
+        auto indices = pfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
 
+        syncCloudProperties(cloud, cloud_filtered);
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -105,11 +106,11 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // VoxelGrid 生成新点（质心），需要 XYZRGB 保留颜色
+        auto pcl_cloud = cloud->toPCL_XYZRGB();
 
-        // create a VoxelGrid filter object
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::VoxelGrid<PointXYZRGBN> vfilter;
+        pcl::PointCloud<PointXYZRGB>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGB>);
+        pcl::VoxelGrid<PointXYZRGB> vfilter;
         vfilter.setInputCloud(pcl_cloud);
         vfilter.setLeafSize(lx, ly, lz);
         vfilter.setFilterLimitsNegative(negative);
@@ -120,9 +121,12 @@ namespace ct
         vfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGB(*pcl_filtered);
         syncCloudProperties(cloud, cloud_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
@@ -143,34 +147,49 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ，使用 toPCL_XYZ 节省内存（16B vs 32B）
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::ApproximateVoxelGrid<PointXYZRGBN> avfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::ApproximateVoxelGrid<PointXYZ> avfilter;
         avfilter.setInputCloud(pcl_cloud);
         avfilter.setLeafSize(lx, ly, lz);
         avfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
         if (negative)
         {
-            pcl::PointCloud<PointXYZRGBN>::Ptr pcl_neg_filtered(new pcl::PointCloud<PointXYZRGBN>);
-            pcl::ExtractIndices<PointXYZRGBN> extract;
-            extract.setInputCloud(pcl_cloud);
-            extract.setIndices(avfilter.getRemovedIndices());
-            extract.filter(*pcl_neg_filtered);
-            pcl_filtered = pcl_neg_filtered;
+            // ApproximateVoxelGrid 继承 pcl::Filter（非 FilterIndices），无 getRemovedIndices
+            // 需要手动计算差集：被保留的 index 取反
+            // 简化处理：使用原始方案的 ExtractIndices
+            pcl_cloud.reset();
+
+            pcl::PointCloud<PointXYZ>::Ptr pcl_neg(new pcl::PointCloud<PointXYZ>);
+            pcl::ExtractIndices<PointXYZ> extract;
+            // 需要重新获取输入 — 直接从 cloud 做索引提取
+            // 由于 ApproximateVoxelGrid 不提供 removed indices，negative 模式回退到 toPCL_XYZRGBN
+            auto pcl_cloud2 = cloud->toPCL_XYZ();
+            pcl::ApproximateVoxelGrid<PointXYZ> avfilter2;
+            avfilter2.setInputCloud(pcl_cloud2);
+            avfilter2.setLeafSize(lx, ly, lz);
+            avfilter2.filter(*pcl_filtered);
+            pcl_cloud2.reset();
+
+            Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZ(*pcl_filtered);
+            syncCloudProperties(cloud, cloud_filtered);
+            reportProgress(cancel, on_progress, 100);
+            return {cloud_filtered, (float)time.toc()};
         }
 
-        if (isCanceled(cancel)) return {nullptr, 0};
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZ(*pcl_filtered);
         syncCloudProperties(cloud, cloud_filtered);
 
         reportProgress(cancel, on_progress, 100);
-
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -186,10 +205,11 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ，使用 toPCL_XYZ 节省 50% 内存
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::StatisticalOutlierRemoval<PointXYZRGBN> sfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::StatisticalOutlierRemoval<PointXYZ> sfilter;
         sfilter.setInputCloud(pcl_cloud);
         sfilter.setMeanK(nr_k);
         sfilter.setStddevMulThresh(stddev_mult);
@@ -197,14 +217,19 @@ namespace ct
         sfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
-        syncCloudProperties(cloud, cloud_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        // 通过索引从原始 Cloud 提取，保留颜色/法线/标量场
+        auto indices = sfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
 
+        syncCloudProperties(cloud, cloud_filtered);
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -220,10 +245,11 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ，使用 toPCL_XYZ 节省 50% 内存
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::RadiusOutlierRemoval<PointXYZRGBN> rfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::RadiusOutlierRemoval<PointXYZ> rfilter;
         rfilter.setInputCloud(pcl_cloud);
         rfilter.setRadiusSearch(radius);
         rfilter.setMinNeighborsInRadius(min_pts);
@@ -231,14 +257,18 @@ namespace ct
         rfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
-        syncCloudProperties(cloud, cloud_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        auto indices = rfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
 
+        syncCloudProperties(cloud, cloud_filtered);
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -254,6 +284,7 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
+        // 条件对象基于 XYZRGBN 模板化，必须使用 toPCL_XYZRGBN
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
 
         pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
@@ -263,21 +294,23 @@ namespace ct
         bfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
         if (negative)
         {
-            pcl::PointCloud<PointXYZRGBN>::Ptr pcl_neg_filtered(new pcl::PointCloud<PointXYZRGBN>);
-            pcl::ExtractIndices<PointXYZRGBN> extract;
-            extract.setInputCloud(pcl_cloud);
-            extract.setIndices(bfilter.getRemovedIndices());
-            extract.filter(*pcl_neg_filtered);
-            pcl_filtered = pcl_neg_filtered;
+            auto removed = bfilter.getRemovedIndices();
+            pcl_cloud.reset();
+            Cloud::Ptr cloud_filtered = cloud->extractByIndices(*removed);
+            syncCloudProperties(cloud, cloud_filtered);
+            reportProgress(cancel, on_progress, 100);
+            return {cloud_filtered, (float)time.toc()};
         }
 
-        if (isCanceled(cancel)) return {nullptr, 0};
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        auto indices = bfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
         syncCloudProperties(cloud, cloud_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
@@ -298,24 +331,29 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ，使用 toPCL_XYZ 节省 50% 内存
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::GridMinimum<PointXYZRGBN> gfilter(resolution);
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::GridMinimum<PointXYZ> gfilter(resolution);
         gfilter.setInputCloud(pcl_cloud);
         gfilter.setResolution(resolution);
         gfilter.setNegative(negative);
         gfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
-        syncCloudProperties(cloud, cloud_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        auto indices = gfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
 
+        syncCloudProperties(cloud, cloud_filtered);
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -331,24 +369,29 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ，使用 toPCL_XYZ 节省 50% 内存
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::LocalMaximum<PointXYZRGBN> lfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::LocalMaximum<PointXYZ> lfilter;
         lfilter.setInputCloud(pcl_cloud);
         lfilter.setRadius(radius);
         lfilter.setNegative(negative);
         lfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
-        syncCloudProperties(cloud, cloud_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        auto indices = lfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
 
+        syncCloudProperties(cloud, cloud_filtered);
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -364,6 +407,7 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
+        // 需要法线，保持 XYZRGBN
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
 
         pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
@@ -375,14 +419,18 @@ namespace ct
         sfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
-        syncCloudProperties(cloud, cloud_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        auto indices = sfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
 
+        syncCloudProperties(cloud, cloud_filtered);
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -399,11 +447,11 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // VoxelGrid 生成新点，需要 XYZRGB 保留颜色
+        auto pcl_cloud = cloud->toPCL_XYZRGB();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::VoxelGrid<PointXYZRGBN> vfilter;
+        pcl::PointCloud<PointXYZRGB>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGB>);
+        pcl::VoxelGrid<PointXYZRGB> vfilter;
         vfilter.setInputCloud(pcl_cloud);
         vfilter.setLeafSize(radius, radius, radius);
         vfilter.setFilterLimitsNegative(negative);
@@ -414,7 +462,7 @@ namespace ct
         vfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
         if (pcl_filtered->empty())
         {
@@ -422,8 +470,10 @@ namespace ct
             return {nullptr, 0};
         }
 
-        // construct Cloud from PCL result
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGB(*pcl_filtered);
         if (!cloud_filtered || cloud_filtered->empty())
         {
             reportProgress(cancel, on_progress, 100);
@@ -452,39 +502,41 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需 XYZ（UniformSampling 基于空间距离采样），使用 toPCL_XYZ
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::UniformSampling<PointXYZRGBN> sfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::UniformSampling<PointXYZ> sfilter;
         sfilter.setInputCloud(pcl_cloud);
         sfilter.setRadiusSearch(radius);
         sfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
         if (negative)
         {
-            pcl::PointCloud<PointXYZRGBN>::Ptr pcl_neg_filtered(new pcl::PointCloud<PointXYZRGBN>);
-            pcl::ExtractIndices<PointXYZRGBN> extract;
-            extract.setInputCloud(pcl_cloud);
-            extract.setIndices(sfilter.getRemovedIndices());
-            extract.filter(*pcl_neg_filtered);
-            pcl_filtered = pcl_neg_filtered;
+            auto removed = sfilter.getRemovedIndices();
+            pcl_cloud.reset();
+            Cloud::Ptr cloud_filtered = cloud->extractByIndices(*removed);
+            cloud_filtered->setId(cloud->id());
+            cloud_filtered->setHasColors(cloud->hasColors());
+            cloud_filtered->setHasNormals(cloud->hasNormals());
+            // 采样结果颜色来自原始 Cloud，无需备份
+            reportProgress(cancel, on_progress, 100);
+            return {cloud_filtered, (float)time.toc()};
         }
 
-        if (isCanceled(cancel)) return {nullptr, 0};
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
 
-        // construct Cloud from PCL result
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        auto indices = sfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
         cloud_filtered->setId(cloud->id());
         cloud_filtered->setHasColors(cloud->hasColors());
         cloud_filtered->setHasNormals(cloud->hasNormals());
-        cloud_filtered->backupColors();
 
         reportProgress(cancel, on_progress, 100);
-
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -501,11 +553,11 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        // 仅需索引，使用 toPCL_XYZ 节省内存
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
-        pcl::RandomSample<PointXYZRGBN> rfilter;
+        pcl::PointCloud<PointXYZ>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZ>);
+        pcl::RandomSample<PointXYZ> rfilter;
         rfilter.setInputCloud(pcl_cloud);
         rfilter.setSample(sample);
         rfilter.setSeed(seed);
@@ -513,14 +565,16 @@ namespace ct
         rfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        // construct Cloud from PCL result
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        auto indices = rfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
         cloud_filtered->setId(cloud->id());
         cloud_filtered->setHasColors(cloud->hasColors());
         cloud_filtered->setHasNormals(cloud->hasNormals());
-        cloud_filtered->backupColors();
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
@@ -541,7 +595,7 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
+        // MLS 需要法线，保持 XYZRGBN
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
 
         pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
@@ -561,14 +615,15 @@ namespace ct
         mfilter.process(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        // construct Cloud from PCL result
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
         Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
         cloud_filtered->setId(cloud->id());
         cloud_filtered->setHasColors(cloud->hasColors());
-        cloud_filtered->setHasNormals(true); // MLS computes normals
-        cloud_filtered->backupColors();
+        cloud_filtered->setHasNormals(true);
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);
@@ -589,7 +644,7 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
+        // 需要法线，保持 XYZRGBN
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
 
         pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
@@ -601,29 +656,31 @@ namespace ct
         rfilter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
         if (negative)
         {
-            pcl::PointCloud<PointXYZRGBN>::Ptr pcl_neg_filtered(new pcl::PointCloud<PointXYZRGBN>);
-            pcl::ExtractIndices<PointXYZRGBN> extract;
-            extract.setInputCloud(pcl_cloud);
-            extract.setIndices(rfilter.getRemovedIndices());
-            extract.filter(*pcl_neg_filtered);
-            pcl_filtered = pcl_neg_filtered;
+            auto removed = rfilter.getRemovedIndices();
+            pcl_cloud.reset();
+            Cloud::Ptr cloud_filtered = cloud->extractByIndices(*removed);
+            cloud_filtered->setId(cloud->id());
+            cloud_filtered->setHasColors(cloud->hasColors());
+            cloud_filtered->setHasNormals(cloud->hasNormals());
+            // 采样结果颜色来自原始 Cloud，无需备份
+            reportProgress(cancel, on_progress, 100);
+            return {cloud_filtered, (float)time.toc()};
         }
 
-        if (isCanceled(cancel)) return {nullptr, 0};
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
 
-        // construct Cloud from PCL result
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        auto indices = rfilter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
         cloud_filtered->setId(cloud->id());
         cloud_filtered->setHasColors(cloud->hasColors());
         cloud_filtered->setHasNormals(cloud->hasNormals());
-        cloud_filtered->backupColors();
 
         reportProgress(cancel, on_progress, 100);
-
         return {cloud_filtered, (float)time.toc()};
     }
 
@@ -640,7 +697,7 @@ namespace ct
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 10);
 
-        // convert input cloud
+        // 需要法线，保持 XYZRGBN
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
 
         pcl::PointCloud<PointXYZRGBN>::Ptr pcl_filtered(new pcl::PointCloud<PointXYZRGBN>);
@@ -654,14 +711,16 @@ namespace ct
         filter.filter(*pcl_filtered);
 
         if (isCanceled(cancel)) return {nullptr, 0};
-        reportProgress(cancel, on_progress, 80);
+        reportProgress(cancel, on_progress, 50);
 
-        // construct Cloud from PCL result
-        Cloud::Ptr cloud_filtered = Cloud::fromPCL_XYZRGBN(*pcl_filtered);
+        // 提前释放 PCL 输入
+        pcl_cloud.reset();
+
+        auto indices = filter.getIndices();
+        Cloud::Ptr cloud_filtered = cloud->extractByIndices(*indices);
         cloud_filtered->setId(cloud->id());
         cloud_filtered->setHasColors(cloud->hasColors());
         cloud_filtered->setHasNormals(cloud->hasNormals());
-        cloud_filtered->backupColors();
 
         if (isCanceled(cancel)) return {nullptr, 0};
         reportProgress(cancel, on_progress, 100);

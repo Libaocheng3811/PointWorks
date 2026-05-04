@@ -907,6 +907,155 @@ namespace ct
         return result;
     }
 
+    Cloud::Ptr Cloud::extractByIndices(const std::vector<int>& indices) const
+    {
+        if (indices.empty()) return std::make_shared<Cloud>();
+
+        // 预排序索引以启用单遍 block 遍历
+        std::vector<std::pair<int, size_t>> sorted;
+        sorted.reserve(indices.size());
+        for (size_t qi = 0; qi < indices.size(); ++qi) {
+            if (indices[qi] >= 0) sorted.emplace_back(indices[qi], qi);
+        }
+        std::sort(sorted.begin(), sorted.end());
+
+        // 第一遍：计算包围盒
+        PointXYZ min_pt(FLT_MAX, FLT_MAX, FLT_MAX);
+        PointXYZ max_pt(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+        size_t block_offset = 0;
+        size_t block_idx = 0;
+        for (const auto& [gidx, orig_qi] : sorted) {
+            while (block_idx < m_all_blocks.size()) {
+                size_t bs = m_all_blocks[block_idx]->size();
+                if (gidx < (int)(block_offset + bs)) break;
+                block_offset += bs;
+                ++block_idx;
+            }
+            if (block_idx >= m_all_blocks.size()) break;
+
+            auto& block = m_all_blocks[block_idx];
+            size_t local = gidx - block_offset;
+            if (local >= block->size()) continue;
+
+            const auto& p = block->m_points[local];
+            if (p.x < min_pt.x) min_pt.x = p.x;
+            if (p.y < min_pt.y) min_pt.y = p.y;
+            if (p.z < min_pt.z) min_pt.z = p.z;
+            if (p.x > max_pt.x) max_pt.x = p.x;
+            if (p.y > max_pt.y) max_pt.y = p.y;
+            if (p.z > max_pt.z) max_pt.z = p.z;
+        }
+
+        // 构建结果 Cloud
+        Cloud::Ptr result(new Cloud);
+        result->setGlobalShift(m_global_shift);
+
+        Box box;
+        box.width = max_pt.x - min_pt.x;
+        box.height = max_pt.y - min_pt.y;
+        box.depth = max_pt.z - min_pt.z;
+        if (box.width < 1e-6) box.width = 1.0;
+        if (box.height < 1e-6) box.height = 1.0;
+        if (box.depth < 1e-6) box.depth = 1.0;
+        box.translation = Eigen::Vector3f(
+            min_pt.x + box.width / 2, min_pt.y + box.height / 2, min_pt.z + box.depth / 2);
+
+        result->initOctree(box);
+        if (m_has_rgb) result->enableColors();
+        if (m_has_normals) result->enableNormals();
+
+        // 收集标量场名称
+        std::vector<std::string> scalar_names;
+        if (!m_scalar_cache.empty()) {
+            for (const auto& kv : m_scalar_cache) scalar_names.push_back(kv.first);
+        }
+        for (const auto& blk : m_all_blocks) {
+            for (const auto& kv : blk->m_scalar_fields) {
+                bool found = false;
+                for (const auto& n : scalar_names) if (n == kv.first) { found = true; break; }
+                if (!found) scalar_names.push_back(kv.first);
+            }
+        }
+
+        // 批量提取：按 block 分组收集点
+        size_t batch_size = 50000;
+        std::vector<PointXYZ> pts; pts.reserve(batch_size);
+        std::vector<ColorRGB> colors; colors.reserve(batch_size);
+        std::vector<CompressedNormal> normals; normals.reserve(batch_size);
+        std::unordered_map<std::string, std::vector<float>> scalar_batches;
+
+        block_offset = 0;
+        block_idx = 0;
+        size_t prev_block_idx = SIZE_MAX;
+
+        for (const auto& [gidx, orig_qi] : sorted) {
+            // 向前推进 block_offset 直到覆盖 gidx
+            while (block_idx < m_all_blocks.size()) {
+                size_t bs = m_all_blocks[block_idx]->size();
+                if (gidx < (int)(block_offset + bs)) break;
+                block_offset += bs;
+                ++block_idx;
+            }
+            if (block_idx >= m_all_blocks.size()) break;
+
+            auto& block = m_all_blocks[block_idx];
+            size_t local = gidx - block_offset;
+            if (local >= block->size()) continue;
+
+            // 如果切换了 block，先 flush 当前批次
+            if (block_idx != prev_block_idx && !pts.empty()) {
+                result->addPoints(pts,
+                    m_has_rgb ? &colors : nullptr,
+                    m_has_normals ? &normals : nullptr,
+                    scalar_batches.empty() ? nullptr : &scalar_batches);
+                pts.clear(); colors.clear(); normals.clear();
+                scalar_batches.clear();
+            }
+            prev_block_idx = block_idx;
+
+            pts.push_back(block->m_points[local]);
+
+            if (m_has_rgb && block->m_colors) {
+                colors.push_back((*block->m_colors)[local]);
+            }
+
+            if (m_has_normals && block->m_normals) {
+                normals.push_back((*block->m_normals)[local]);
+            }
+
+            // 标量场
+            for (const auto& sname : scalar_names) {
+                auto it = block->m_scalar_fields.find(sname);
+                if (it != block->m_scalar_fields.end() && local < it->second.size()) {
+                    scalar_batches[sname].push_back(it->second[local]);
+                } else {
+                    scalar_batches[sname].push_back(0.0f);
+                }
+            }
+
+            if (pts.size() >= batch_size) {
+                result->addPoints(pts,
+                    m_has_rgb ? &colors : nullptr,
+                    m_has_normals ? &normals : nullptr,
+                    scalar_batches.empty() ? nullptr : &scalar_batches);
+                pts.clear(); colors.clear(); normals.clear();
+                scalar_batches.clear();
+            }
+        }
+
+        // flush 剩余
+        if (!pts.empty()) {
+            result->addPoints(pts,
+                m_has_rgb ? &colors : nullptr,
+                m_has_normals ? &normals : nullptr,
+                scalar_batches.empty() ? nullptr : &scalar_batches);
+        }
+
+        result->update();
+        return result;
+    }
+
     void Cloud::addScalarField(const std::string& name, const std::vector<float>& data)
     {
         if (data.size() != m_point_count) return;
@@ -996,6 +1145,14 @@ namespace ct
 
         // 如果没有，或者缓存无效，执行拼接
         if (!hasScalarField(name)) return nullptr;
+
+        // LRU 上限：超过 3 个字段时清除最早的一个
+        if (m_scalar_cache.size() >= 3) {
+            auto oldest = m_scalar_cache.begin();
+            oldest->second.clear();
+            oldest->second.shrink_to_fit();
+            m_scalar_cache.erase(oldest);
+        }
 
         std::vector<float>& full_data = m_scalar_cache[name]; // 创建/覆盖缓存条目
         full_data.resize(m_point_count);
@@ -1923,6 +2080,49 @@ namespace ct
         // 添加剩余的
         if (!pts.empty()) {
             cloud->addPoints(pts, &colors);
+        }
+
+        cloud->update();
+        return cloud;
+    }
+
+    Cloud::Ptr Cloud::fromPCL_XYZ(const pcl::PointCloud<PointXYZ>& pcl_cloud,
+                                   const Eigen::Vector3d& global_shift)
+    {
+        Cloud::Ptr cloud(new Cloud);
+        if (pcl_cloud.empty()) return cloud;
+        cloud->setGlobalShift(global_shift);
+
+        PointXYZ min_pt, max_pt;
+        pcl::getMinMax3D<PointXYZ>(pcl_cloud, min_pt, max_pt);
+
+        Box box;
+        box.width = max_pt.x - min_pt.x;
+        box.height = max_pt.y - min_pt.y;
+        box.depth = max_pt.z - min_pt.z;
+        if (box.width < 1e-6) box.width = 1.0;
+        if (box.height < 1e-6) box.height = 1.0;
+        if (box.depth < 1e-6) box.depth = 1.0;
+        box.translation = Eigen::Vector3f(min_pt.x + box.width/2, min_pt.y + box.height/2, min_pt.z + box.depth/2);
+
+        cloud->initOctree(box);
+
+        size_t n = pcl_cloud.size();
+        size_t batch_size = 50000;
+        std::vector<PointXYZ> pts; pts.reserve(batch_size);
+
+        for (size_t i = 0; i < n; ++i) {
+            const auto& src = pcl_cloud.points[i];
+            pts.emplace_back(src.x, src.y, src.z);
+
+            if (pts.size() >= batch_size) {
+                cloud->addPoints(pts);
+                pts.clear();
+            }
+        }
+
+        if (!pts.empty()) {
+            cloud->addPoints(pts);
         }
 
         cloud->update();

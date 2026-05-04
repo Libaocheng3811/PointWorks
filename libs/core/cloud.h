@@ -123,10 +123,15 @@ namespace ct
         // 按全局索引列表提取子集（避免全量深拷贝）
         pcl::PointCloud<PointXYZRGB>::Ptr toPCL_XYZRGB(const std::vector<int>& indices) const;
 
+        // 按全局索引从原始 Cloud 提取子集，保留颜色/法线/标量场（内存高效，避免 PCL 中间转换）
+        Ptr extractByIndices(const std::vector<int>& indices) const;
+
         static Ptr fromPCL_XYZRGBN(const pcl::PointCloud<PointXYZRGBN>& pcl_cloud,
                                     const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero());
         static Ptr fromPCL_XYZRGB(const pcl::PointCloud<PointXYZRGB>& pcl_cloud,
                                   const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero());
+        static Ptr fromPCL_XYZ(const pcl::PointCloud<PointXYZ>& pcl_cloud,
+                               const Eigen::Vector3d& global_shift = Eigen::Vector3d::Zero());
 
         // ===== 几何与元数据 =====
         void update();

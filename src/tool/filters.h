@@ -8,6 +8,8 @@
 #include "ui/base/customdialog.h"
 #include "algorithm/filters.h"
 
+#include <QFutureWatcher>
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class Filters;
@@ -41,6 +43,7 @@ private:
     Ui::Filters *ui;
     std::map<std::string, ct::Cloud::Ptr> m_filter_map;
     std::atomic<bool> m_cancel{false};
+    QFutureWatcher<ct::FilterResult>* m_preview_watcher = nullptr;
 };
 
 

@@ -32,8 +32,8 @@ namespace ct
 {
     Box Features::boundingBoxAABB(const Cloud::Ptr& cloud)
     {
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        PointXYZRGBN min, max;
+        auto pcl_cloud = cloud->toPCL_XYZ();
+        PointXYZ min, max;
         pcl::getMinMax3D(*pcl_cloud, min, max);
         Eigen::Vector3f cloud_center =
                 0.5f * (min.getVector3fMap() + max.getVector3fMap());
@@ -47,7 +47,7 @@ namespace ct
 
     Box Features::boundingBoxOBB(const Cloud::Ptr& cloud)
     {
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
         // 质心
         Eigen::Vector4f pcaCentroid;
@@ -56,7 +56,7 @@ namespace ct
         Eigen::Matrix3f covariance;
         pcl::computeCovarianceMatrixNormalized(*pcl_cloud, pcaCentroid, covariance);
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
-        Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors(); // feature vector
+        Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
         eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
         eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
         eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
@@ -66,10 +66,10 @@ namespace ct
         transform.block<3, 1>(0, 3) = -1.0f * (eigenVectorsPCA.transpose()) * (pcaCentroid.head<3>());
         transform_inv = transform.inverse();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr transformedCloud(new pcl::PointCloud<PointXYZRGBN>);
+        pcl::PointCloud<PointXYZ>::Ptr transformedCloud(new pcl::PointCloud<PointXYZ>);
         transformPointCloud(*pcl_cloud, *transformedCloud, transform);
 
-        PointXYZRGBN min, max;
+        PointXYZ min, max;
         Eigen::Vector3f cloud_center, tcloud_center;
         pcl::getMinMax3D(*transformedCloud, min, max);
         cloud_center = 0.5f * (max.getVector3fMap() + min.getVector3fMap());
@@ -83,19 +83,17 @@ namespace ct
 
     Box Features::boundingBoxAdjust(const Cloud::Ptr& cloud, const Eigen::Affine3f &t)
     {
-        auto pcl_cloud = cloud->toPCL_XYZRGBN();
+        auto pcl_cloud = cloud->toPCL_XYZ();
 
         Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
-        // 将t表示的仿射变换转换为标准的矩阵形式
         transform = t.matrix();
         Eigen::Matrix4f transform_inv = Eigen::Matrix4f::Identity();
-        // 计算transform矩阵的逆矩阵
         transform_inv = transform.inverse();
 
-        pcl::PointCloud<PointXYZRGBN>::Ptr transformedCloud(new pcl::PointCloud<PointXYZRGBN>);
+        pcl::PointCloud<PointXYZ>::Ptr transformedCloud(new pcl::PointCloud<PointXYZ>);
         transformPointCloud(*pcl_cloud, *transformedCloud, transform);
 
-        PointXYZRGBN min, max;
+        PointXYZ min, max;
         Eigen::Vector3f cloud_center, tcloud_center;
         pcl::getMinMax3D(*transformedCloud, min, max);
         cloud_center = 0.5f * (min.getVector3fMap() + max.getVector3fMap());

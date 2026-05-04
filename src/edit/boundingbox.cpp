@@ -11,6 +11,9 @@
 
 #include "ui_BoundingBox.h"
 
+#include <QtConcurrent/QtConcurrent>
+#include <QFutureWatcher>
+
 #define BOX_TYPE_POINTS     (0)
 #define BOX_TYPE_WIREFRAME  (1)
 #define BOX_TYPE_SURFACE    (2)
@@ -72,56 +75,54 @@ void BoundingBox::preview()
         return;
     }
     this->adjustEnable(false);
+
     for (auto& cloud : selected_clouds)
     {
-        ct::Box box;
-        /**
-         * @brief 包围盒知识
-         * AABB包围盒（Axis-aligned bounding box）和OBB包围盒（Oriented bounding box）是两种常用的几何体包围盒算法，
-         * 用于近似表示复杂几何体的空间位置，以便于进行快速的空间关系检测，如碰撞检测
-         * AABB包围盒：用一个长方体将物体包裹起来，每个面都与某个坐标轴平面平行，但是不能随物体旋转
-         * OBB包围盒：是一个可以旋转的长方体，能够更紧密地包围物体，减少包围体的个数
-         */
-        if (ui->rbtn_aabb->isChecked())
-        {
-            box = ct::Features::boundingBoxAABB(cloud);
-            // 添加包围盒
-            m_cloudview->addCube(box, QString::fromStdString(cloud->boxId()));
-            // 设置包围盒颜色
-            m_cloudview->setShapeColor(QString::fromStdString(cloud->boxId()), ct::Color::Red);
-            m_cloudview->showInfo("Axis-Aligned Bounding Box", 1);
-        }
-        else
-        {
-            box = ct::Features::boundingBoxOBB(cloud);
-            m_cloudview->addCube(box, QString::fromStdString(cloud->boxId()));
-            m_cloudview->setShapeColor(QString::fromStdString(cloud->boxId()), ct::Color::Green);
-            m_cloudview->showInfo("Oriented Bounding Box", 1);
-        }
-        // 设置包围盒的表示形式
-        m_cloudview->setShapeRepersentation(QString::fromStdString(cloud->boxId()), m_box_type);
-        switch (m_box_type)
-        {
-            case BOX_TYPE_POINTS:
-                m_cloudview->setShapeSize(QString::fromStdString(cloud->boxId()), 5);
-                break;
-            case BOX_TYPE_WIREFRAME:
-                m_cloudview->setShapeLineWidth(QString::fromStdString(cloud->boxId()), 3);
-                break;
-            case BOX_TYPE_SURFACE:
-                m_cloudview->setShapeOpacity(QString::fromStdString(cloud->boxId()), 0.5);
-                break;
-        }
-        // 在界面上显示该包围盒对应的欧拉角，如果是AABB包围盒，欧拉角都为0
-        float roll, pitch, yaw;
-        ct::getEulerAngles(box.pose, roll, pitch, yaw);
-        ui->dspin_rx->setValue(roll);
-        ui->dspin_ry->setValue(pitch);
-        ui->dspin_rz->setValue(yaw);
-        m_box_map[cloud->id()] = box;
-    }
+        bool aabb = ui->rbtn_aabb->isChecked();
+        int box_type = m_box_type;
 
-    this->adjustEnable(true);
+        auto future = QtConcurrent::run([cloud, aabb]() -> ct::Box {
+            return aabb ? ct::Features::boundingBoxAABB(cloud)
+                        : ct::Features::boundingBoxOBB(cloud);
+        });
+
+        auto* watcher = new QFutureWatcher<ct::Box>(this);
+        QString cloud_id = QString::fromStdString(cloud->id());
+        connect(watcher, &QFutureWatcher<ct::Box>::finished, this, [=]() {
+            ct::Box box = watcher->result();
+            m_cloudview->addCube(box, QString::fromStdString(cloud->id()) + "_preview");
+            m_cloudview->setShapeColor(cloud_id + "_preview",
+                                       aabb ? ct::Color::Red : ct::Color::Green);
+            m_cloudview->setShapeRepersentation(cloud_id + "_preview", box_type);
+
+            switch (box_type)
+            {
+                case BOX_TYPE_POINTS:
+                    m_cloudview->setShapeSize(cloud_id + "_preview", 5);
+                    break;
+                case BOX_TYPE_WIREFRAME:
+                    m_cloudview->setShapeLineWidth(cloud_id + "_preview", 3);
+                    break;
+                case BOX_TYPE_SURFACE:
+                    m_cloudview->setShapeOpacity(cloud_id + "_preview", 0.5);
+                    break;
+            }
+
+            float roll, pitch, yaw;
+            ct::getEulerAngles(box.pose, roll, pitch, yaw);
+            ui->dspin_rx->setValue(roll);
+            ui->dspin_ry->setValue(pitch);
+            ui->dspin_rz->setValue(yaw);
+            m_box_map[cloud->id()] = box;
+            this->adjustEnable(true);
+            if (aabb)
+                m_cloudview->showInfo("Axis-Aligned Bounding Box", 1);
+            else
+                m_cloudview->showInfo("Oriented Bounding Box", 1);
+            watcher->deleteLater();
+        });
+        watcher->setFuture(future);
+    }
 }
 
 void BoundingBox::apply()
@@ -182,23 +183,33 @@ void BoundingBox::adjustEnable(bool state)
 void BoundingBox::adjustBox(float r, float p, float y) {
     for (auto &cloud: m_cloudtree->getSelectedClouds()) {
         Eigen::Affine3f affine = ct::getTransformation(cloud->center()[0], cloud->center()[1], cloud->center()[2], r, p, y);
-        ct::Box box = ct::Features::boundingBoxAdjust(cloud, affine.inverse());
-        m_cloudview->addCube(box, QString::fromStdString(cloud->boxId()));
-        m_cloudview->setShapeColor(QString::fromStdString(cloud->boxId()), ct::Color::Blue);
-        m_cloudview->setShapeRepersentation(QString::fromStdString(cloud->boxId()), m_box_type);
-        switch (m_box_type) {
-            case BOX_TYPE_POINTS:
-                m_cloudview->setShapeSize(QString::fromStdString(cloud->boxId()), 5);
-                break;
-            case BOX_TYPE_WIREFRAME:
-                m_cloudview->setShapeLineWidth(QString::fromStdString(cloud->boxId()), 3);
-                break;
-            case BOX_TYPE_SURFACE:
-                m_cloudview->setShapeOpacity(QString::fromStdString(cloud->boxId()), 0.5);
-                break;
-        }
-        m_box_map[cloud->id()] = box;
+        int box_type = m_box_type;
 
-        }
+        auto future = QtConcurrent::run([cloud, affine]() -> ct::Box {
+            return ct::Features::boundingBoxAdjust(cloud, affine.inverse());
+        });
 
+        auto* watcher = new QFutureWatcher<ct::Box>(this);
+        connect(watcher, &QFutureWatcher<ct::Box>::finished, this, [=]() {
+            ct::Box box = watcher->result();
+            QString cloud_id = QString::fromStdString(cloud->id());
+            m_cloudview->addCube(box, cloud_id + "_preview");
+            m_cloudview->setShapeColor(cloud_id + "_preview", ct::Color::Blue);
+            m_cloudview->setShapeRepersentation(cloud_id + "_preview", box_type);
+            switch (box_type) {
+                case BOX_TYPE_POINTS:
+                    m_cloudview->setShapeSize(cloud_id + "_preview", 5);
+                    break;
+                case BOX_TYPE_WIREFRAME:
+                    m_cloudview->setShapeLineWidth(cloud_id + "_preview", 3);
+                    break;
+                case BOX_TYPE_SURFACE:
+                    m_cloudview->setShapeOpacity(cloud_id + "_preview", 0.5);
+                    break;
+            }
+            m_box_map[cloud->id()] = box;
+            watcher->deleteLater();
+        });
+        watcher->setFuture(future);
     }
+}

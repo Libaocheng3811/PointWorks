@@ -92,6 +92,7 @@ namespace ct
         gp3.setNormalConsistency(consistent);
         gp3.setConsistentVertexOrdering(consistent_ordering);
         gp3.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 
@@ -126,6 +127,7 @@ namespace ct
         gp.setNearestNeighborNum(k);
         gp.setMaxBinarySearchLevel(max_binary_search_level);
         gp.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 
@@ -168,6 +170,7 @@ namespace ct
         po.setOutputPolygons(output_polygons);
         po.setManifold(manifold);
         po.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 
@@ -206,6 +209,7 @@ namespace ct
 
         reportProgress(on_progress, 40);
         gp.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 
@@ -241,6 +245,7 @@ namespace ct
         gp.setPercentageExtendGrid(percentage);
         gp.setDistanceIgnore(dist_ignore);
         gp.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 
@@ -271,6 +276,7 @@ namespace ct
         sur.setComputeAreaVolume(value);
         sur.setDimension(dimensio);
         sur.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 
@@ -303,6 +309,7 @@ namespace ct
         sur.setKeepInformation(value);
         sur.setDimension(dimensio);
         sur.reconstruct(*mesh);
+        pcl_cloud.reset();
 
         reportProgress(on_progress, 100);
 

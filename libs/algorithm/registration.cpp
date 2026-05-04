@@ -73,6 +73,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         cebp->determineCorrespondences(*corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -110,6 +112,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         cens->determineCorrespondences(*corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -151,6 +155,8 @@ namespace ct
 
         double max_distance = 0;
         ceop->determineCorrespondences(*corr, max_distance);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -172,10 +178,14 @@ namespace ct
         dc.setTargetNormals(target_pcl);
         dc.setSearchMethodTarget(target_tree);
         dc.setInputNormals(source_pcl);
+        double score;
         if (from_normals)
-            return dc.getCorrespondenceScoreFromNormals(corr);
+            score = dc.getCorrespondenceScoreFromNormals(corr);
         else
-            return dc.getCorrespondenceScore(corr);
+            score = dc.getCorrespondenceScore(corr);
+        source_pcl.reset();
+        target_pcl.reset();
+        return score;
     }
 
     // 基于给定的最大距离阈值来过滤源点云和目标点云之间的对应关系
@@ -206,6 +216,8 @@ namespace ct
         if (on_progress) on_progress(50);
 
         cj->getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -241,6 +253,8 @@ namespace ct
         if (on_progress) on_progress(50);
 
         cj->getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -302,6 +316,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         cj.getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -340,6 +356,8 @@ namespace ct
         if (on_progress) on_progress(50);
 
         cj->getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -378,6 +396,8 @@ namespace ct
         if (on_progress) on_progress(50);
 
         cj->getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -414,6 +434,8 @@ namespace ct
         if (on_progress) on_progress(50);
 
         cj->getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -477,6 +499,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         cj->getRemainingCorrespondences(*input_corr, *corr);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -532,6 +556,8 @@ namespace ct
         reg.setRotationGradientTolerance(rol_tolerance);
         reg.setUseReciprocalCorrespondences(use_recip_corre);
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -595,6 +621,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -660,6 +688,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -712,6 +742,8 @@ namespace ct
         if (on_progress) on_progress(30);
 
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -767,6 +799,8 @@ namespace ct
         if (on_progress) on_progress(30);
 
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -819,6 +853,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);
@@ -875,6 +911,8 @@ namespace ct
         if (on_progress) on_progress(40);
 
         reg.align(*ail_pcl);
+        source_pcl.reset();
+        target_pcl.reset();
 
         if (cancel && *cancel) return {};
         if (on_progress) on_progress(100);

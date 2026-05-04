@@ -31,7 +31,7 @@ namespace ct{
             }
             target->addScalarField(name, tgt_data);
         }
-        target->backupColors();
+        // 不自动 backupColors — 仅在用户主动修改颜色时才备份
     }
 } // namespace ct
 #endif //POINTWORKS_UTILS_H

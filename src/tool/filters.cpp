@@ -10,6 +10,7 @@
 
 #include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
+#include <QTimer>
 
 #define FILTER_TYPE_PassThrough                         (0)
 #define FILTER_TYPE_VoxelGrid                           (1)
@@ -119,12 +120,12 @@ Filters::Filters(QWidget *parent) :
     connect(ui->slider_min, &QSlider::valueChanged, [=](int value)
     {
         ui->dspin_min->setValue((float)value / 1000);
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
     connect(ui->slider_max, &QSlider::valueChanged, [=](int value)
     {
         ui->dspin_max->setValue((float)value / 1000);
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
 
     // VoxelGrid
@@ -151,15 +152,15 @@ Filters::Filters(QWidget *parent) :
             ui->dspin_leafy->setValue(value);
             ui->dspin_leafz->setValue(value);
         }
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
     connect(ui->dspin_leafy, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (!ui->check_same_value->isChecked() && ui->check_refresh->isChecked()) this->preview();
+        if (!ui->check_same_value->isChecked() && ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
     connect(ui->dspin_leafz, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (!ui->check_same_value->isChecked() && ui->check_refresh->isChecked()) this->preview();
+        if (!ui->check_same_value->isChecked() && ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
     connect(ui->check_approximate, &QCheckBox::stateChanged, [=](int state)
     {
@@ -173,39 +174,39 @@ Filters::Filters(QWidget *parent) :
     connect(ui->spin_meank, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged), [=]
     {
         // 同步更新滤波结果
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
     connect(ui->dspin_stddevmulthresh, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
 
     // RadiusOutlierRemoval
     connect(ui->dspin_radius, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
     connect(ui->spin_minneiborsinradius, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged), [=]
     {
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
 
     // GridMinimum
     connect(ui->dspin_resolution, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
 
     // LocalMaximum
     connect(ui->dspin_radius_3, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
 
     // ShadowPoints
     connect(ui->dspin_threshold, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=]
     {
-        if (ui->check_refresh->isChecked()) this->preview();
+        if (ui->check_refresh->isChecked()) QTimer::singleShot(300, this, &Filters::preview);
     });
 
     connect(ui->cbox_field_name, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &Filters::getRange);
@@ -213,7 +214,7 @@ Filters::Filters(QWidget *parent) :
     ui->cbox_type->setCurrentIndex(0);
     ui->stackedWidget->setCurrentIndex(0);
     ui->table_condition->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ui->check_refresh->setChecked(true);
+    ui->check_refresh->setChecked(false);
 }
 
 Filters::~Filters() {
@@ -222,15 +223,15 @@ Filters::~Filters() {
 
 void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_progress)
 {
+    // 始终异步执行，禁止主线程阻塞
     if (show_progress) {
         m_progress->showProgress("Filtering PointCloud...");
+    }
 
-        // 通过 cancelRequested 信号设置取消标志
-        m_cancel = false;
-        if (m_progress->dialog()) {
-            connect(m_progress, &ct::ProgressManager::cancelRequested,
-                    this, [this]() { m_cancel = true; }, Qt::UniqueConnection);
-        }
+    m_cancel = false;
+    if (m_progress->dialog()) {
+        connect(m_progress, &ct::ProgressManager::cancelRequested,
+                this, [this]() { m_cancel = true; }, Qt::UniqueConnection);
     }
 
     // 进度回调：跨线程安全地更新进度条
@@ -241,23 +242,23 @@ void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_pr
         }
     };
 
-    // 由于 filterFn 已经捕获了 cancel 和 on_progress，直接运行即可
-    // 对于非实时刷新模式，使用 QtConcurrent::run 异步执行
-    if (show_progress) {
-        auto future = QtConcurrent::run(filterFn);
-        auto* watcher = new QFutureWatcher<ct::FilterResult>(this);
-        connect(watcher, &QFutureWatcher<ct::FilterResult>::finished, this, [=]() {
-            m_progress->closeProgress();
-            auto result = watcher->result();
-            handleFilterResult(result);
-            watcher->deleteLater();
-        });
-        watcher->setFuture(future);
-    } else {
-        // 实时刷新模式：直接同步调用（不显示进度条）
-        auto result = filterFn();
-        handleFilterResult(result);
+    // 终止上一次未完成的预览任务
+    if (m_preview_watcher && !m_preview_watcher->isFinished()) {
+        m_cancel = true;
+        m_preview_watcher->waitForFinished();
     }
+
+    auto future = QtConcurrent::run(filterFn);
+    if (!m_preview_watcher) {
+        m_preview_watcher = new QFutureWatcher<ct::FilterResult>(this);
+    }
+    m_preview_watcher->setFuture(future);
+
+    connect(m_preview_watcher, &QFutureWatcher<ct::FilterResult>::finished, this, [=]() {
+        if (show_progress) m_progress->closeProgress();
+        auto result = m_preview_watcher->result();
+        handleFilterResult(result);
+    });
 }
 
 void Filters::handleFilterResult(const ct::FilterResult& result)

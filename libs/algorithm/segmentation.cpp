@@ -1006,6 +1006,8 @@ namespace ct
         seg.setTargetCloud(pcl_tar);
         seg.setDistanceThreshold(sqr_threshold);
         seg.segment(*diff);
+        pcl_cloud.reset();
+        pcl_tar.reset();
 
         if (isCanceled(cancel)) return {};
         reportProgress(cancel, on_progress, 70);

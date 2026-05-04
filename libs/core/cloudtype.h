@@ -144,11 +144,11 @@ namespace ct {
         static constexpr size_t MAX_BLOCK_SIZE = 1000000;  // 太大会导致单次上传显卡卡顿
 
         // LOD 采样比例 (LOD点数 = Block点数 * Ratio)
-        static constexpr float  LOD_POINT_RATIO = 0.75f;
+        static constexpr float  LOD_POINT_RATIO = 0.50f;
 
         // LOD 大小限制
         static constexpr size_t MIN_LOD_SIZE = 10000;      // 太稀疏看不清
-        static constexpr size_t MAX_LOD_SIZE = 300000;     // 太密影响渲染性能
+        static constexpr size_t MAX_LOD_SIZE = 100000;     // 太密影响渲染性能
 
         // 默认最大深度
         static constexpr int    DEFAULT_MAX_DEPTH = 8;
