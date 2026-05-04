@@ -39,11 +39,14 @@ namespace ct
 
         void clear() {
             points.clear();
+            points.shrink_to_fit();
             colors.clear();
+            colors.shrink_to_fit();
             normals.clear();
-            // 清空数据但保留 Key，避免重复构造 Map
+            normals.shrink_to_fit();
             for (auto it = scalars.begin(); it != scalars.end(); ++it) {
                 it->second.clear();
+                it->second.shrink_to_fit();
             }
         }
 

@@ -9,6 +9,13 @@
 #include <string>
 
 namespace ct{
+
+    struct LODPoint {
+        float x, y, z;
+        uint8_t r, g, b;
+        uint8_t _pad;  // 显式填充到 16B，避免编译器隐式 padding
+    };
+
     /**
      * @brief 数据块 (Data Block) - 八叉树叶子负载
      */
@@ -153,7 +160,7 @@ namespace ct{
 
         CloudBlock::Ptr m_block = nullptr;
 
-        std::vector<pcl::PointXYZRGB> m_lod_points;
+        std::vector<LODPoint> m_lod_points;
 
         std::shared_ptr<void> m_vtk_lod_polydata;  // VTK LOD 缓存（由 OctreeRenderer 管理）
         bool m_lod_dirty = true;

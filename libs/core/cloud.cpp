@@ -66,8 +66,6 @@ namespace ct
         std::swap(m_cached_xyzrgb, other.m_cached_xyzrgb);
         std::swap(m_cached_xyzrgbn, other.m_cached_xyzrgbn);
         std::swap(m_cache_type, other.m_cache_type);
-        std::swap(m_render_cloud, other.m_render_cloud);
-        std::swap(m_render_cache_valid, other.m_render_cache_valid);
 
         // 元数据
         std::swap(m_id, other.m_id);
@@ -171,7 +169,18 @@ namespace ct
             this->generateLOD();
         }
 
-        // 6. 再次更新以确保状态一致
+        // 6. 全局 shrink_to_fit — 回收 reserve 造成的 capacity 浪费
+        for (auto& block : m_all_blocks) {
+            if (block->empty()) continue;
+            block->m_points.shrink_to_fit();
+            if (block->m_colors) block->m_colors->shrink_to_fit();
+            if (block->m_normals) block->m_normals->shrink_to_fit();
+            for (auto& kv : block->m_scalar_fields) {
+                kv.second.shrink_to_fit();
+            }
+        }
+
+        // 7. 再次更新以确保状态一致
         this->update();
     }
 
@@ -250,8 +259,9 @@ namespace ct
             if (m_config.maxLODPoints > 0) {
 
                 // 构造 LOD 点 (包含坐标和颜色)
-                PointXYZRGB lod_pt;
+                LODPoint lod_pt;
                 lod_pt.x = pt.x; lod_pt.y = pt.y; lod_pt.z = pt.z;
+                lod_pt._pad = 0;
                 if (color) {
                     lod_pt.r = color->r; lod_pt.g = color->g; lod_pt.b = color->b;
                 } else {
@@ -374,8 +384,9 @@ namespace ct
             if (lod_capacity > 0) {
 
                 // 构造 LOD 点对象
-                PointXYZRGB lod_pt;
+                LODPoint lod_pt;
                 lod_pt.x = pt.x; lod_pt.y = pt.y; lod_pt.z = pt.z;
+                lod_pt._pad = 0;
 
                 // 获取颜色
                 if (oldBlock->m_colors) {
@@ -673,7 +684,6 @@ namespace ct
         m_cached_xyz.reset();
         m_cached_xyzrgb.reset();
         m_cached_xyzrgbn.reset();
-        m_render_cloud.reset();
     }
 
     void Cloud::enableColors()
@@ -732,11 +742,9 @@ namespace ct
     void Cloud::invalidateCache()
     {
         m_cache_type = PCLCacheType::None;
-        m_render_cache_valid = false;
         m_cached_xyz.reset();
         m_cached_xyzrgb.reset();
         m_cached_xyzrgbn.reset();
-        m_render_cloud.reset();
         m_scalar_cache.clear();
     }
 
@@ -899,27 +907,6 @@ namespace ct
         return result;
     }
 
-    // =========================================================
-    // TODO 渲染接口 (临时方案：依然返回拼接点云)
-    // =========================================================
-
-    pcl::PointCloud<PointXYZRGB>::Ptr Cloud::getRenderCloud() const
-    {
-        // 阶段一：我们还没有实现自定义 Mapper，所以 View 层依然需要一个完整的 PCL 点云
-        // 这里直接复用 toPCL_XYZRGB
-        if (m_render_cache_valid && m_render_cloud) return m_render_cloud;
-
-        m_render_cloud = toPCL_XYZRGB();
-        m_render_cache_valid = true;
-        return m_render_cloud;
-    }
-
-    void Cloud::invalidateRenderCache()
-    {
-        m_render_cloud.reset();
-        m_render_cache_valid = false;
-    }
-
     void Cloud::addScalarField(const std::string& name, const std::vector<float>& data)
     {
         if (data.size() != m_point_count) return;
@@ -1053,7 +1040,7 @@ namespace ct
         }
 
         m_color_modified = true;
-        invalidateRenderCache(); // 通知视图更新
+        invalidateCache(); // 通知视图更新
     }
 
     void Cloud::setCloudColor(const std::string& axis)
@@ -1151,7 +1138,7 @@ namespace ct
 
         m_current_color_mode = axis;
         m_color_modified = true;
-        invalidateRenderCache();
+        invalidateCache();
     }
 
     void Cloud::updateLODColorRecursive(OctreeNode* node, const ColorRGB& rgb)
@@ -1258,7 +1245,7 @@ namespace ct
         }
         m_current_color_mode = field_name;
         m_color_modified = true;
-        invalidateRenderCache();
+        invalidateCache();
     }
 
     void Cloud::updateColorByField(const std::string& field_name,
@@ -1324,7 +1311,7 @@ namespace ct
         }
         m_current_color_mode = field_name;
         m_color_modified = true;
-        invalidateRenderCache();
+        invalidateCache();
     }
 
     bool Cloud::getFieldRange(const std::string& field_name,
@@ -1521,7 +1508,7 @@ namespace ct
                 this->generateLOD();
             }
             m_current_color_mode = "RGB (Default)";
-            invalidateRenderCache();
+            invalidateCache();
         }
     }
 
@@ -1643,13 +1630,22 @@ namespace ct
 
         // 收集候选点 (Candidates)
         // 我们需要从 8 个子节点中汇聚点，然后选出代表当前节点的 LOD
-        std::vector<pcl::PointXYZRGB> candidates;
+
+        // 如果当前节点已有足够的 LOD 数据（来自加载时蓄水池采样），跳过重建
+        size_t target_lod_size = m_config.maxLODPoints;
+        if (target_lod_size == 0) return;
+
+        if (!node->m_lod_points.empty() &&
+            node->m_lod_points.size() >= target_lod_size * 0.8) {
+            for (int i = 0; i < 8; ++i) {
+                if (node->m_children[i]) generateLODRecursive(node->m_children[i].get());
+            }
+            return;
+        }
+
+        std::vector<LODPoint> candidates;
 
         // 预估容量：8个子节点，每个最多贡献 maxLODPoints 个点
-        // 如果子节点是叶子，可能贡献更多，但我们会限制采样
-        size_t target_lod_size = m_config.maxLODPoints;
-        if (target_lod_size == 0) return; // 配置禁用了 LOD
-
         candidates.reserve(target_lod_size * 8);
 
         for (int i = 0; i < 8; ++i) {
@@ -1674,9 +1670,10 @@ namespace ct
                 if (step < 1) step = 1;
 
                 for (size_t k = 0; k < block_size; k += step) {
-                    pcl::PointXYZRGB p;
+                    LODPoint p;
                     const auto& src_pt = block->m_points[k];
                     p.x = src_pt.x; p.y = src_pt.y; p.z = src_pt.z;
+                    p._pad = 0;
 
                     if (block->m_colors) {
                         const auto& c = (*block->m_colors)[k];
@@ -1811,7 +1808,7 @@ namespace ct
 
         // 缓存失效
         invalidateCache();
-        invalidateRenderCache();
+        invalidateCache();
     }
 
     Cloud& Cloud::operator+=(const Cloud& rhs)

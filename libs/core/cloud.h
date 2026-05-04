@@ -181,15 +181,12 @@ namespace ct
         std::uint32_t getPointColorForSave(size_t index) const;
 
         void removeInvalidPoints();
-
-        pcl::PointCloud<PointXYZRGB>::Ptr getRenderCloud() const;
-        void invalidateRenderCache();
+        void invalidateCache();
 
     private:
         float computeResolution(int sampleCount = 1000);
         void initColorTable();
         void copyFrom(const Cloud& other);
-        void invalidateCache();
         CloudBlock* insertPointToOctree(OctreeNode* node, const PointXYZ& pt,
                                  const ColorRGB* color, const CompressedNormal* normal);
 
@@ -221,9 +218,6 @@ namespace ct
         mutable pcl::PointCloud<PointXYZ>::Ptr m_cached_xyz;
         mutable pcl::PointCloud<PointXYZRGB>::Ptr m_cached_xyzrgb;
         mutable pcl::PointCloud<PointXYZRGBN>::Ptr m_cached_xyzrgbn;
-
-        mutable pcl::PointCloud<PointXYZRGB>::Ptr m_render_cloud;
-        mutable bool m_render_cache_valid = false;
 
         // ===== 元数据 =====
         std::string m_id;

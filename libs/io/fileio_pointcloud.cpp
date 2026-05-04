@@ -399,10 +399,16 @@ bool FileIO::loadPLY_PCD(const QString &filename, Cloud::Ptr &cloud) {
         batch.flushTo(cloud);
     }
 
+    // 所有数据已提取到八叉树，立即释放 blob 数据（对大文件可回收 2~3GB）
+    blob.data.clear();
+    blob.data.shrink_to_fit();
+
     cloud->setHasColors(has_color);
     cloud->setHasNormals(has_normal);
 
     cloud->makeAdaptive();
+
+    emit progress(98);
 
     return true;
 }

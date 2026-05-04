@@ -41,18 +41,21 @@ namespace ct {
 
     OctreeRenderer::OctreeRenderer(Cloud::Ptr cloud, vtkRenderer *renderer)
             : m_cloud(cloud), m_vtk_renderer(renderer) {
-        // 初始化时读取 CloudConfig
         if (m_cloud) {
-            // 读取预算
-            m_point_budget = m_cloud->getConfig().pointBudget; // 默认 1000w
-            if (m_point_budget == 0) m_point_budget = 10000000; // 保底
+            m_point_budget = m_cloud->getConfig().pointBudget;
+            if (m_point_budget == 0) m_point_budget = 10000000;
 
-            // 如果是直通模式(无八叉树)，不需要阈值
-            // 如果有八叉树，设置一个合理的基础阈值
             m_base_threshold = 80.0f;
 
             m_last_point_size = m_cloud->pointSize();
             m_last_opacity = m_cloud->opacity();
+
+            // 自适应 Actor 缓存上限：叶子 block 数 + 30% 余量给 LOD 节点
+            size_t totalBlocks = m_cloud->getBlocks().size();
+            if (totalBlocks > 0) {
+                m_max_cached_actors = std::max((size_t)500, totalBlocks + totalBlocks / 3);
+                m_max_cached_actors = std::min(m_max_cached_actors, (size_t)5000);
+            }
         }
     }
 
@@ -214,6 +217,10 @@ namespace ct {
             // 交互模式：阈值大，预算低
             effective_threshold = 300.0f;
             effective_budget = 5000000;
+        } else if (m_first_update) {
+            // 首次加载：使用高阈值只显示粗 LOD，避免一次性创建数百个 Actor 导致 UI 卡死
+            effective_threshold = 500.0f;
+            effective_budget = 3000000;
         } else {
             // 静止模式：阈值小，预算高
             effective_threshold = m_base_threshold; // e.g. 80.0f
@@ -311,8 +318,13 @@ namespace ct {
             if (m_current_visible_nodes.find(node) == m_current_visible_nodes.end())
                 m_hidden_frames[node]++;
         }
-        if (m_actor_cache.size() > MAX_CACHED_ACTORS)
+        if (m_actor_cache.size() > m_max_cached_actors)
             evictHiddenActors();
+
+        // 首次更新完成：标记非首次，后续 update 会使用正常阈值渲染精细细节
+        if (m_first_update) {
+            m_first_update = false;
+        }
     }
 
     void OctreeRenderer::evictHiddenActors() {
@@ -344,7 +356,6 @@ namespace ct {
             points->SetNumberOfPoints(n);
             colors->SetNumberOfTuples(n);
 
-            // 即使是 LOD，如果点数很多，也可以考虑并行
             float* ptr_xyz = static_cast<float*>(points->GetVoidPointer(0));
             unsigned char* ptr_rgb = colors->GetPointer(0);
 

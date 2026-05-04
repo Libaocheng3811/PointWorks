@@ -176,7 +176,7 @@ public:
     void refresh()
     {
         m_cloud->update();
-        m_cloud->invalidateRenderCache();
+        m_cloud->invalidateCache();
 
         auto* bridge = ct::PythonManager::instance().bridge();
         if (bridge) {

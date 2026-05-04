@@ -102,6 +102,7 @@ namespace ct{
 
         // 交互状态与动态阈值
         bool m_is_interacting = false;
+        bool m_first_update = true;  // 首次 update 标记，限制 Actor 创建量避免 UI 卡死
         // 分裂阈值，屏幕上小于这个像素宽度的方块，就不再加载细节，直接看 LOD。值越小细节越丰富，CPU 遍历压力越大。
         float m_base_threshold = 100.0f; // 基础阈值 (像素)
         // 限制同屏渲染的最大点数
@@ -109,7 +110,7 @@ namespace ct{
 
         // 缓存驱逐
         std::unordered_map<OctreeNode*, int> m_hidden_frames; // 每个隐藏节点的连续不可见帧数
-        static constexpr size_t MAX_CACHED_ACTORS = 500;      // 驱逐阈值
+        size_t m_max_cached_actors = 500;                     // 自适应驱逐阈值
         static constexpr int EVICTION_FRAMES = 5;            // 连续隐藏多少帧后可驱逐
     };
 

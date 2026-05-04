@@ -60,7 +60,8 @@ namespace ct
         m_OctreeRenders.insert(qid, renderer);
 
         renderer->invalidateCache();
-        renderer->update();
+        // 不在此处调用 renderer->update()，首次 update 会创建大量 Actor 阻塞 UI
+        // 延迟到 Render 调用时触发（首次渲染时 update 会自动执行）
 
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
