@@ -187,6 +187,8 @@ namespace ct
 
         void removeInvalidPoints();
         void invalidateCache();
+        void invalidatePCLCache();
+        void invalidateScalarCache();
 
     private:
         float computeResolution(int sampleCount = 1000);
@@ -218,8 +220,6 @@ namespace ct
 
         mutable std::unordered_map<std::string, std::vector<float>> m_scalar_cache;
 
-        enum class PCLCacheType { None, XYZ, XYZRGB, XYZRGBN };
-        mutable PCLCacheType m_cache_type = PCLCacheType::None;
         mutable pcl::PointCloud<PointXYZ>::Ptr m_cached_xyz;
         mutable pcl::PointCloud<PointXYZRGB>::Ptr m_cached_xyzrgb;
         mutable pcl::PointCloud<PointXYZRGBN>::Ptr m_cached_xyzrgbn;

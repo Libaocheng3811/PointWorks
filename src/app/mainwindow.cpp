@@ -78,7 +78,22 @@ MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
-    // resize
+    auto* python_console = new ct::PythonConsole(nullptr);
+
+    setupInitialLayout(python_console);
+    setupFileMenu();
+    setupEditMenu();
+    setupViewMenu();
+    setupTools();
+    setupPythonConsole(python_console);
+    setupThemes();
+    setupHelp();
+    setupProjectManager();
+    setupSelectionHandling();
+}
+
+void MainWindow::setupInitialLayout(ct::PythonConsole* python_console)
+{
     this->setBaseSize(1320, 845);
     QList<QDockWidget*> docks;
     docks.push_back(ui->DataDock);
@@ -90,13 +105,8 @@ MainWindow::MainWindow(QWidget *parent) :
     size.push_back(140);
     resizeDocks(docks, size, Qt::Orientation::Vertical);
 
-    // === ViewportManager（接管 centralwidget 中的 viewport_container）===
     m_viewport_mgr = new ct::ViewportManager(ui->viewport_container);
 
-    // === Python Console（按需创建，默认不添加到 tab）===
-    auto* python_console = new ct::PythonConsole(nullptr);
-
-    // 处理 tab 关闭请求：关闭单个 tab
     connect(ui->consoleTabWidget, &QTabWidget::tabCloseRequested, this, [this, python_console](int index) {
         QString tabText = ui->consoleTabWidget->tabText(index);
         ui->consoleTabWidget->removeTab(index);
@@ -105,7 +115,6 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
-    // connect pointer
     ui->cloudtree->setCloudView(m_viewport_mgr->activeView());
     ui->cloudtree->setViewportManager(m_viewport_mgr);
     ui->cloudtree->setConsole(ui->console);
@@ -115,17 +124,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cloudtree->setMeshIcon(QIcon(MESH_ICON_PATH));
     ui->cloudtree->setGroupIcon(style()->standardIcon(QStyle::SP_DirOpenIcon));
 
-    // 设置属性表格列宽 - 第一列可拖拽，第二列跟随面板宽度
     ui->cloudtable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->cloudtable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->cloudtable->setColumnWidth(0, 140);
-
-    // 整行选中 + 交替行颜色
     ui->cloudtable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->cloudtable->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->cloudtable->setAlternatingRowColors(true);
+}
 
-    // file
+void MainWindow::setupFileMenu()
+{
     connect(ui->actionOpen, &QAction::triggered, ui->cloudtree, &ct::CloudTree::addCloud);
     connect(ui->actionSave, &QAction::triggered, ui->cloudtree, &ct::CloudTree::smartSave);
     connect(ui->actionClose, &QAction::triggered, ui->cloudtree, &ct::CloudTree::removeSelectedClouds);
@@ -133,8 +141,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionMerge, &QAction::triggered, ui->cloudtree, &ct::CloudTree::mergeSelectedClouds);
     connect(ui->actionClone, &QAction::triggered, ui->cloudtree, &ct::CloudTree::cloneSelectedClouds);
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
+}
 
-    // edit
+void MainWindow::setupEditMenu()
+{
     connect(ui->actionBoundingBox, &QAction::triggered, [=] {this->createToolDialog<BoundingBox>("BoundingBox"); });
     connect(ui->actionColors, &QAction::triggered, [=] {this->createToolDialog<Color>("Color"); });
     connect(ui->actionDisplaySettings, &QAction::triggered, [=] {this->createModalDialog<DisplaySettingsDialog>("Display Settings"); });
@@ -142,9 +152,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionNormals, &QAction::triggered, [=] {this->createToolDialog<Normals>("Normals"); });
     connect(ui->actionScale, &QAction::triggered, [=] {this->createDialog<Scale>("Scale"); });
     connect(ui->actionCoords, &QAction::triggered, [=] {this->createDialog<Coordinate>("Coordinate"); });
+}
 
-    // view — 标准视图操作作用于活跃视窗
+void MainWindow::setupViewMenu()
+{
     auto activeView = [this]() { return m_viewport_mgr->activeView(); };
+
     connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &ct::CloudTree::zoomToSelected);
     connect(ui->actionTopView, &QAction::triggered, this, [=]{ activeView()->setTopView(); });
     connect(ui->actionFrontView, &QAction::triggered, this, [=]{ activeView()->setFrontView(); });
@@ -165,7 +178,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionShowAxes->setChecked(true);
     ui->actionShowID->setChecked(true);
 
-    // screenshot
     connect(ui->actionScreenshot, &QAction::triggered, this, [=](){
         QString defaultName = "screenshot_" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + ".png";
         QString path = QFileDialog::getSaveFileName(
@@ -176,7 +188,6 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
-    // view — 布局切换
     auto* layoutGroup = new QActionGroup(this);
     layoutGroup->addAction(ui->actionViewportSingle);
     layoutGroup->addAction(ui->actionViewportHSplit);
@@ -201,12 +212,10 @@ MainWindow::MainWindow(QWidget *parent) :
         m_viewport_mgr->setLayout(ct::ViewportManager::QuadSplit);
     });
 
-    // 活跃视窗切换时更新 CloudTree 的 CloudView 引用
     connect(m_viewport_mgr, &ct::ViewportManager::activeViewChanged, this, [this](ct::CloudView* view) {
         ui->cloudtree->setCloudView(view);
     });
 
-    // 布局切换后重建视窗，需要重新添加所有点云并刷新属性栏
     connect(m_viewport_mgr, &ct::ViewportManager::viewsRecreated, this, [this]() {
         ui->cloudtree->setCloudView(m_viewport_mgr->activeView());
         ui->cloudtree->repopulateAllViews();
@@ -226,7 +235,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(ui->actionShowConsole, &QAction::toggled, [=](bool checked){
         if (checked) {
-            // 确保 Console tab 存在
             int idx = ui->consoleTabWidget->indexOf(ui->console);
             if (idx < 0) {
                 ui->consoleTabWidget->insertTab(0, ui->console, "Report Console");
@@ -240,8 +248,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->ConsoleDock, &QDockWidget::visibilityChanged, [=](bool visible){
         if (!this->isMinimized()) ui->actionShowConsole->setChecked(visible);
     });
+}
 
-    // tools
+void MainWindow::setupTools()
+{
     connect(ui->actionCutting, &QAction::triggered, [=] { this->createDialog<Cutting>("Cutting"); });
     connect(ui->actionPickPoints, &QAction::triggered, [=] {this->createDialog<PickPoints>("PickPoints"); });
     connect(ui->actionFilters, &QAction::triggered, [=] {this->createToolDialog<Filters>("Filters"); });
@@ -277,7 +287,6 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<ExtractBoundaryDialog>("Extract Boundary");
     });
 
-    // registration submenu
     connect(ui->actionAlignByCenters, &QAction::triggered, [=] {
         this->createModalDialog<AlignByCentersDialog>("AlignByCenters");
     });
@@ -285,7 +294,6 @@ MainWindow::MainWindow(QWidget *parent) :
         auto* dlg = ct::createDialog<PointPairsAlignment>(
             this, "PointPairsAlignment", m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
         if (dlg) {
-            // 禁用菜单栏、工具栏、文件树和属性栏，但保留 ViewBar 用于视角调整
             menuBar()->setEnabled(false);
             for (auto* tb : findChildren<QToolBar*>())
                 tb->setEnabled(false);
@@ -311,7 +319,6 @@ MainWindow::MainWindow(QWidget *parent) :
         this->createModalDialog<FineRegistrationDialog>("FineRegistration");
     });
 
-    // plugins
     connect(ui->actionCSF, &QAction::triggered, [=] {
         this->createModalDialog<CSFPlugin>("Cloth Simulation Filter");});
     connect(ui->actionVegetation_Filters, &QAction::triggered, [=] {
@@ -321,7 +328,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionM3C2, &QAction::triggered, [=] {
         this->createModalDialog<M3C2Plugin>("M3C2");});
 
-    // distance submenu
     connect(ui->actionDistanceC2C, &QAction::triggered, [=] {
         this->createModalDialog<CloudCloudDistDialog>("Cloud / Cloud Distance");
     });
@@ -334,11 +340,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionDistanceCPS, &QAction::triggered, [=] {
         this->createModalDialog<ClosestPointSetDialog>("Closest Point Set");
     });
+}
 
-    // === Python Console（View 菜单，可勾选，默认不打开）===
+void MainWindow::setupPythonConsole(ct::PythonConsole* python_console)
+{
     connect(ui->actionPythonConsole, &QAction::toggled, this, [this, python_console](bool checked) {
         if (checked) {
-            // 添加 Python Console tab（如果尚未添加）
             int idx = ui->consoleTabWidget->indexOf(python_console);
             if (idx < 0) {
                 idx = ui->consoleTabWidget->addTab(python_console, "Python Console");
@@ -347,7 +354,6 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->actionShowConsole->setChecked(true);
             ui->consoleTabWidget->setCurrentIndex(idx);
         } else {
-            // 移除 Python Console tab
             int idx = ui->consoleTabWidget->indexOf(python_console);
             if (idx >= 0) {
                 ui->consoleTabWidget->removeTab(idx);
@@ -373,6 +379,14 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
+    auto* bridge = ct::PythonManager::instance().bridge();
+    if (bridge) {
+        ct::connectPythonSignals(bridge, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
+    }
+}
+
+void MainWindow::setupThemes()
+{
     connect(ui->actionDark, &QAction::triggered, [=]{
         QFile styleFile(":/res/theme/darkstyle.qss");
         if (styleFile.open(QIODevice::ReadOnly)) {
@@ -392,10 +406,9 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(ui->actionOrigin, &QAction::triggered, [=]{
-        this->setStyleSheet("");  // clear stylesheet, restore default
+        this->setStyleSheet("");
     });
 
-    // === Language switching ===
     connect(ui->actionEnglish, &QAction::triggered, this, [=] {
         ct::LanguageManager::instance().switchLanguage(ct::LanguageManager::English);
         ui->actionEnglish->setChecked(true);
@@ -411,29 +424,25 @@ MainWindow::MainWindow(QWidget *parent) :
         settings.setValue("language", static_cast<int>(ct::LanguageManager::Chinese));
     });
 
-    // Set initial checked state based on current language
     auto& langMgr = ct::LanguageManager::instance();
     ui->actionEnglish->setChecked(langMgr.currentLanguage() == ct::LanguageManager::English);
     ui->actionChinese->setChecked(langMgr.currentLanguage() == ct::LanguageManager::Chinese);
+}
 
-    // === Python Bridge 信号连接 ===
-    auto* bridge = ct::PythonManager::instance().bridge();
-    if (bridge) {
-        ct::connectPythonSignals(bridge, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
-    }
-
-    // === Help ===
+void MainWindow::setupHelp()
+{
     connect(ui->action_Help, &QAction::triggered, this, [] {
         QDesktopServices::openUrl(QUrl(OFFICIAL_WEBSITE));
     });
 
-    // === About ===
     connect(ui->actionAbout, &QAction::triggered, this, [this] { ct::HelpLauncher::showAbout(this); });
+}
 
-    // === 项目管理（自包含控制器） ===
+void MainWindow::setupProjectManager()
+{
     m_project_manager = new ProjectManager(ui->cloudtree, m_viewport_mgr->activeView(), ui->menuOpenRecent, this);
     connect(m_project_manager, &ProjectManager::windowTitleChanged, this, &MainWindow::setWindowTitle);
-    setWindowTitle(m_project_manager->windowTitle()); // 初始标题（信号在连接前已发）
+    setWindowTitle(m_project_manager->windowTitle());
     connect(ui->actionNewProject, &QAction::triggered, m_project_manager, &ProjectManager::onNewProject);
     connect(ui->actionOpenProject, &QAction::triggered, m_project_manager, &ProjectManager::onOpenProject);
     connect(ui->cloudtree, &ct::CloudTree::requestSaveProject, this, [this](){
@@ -443,15 +452,14 @@ MainWindow::MainWindow(QWidget *parent) :
             m_project_manager->onSaveProject();
     });
     connect(ui->actionSaveProjectAs, &QAction::triggered, m_project_manager, &ProjectManager::onSaveProjectAs);
+}
 
-    // === 功能操作边界：基于选择类型启用/禁用 Action ===
+void MainWindow::setupSelectionHandling()
+{
     connect(ui->cloudtree, &QTreeWidget::itemSelectionChanged,
             this, &MainWindow::onTreeSelectionChanged);
 
-    // 初始化：无选中时禁用
     updateActionEnableState(ct::SelectionInfo{});
-
-    // 为 CloudView 安装拖拽事件过滤器（VTK 控件默认不转发拖拽事件）
     installDragFilterOnViews();
 }
 

@@ -75,7 +75,7 @@ namespace ct
         /**
          * @brief 加载点云文件的结果（含 mesh，mesh 为空表示纯点云）
          */
-        void loadCloudResult(bool success, const Cloud::Ptr &cloud, const pcl::PolygonMesh::Ptr &mesh, float time);
+        void loadCloudResult(bool success, const Cloud::Ptr &cloud, const pcl::PolygonMesh::Ptr &mesh, float time, const QString &error = QString());
 
         /**
          * @brief 加载带纹理的网格结果（仅当 OBJ 含纹理时发射）
@@ -86,12 +86,12 @@ namespace ct
         /**
          * @brief 保存点云文件的结果
          */
-        void saveCloudResult(bool success, const QString &filename, float time);
+        void saveCloudResult(bool success, const QString &filename, float time, const QString &error = QString());
 
         /**
          * @brief 保存 mesh 文件的结果
          */
-        void saveMeshResult(bool success, const QString &filename, float time);
+        void saveMeshResult(bool success, const QString &filename, float time, const QString &error = QString());
 
         /**
         * @brief 请求UI显示映射对话框 (阻塞式)

@@ -137,10 +137,10 @@ namespace ct
 
     private slots:
         void handleCloudLoaded(const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh,
-                               QTreeWidgetItem* targetParent, float time);
+                               QTreeWidgetItem* targetParent, float time, const QString& error = QString());
         void handleTexturedMeshLoaded(const QString& cloudId, const QString& objFilePath);
-        void handleSaveComplete(bool success, const QString& path, float time);
-        void handleMeshSaveComplete(bool success, const QString& path, float time);
+        void handleSaveComplete(bool success, const QString& path, float time, const QString& error = QString());
+        void handleMeshSaveComplete(bool success, const QString& path, float time, const QString& error = QString());
 
         void itemChangedEvent(QTreeWidgetItem* item, int column);
         void itemSelectionChangedEvent();

@@ -7,9 +7,6 @@
 
 #include <cmath>
 
-#include <QtConcurrent/QtConcurrent>
-#include <QFutureWatcher>
-
 ChangeDetectPlugin::ChangeDetectPlugin(QWidget *parent) :
         ct::CustomDialog(parent), ui(new Ui::ChangeDetectPlugin) {
     ui->setupUi(this);
@@ -101,18 +98,6 @@ void ChangeDetectPlugin::onApply() {
     }
 
     this->hide();
-    m_progress->showProgress("Change Detection: Calculating Distance...");
-
-    auto* cancel = new std::atomic<bool>(false);
-    if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
-                this, [cancel]() { *cancel = true; });
-    }
-
-    auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
-                                  Qt::QueuedConnection, Q_ARG(int, pct));
-    };
 
     auto phase1 = m_phase1Cloud;
     auto phase2 = m_phase2Cloud;
@@ -124,37 +109,33 @@ void ChangeDetectPlugin::onApply() {
     auto phase2_has_normals = phase2->hasNormals();
     auto phase1_id = phase1->id();
     auto phase2_id = phase2->id();
+    auto* cloudtree = m_cloudtree;
 
-    auto future = QtConcurrent::run([=]() -> std::pair<ct::DistanceResult, ct::DistanceResult> {
-        // Direction 1: phase2 → phase1 (added points)
-        ct::DistanceResult resultAdded = ct::DistanceCalculator::calculate(phase1, phase2, params_copy, cancel,
-            [on_progress](int pct) { on_progress(pct / 2); });
+    using ResultPair = std::pair<ct::DistanceResult, ct::DistanceResult>;
 
-        if (!resultAdded.success || *cancel)
-            return {};
+    m_progress->runAsync<ResultPair>(
+        "Change Detection: Calculating Distance...",
+        [=](std::atomic<bool>& cancel, ct::ProgressCallback progress) -> ResultPair {
+            ct::DistanceResult resultAdded = ct::DistanceCalculator::calculate(phase1, phase2, params_copy, &cancel,
+                [progress](int pct) { progress(pct / 2); });
 
-        // Direction 2: phase1 → phase2 (removed points)
-        ct::DistanceResult resultRemoved = ct::DistanceCalculator::calculate(phase2, phase1, params_copy, cancel,
-            [on_progress](int pct) { on_progress(50 + pct / 2); });
+            if (!resultAdded.success || cancel)
+                return {};
 
-        return {resultAdded, resultRemoved};
-    });
+            ct::DistanceResult resultRemoved = ct::DistanceCalculator::calculate(phase2, phase1, params_copy, &cancel,
+                [progress](int pct) { progress(50 + pct / 2); });
 
-    auto* watcher = new QFutureWatcher<std::pair<ct::DistanceResult, ct::DistanceResult>>(this);
-    connect(watcher, &QFutureWatcher<std::pair<ct::DistanceResult, ct::DistanceResult>>::finished, this,
-            [=]() {
-        auto [resultAdded, resultRemoved] = watcher->result();
-        m_progress->closeProgress();
-        delete cancel;
+            return {resultAdded, resultRemoved};
+        },
+        [=](const ResultPair& result) {
+            auto [resultAdded, resultRemoved] = result;
 
         if (!resultAdded.success) {
             printE(QString("Distance calculation failed: %1").arg(QString::fromStdString(resultAdded.error_msg)));
-            watcher->deleteLater();
             return;
         }
         if (!resultRemoved.success) {
             printE(QString("Distance calculation failed: %1").arg(QString::fromStdString(resultRemoved.error_msg)));
-            watcher->deleteLater();
             return;
         }
 
@@ -270,15 +251,13 @@ void ChangeDetectPlugin::onApply() {
         }
 
         if (!results.empty()) {
-            // Use phase1 as origin cloud
             QString groupName = QString::fromStdString(phase1_id + "_ChangeDetect");
-            m_cloudtree->addResultGroup(phase1, results, groupName);
+            cloudtree->addResultGroup(phase1, results, groupName);
         }
 
-        this->accept();
-        watcher->deleteLater();
-    });
-    watcher->setFuture(future);
+        QMetaObject::invokeMethod(qApp, [this]() { this->accept(); }, Qt::QueuedConnection);
+    }
+    );
 }
 
 void ChangeDetectPlugin::onCancel() {

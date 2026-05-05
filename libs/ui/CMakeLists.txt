@@ -55,4 +55,5 @@ target_link_libraries(ct_ui_base
         ct_io
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Charts
+        Qt${QT_VERSION_MAJOR}::Concurrent
 )

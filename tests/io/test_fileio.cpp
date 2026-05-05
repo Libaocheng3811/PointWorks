@@ -143,7 +143,7 @@ TEST_F(FileIOTest, LoadPCD_Binary) {
     bool success = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&loaded_cloud, &success](bool ok, const Cloud::Ptr& cloud, float) {
+        [&loaded_cloud, &success](bool ok, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             loaded_cloud = cloud;
             success = ok;
         });
@@ -175,7 +175,7 @@ TEST_F(FileIOTest, LoadPCD_ASCII) {
     bool success = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&loaded_cloud, &success](bool ok, const Cloud::Ptr& cloud, float) {
+        [&loaded_cloud, &success](bool ok, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             loaded_cloud = cloud;
             success = ok;
         });
@@ -207,7 +207,7 @@ TEST_F(FileIOTest, LoadPLY_Basic) {
     bool success = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&loaded_cloud, &success](bool ok, const Cloud::Ptr& cloud, float) {
+        [&loaded_cloud, &success](bool ok, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             loaded_cloud = cloud;
             success = ok;
         });
@@ -235,7 +235,7 @@ TEST_F(FileIOTest, PCD_SaveAndLoad_Roundtrip) {
     bool save_ok = false;
 
     QObject::connect(fileio.get(), &FileIO::saveCloudResult,
-        [&save_ok](bool ok, const QString&, float) {
+        [&save_ok](bool ok, const QString&, float, const QString&) {
             save_ok = ok;
         });
 
@@ -250,7 +250,7 @@ TEST_F(FileIOTest, PCD_SaveAndLoad_Roundtrip) {
     bool load_ok = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&loaded_cloud, &load_ok](bool ok, const Cloud::Ptr& c, float) {
+        [&loaded_cloud, &load_ok](bool ok, const Cloud::Ptr& c, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             loaded_cloud = c;
             load_ok = ok;
         });
@@ -274,7 +274,7 @@ TEST_F(FileIOTest, PLY_SaveAndLoad_Roundtrip) {
     bool save_ok = false;
 
     QObject::connect(fileio.get(), &FileIO::saveCloudResult,
-        [&save_ok](bool ok, const QString&, float) {
+        [&save_ok](bool ok, const QString&, float, const QString&) {
             save_ok = ok;
         });
 
@@ -287,7 +287,7 @@ TEST_F(FileIOTest, PLY_SaveAndLoad_Roundtrip) {
     bool load_ok = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&loaded_cloud, &load_ok](bool ok, const Cloud::Ptr& c, float) {
+        [&loaded_cloud, &load_ok](bool ok, const Cloud::Ptr& c, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             loaded_cloud = c;
             load_ok = ok;
         });
@@ -306,7 +306,7 @@ TEST_F(FileIOTest, LoadNonexistentFile) {
     bool success = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&success](bool ok, const Cloud::Ptr&, float) {
+        [&success](bool ok, const Cloud::Ptr&, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             success = ok;
         });
 
@@ -333,7 +333,7 @@ TEST_F(FileIOTest, LoadUnsupportedFormat) {
     bool success = false;
 
     QObject::connect(fileio.get(), &FileIO::loadCloudResult,
-        [&success](bool ok, const Cloud::Ptr&, float) {
+        [&success](bool ok, const Cloud::Ptr&, const pcl::PolygonMesh::Ptr&, float, const QString&) {
             success = ok;
         });
 

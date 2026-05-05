@@ -8,8 +8,6 @@
 #include <random>
 #include "core/cloud.h"
 
-#include <QtConcurrent/QtConcurrent>
-#include <QFutureWatcher>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/kdtree.h>
@@ -204,37 +202,21 @@ void M3C2Plugin::onApply() {
     }
 
     this->hide();
-    m_progress->showProgress("M3C2: Computing distances...");
-
-    auto* cancel = new std::atomic<bool>(false);
-    if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
-                this, [cancel]() { *cancel = true; });
-    }
-
-    auto on_progress = [this](int pct) {
-        QMetaObject::invokeMethod(m_progress->dialog(), "setProgress",
-                                  Qt::QueuedConnection, Q_ARG(int, pct));
-    };
 
     auto ref = m_refCloud;
     auto params_copy = params;
+    auto* cloudview = m_cloudview;
+    auto* cloudtree = m_cloudtree;
 
-    auto future = QtConcurrent::run([=]() -> ct::M3C2Result {
-        return ct::DistanceCalculator::calculateM3C2(refPCL, compPCL, existingNormals,
-                                                     params_copy, cancel, on_progress);
-    });
-
-    auto* watcher = new QFutureWatcher<ct::M3C2Result>(this);
-    connect(watcher, &QFutureWatcher<ct::M3C2Result>::finished, this,
-            [=]() {
-        ct::M3C2Result result = watcher->result();
-        m_progress->closeProgress();
-        delete cancel;
-
+    m_progress->runAsync<ct::M3C2Result>(
+        "M3C2: Computing distances...",
+        [=](std::atomic<bool>& cancel, ct::ProgressCallback progress) {
+            return ct::DistanceCalculator::calculateM3C2(refPCL, compPCL, existingNormals,
+                                                         params_copy, &cancel, progress);
+        },
+        [=](const ct::M3C2Result& result) {
         if (!result.success) {
             printE(QString("M3C2 failed: %1").arg(QString::fromStdString(result.error_msg)));
-            watcher->deleteLater();
             return;
         }
 
@@ -255,7 +237,7 @@ void M3C2Plugin::onApply() {
                 comp->updateColorByField("M3C2_Distance");
                 comp->setHasColors(true);
                 QString compId = QString::fromStdString(comp->id());
-                m_cloudview->invalidateCloudRender(compId);
+                cloudview->invalidateCloudRender(compId);
             }
         } else {
             // USE_REF_CLOUD or SUBSAMPLE_REF: expand results to full ref cloud
@@ -281,14 +263,14 @@ void M3C2Plugin::onApply() {
             ref->setHasColors(true);
 
             QString refId = QString::fromStdString(ref->id());
-            m_cloudview->invalidateCloudRender(refId);
+            cloudview->invalidateCloudRender(refId);
         }
 
-        m_cloudview->refresh();
+        cloudview->refresh();
 
         // Rebuild property panel so the new scalar field appears in the Color dropdown
         // and SFDisplayPanel shows the correct histogram + scalar bar
-        m_cloudtree->refreshSelectedProperties();
+        cloudtree->refreshSelectedProperties();
 
         // Print statistics
         const auto& dists = result.signed_distances;
@@ -334,9 +316,8 @@ void M3C2Plugin::onApply() {
         }
 
         this->accept();
-        watcher->deleteLater();
-    });
-    watcher->setFuture(future);
+    }
+    );
 }
 
 void M3C2Plugin::onCancel() {

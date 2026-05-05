@@ -113,10 +113,7 @@ void connectPythonSignals(
             }, Qt::QueuedConnection);
     QObject::connect(bridge, &ct::PythonBridge::signalSetCloudColorRGB,
             cloudview, [cloudview](const QString &id, float r, float g, float b) {
-                cloudview->setPointCloudColor(id, ct::ColorRGB{
-                        static_cast<uint8_t>(std::min(std::max(r * 255.f, 0.f), 255.f)),
-                        static_cast<uint8_t>(std::min(std::max(g * 255.f, 0.f), 255.f)),
-                        static_cast<uint8_t>(std::min(std::max(b * 255.f, 0.f), 255.f))});
+                cloudview->setPointCloudColor(id, ct::fromFloatRGB(r, g, b));
             }, Qt::QueuedConnection);
     QObject::connect(bridge, &ct::PythonBridge::signalSetCloudColorByAxis,
             cloudview, [cloudview, bridge](const QString &id, const QString &axis) {
@@ -138,10 +135,7 @@ void connectPythonSignals(
     // ================================================================
     QObject::connect(bridge, &ct::PythonBridge::signalSetBackgroundColor,
             cloudview, [cloudview](float r, float g, float b) {
-                cloudview->setBackgroundColor(ct::ColorRGB{
-                        static_cast<uint8_t>(std::min(std::max(r * 255.f, 0.f), 255.f)),
-                        static_cast<uint8_t>(std::min(std::max(g * 255.f, 0.f), 255.f)),
-                        static_cast<uint8_t>(std::min(std::max(b * 255.f, 0.f), 255.f))});
+                cloudview->setBackgroundColor(ct::fromFloatRGB(r, g, b));
             }, Qt::QueuedConnection);
     QObject::connect(bridge, &ct::PythonBridge::signalResetBackgroundColor,
             cloudview, [cloudview]() { cloudview->resetBackgroundColor(); },
@@ -202,11 +196,7 @@ void connectPythonSignals(
                 ct::PointXYZRGBN pt1, pt2;
                 pt1.x = x1; pt1.y = y1; pt1.z = z1;
                 pt2.x = x2; pt2.y = y2; pt2.z = z2;
-                ct::ColorRGB rgb;
-                rgb.r = static_cast<uint8_t>(r * 255);
-                rgb.g = static_cast<uint8_t>(g * 255);
-                rgb.b = static_cast<uint8_t>(b * 255);
-                cloudview->addArrow(pt1, pt2, id, false, rgb);
+                cloudview->addArrow(pt1, pt2, id, false, ct::fromFloatRGB(r, g, b));
             }, Qt::QueuedConnection);
     QObject::connect(bridge, &ct::PythonBridge::signalAddPolygon,
             cloudview, [cloudview, cloudtree](const QString &cloud_id, const QString &id, float r, float g, float b) {
@@ -214,21 +204,13 @@ void connectPythonSignals(
                 if (item) {
                     auto cloud = cloudtree->getCloud(item);
                     if (cloud) {
-                        ct::ColorRGB rgb;
-                        rgb.r = static_cast<uint8_t>(r * 255);
-                        rgb.g = static_cast<uint8_t>(g * 255);
-                        rgb.b = static_cast<uint8_t>(b * 255);
-                        cloudview->addPolygon(cloud, id, rgb);
+                        cloudview->addPolygon(cloud, id, ct::fromFloatRGB(r, g, b));
                     }
                 }
             }, Qt::QueuedConnection);
     QObject::connect(bridge, &ct::PythonBridge::signalSetShapeColor,
             cloudview, [cloudview](const QString &id, float r, float g, float b) {
-                ct::ColorRGB rgb;
-                rgb.r = static_cast<uint8_t>(r * 255);
-                rgb.g = static_cast<uint8_t>(g * 255);
-                rgb.b = static_cast<uint8_t>(b * 255);
-                cloudview->setShapeColor(id, rgb);
+                cloudview->setShapeColor(id, ct::fromFloatRGB(r, g, b));
             }, Qt::QueuedConnection);
     QObject::connect(bridge, &ct::PythonBridge::signalSetShapeSize,
             cloudview, [cloudview](const QString &id, float size) {

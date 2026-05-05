@@ -47,15 +47,15 @@ namespace ct
 
     signals:
         void cloudLoaded(const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh,
-                         QTreeWidgetItem* targetParent, float loadTime);
+                         QTreeWidgetItem* targetParent, float loadTime, const QString& error = QString());
         void texturedMeshLoaded(const QString& cloudId, const QString& objFilePath);
-        void saveComplete(bool success, const QString& path, float time);
-        void meshSaveComplete(bool success, const QString& path, float time);
+        void saveComplete(bool success, const QString& path, float time, const QString& error = QString());
+        void meshSaveComplete(bool success, const QString& path, float time, const QString& error = QString());
 
     private slots:
-        void onLoadCloudResult(bool success, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh, float time);
-        void onSaveCloudResult(bool success, const QString& path, float time);
-        void onSaveMeshResult(bool success, const QString& path, float time);
+        void onLoadCloudResult(bool success, const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh, float time, const QString& error = QString());
+        void onSaveCloudResult(bool success, const QString& path, float time, const QString& error = QString());
+        void onSaveMeshResult(bool success, const QString& path, float time, const QString& error = QString());
         void onLoadTexturedMeshResult(const QString& cloudId, const QString& objFilePath);
         void onFieldMappingRequested(const QList<ct::FieldInfo>& fields, std::map<std::string, std::string>& result);
         void onTxtImportRequested(const QStringList& preview_lines, ct::TxtImportParams& params);

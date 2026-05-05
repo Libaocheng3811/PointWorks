@@ -6,13 +6,13 @@
 
 #include <vtkRenderer.h>
 #include <vtkActor.h>
-#include <vtkPolyDataMapper.h>
 #include <vtkCamera.h>
 #include <vtkPolyData.h>
 #include <vtkPoints.h>
 #include <vtkPointData.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkProperty.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkIdTypeArray.h>
 #include <omp.h>
 
@@ -292,7 +292,6 @@ namespace ct {
 
         for (OctreeNode* node : visibleNodeVector) {
             next_visible_set.insert(node);
-            // 新增显示
             if (m_current_visible_nodes.find(node) == m_current_visible_nodes.end()) {
                 vtkActor* actor = getOrCreateActor(node, !node->isLeaf());
                 if (actor) actor->SetVisibility(1);
@@ -300,7 +299,6 @@ namespace ct {
         }
 
         for (OctreeNode* oldNode : m_current_visible_nodes) {
-            // 隐藏旧的
             if (next_visible_set.find(oldNode) == next_visible_set.end()) {
                 auto it = m_actor_cache.find(oldNode);
                 if (it != m_actor_cache.end()) {

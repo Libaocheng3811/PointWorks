@@ -991,10 +991,10 @@ namespace ct
     }
 
     void CloudTree::handleCloudLoaded(const Cloud::Ptr& cloud, const pcl::PolygonMesh::Ptr& mesh,
-                                       QTreeWidgetItem* targetParent, float time)
+                                       QTreeWidgetItem* targetParent, float time, const QString& error)
     {
         if (!cloud) {
-            printE(tr("load the file failed!"));
+            printE(error.isEmpty() ? tr("load the file failed!") : error);
             m_progress->closeProgress();
             return;
         }
@@ -1023,18 +1023,18 @@ namespace ct
         }
     }
 
-    void CloudTree::handleSaveComplete(bool success, const QString& path, float time)
+    void CloudTree::handleSaveComplete(bool success, const QString& path, float time, const QString& error)
     {
         if (!success)
-            printE(tr("Save the file failed!"));
+            printE(error.isEmpty() ? tr("Save the file failed!") : error);
         else
             printI(QString(tr("Save the file [path:%1] done, take time %2 ms.")).arg(path).arg(time));
     }
 
-    void CloudTree::handleMeshSaveComplete(bool success, const QString& path, float time)
+    void CloudTree::handleMeshSaveComplete(bool success, const QString& path, float time, const QString& error)
     {
         if (!success)
-            printE(tr("Save mesh file failed!"));
+            printE(error.isEmpty() ? tr("Save mesh file failed!") : error);
         else
             printI(QString(tr("Save mesh file [path:%1] done, take time %2 ms.")).arg(path).arg(time));
     }

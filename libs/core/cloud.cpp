@@ -65,7 +65,6 @@ namespace ct
         std::swap(m_cached_xyz, other.m_cached_xyz);
         std::swap(m_cached_xyzrgb, other.m_cached_xyzrgb);
         std::swap(m_cached_xyzrgbn, other.m_cached_xyzrgbn);
-        std::swap(m_cache_type, other.m_cache_type);
 
         // 元数据
         std::swap(m_id, other.m_id);
@@ -684,6 +683,7 @@ namespace ct
         m_cached_xyz.reset();
         m_cached_xyzrgb.reset();
         m_cached_xyzrgbn.reset();
+        m_scalar_cache.clear();
     }
 
     void Cloud::enableColors()
@@ -701,7 +701,7 @@ namespace ct
             }
         }
         m_has_rgb = true;
-        invalidateCache();
+        invalidatePCLCache();
     }
 
     void Cloud::enableNormals()
@@ -717,7 +717,7 @@ namespace ct
             }
         }
         m_has_normals = true;
-        invalidateCache();
+        invalidatePCLCache();
     }
 
     void Cloud::disableColors()
@@ -726,7 +726,7 @@ namespace ct
             block->m_colors.reset();
         }
         m_has_rgb = false;
-        invalidateCache();
+        invalidatePCLCache();
     }
 
     void Cloud::disableNormals()
@@ -735,26 +735,31 @@ namespace ct
             block->m_normals.reset();
         }
         m_has_normals = false;
-        invalidateCache();
+        invalidatePCLCache();
     }
 
     // 清空缓存
     void Cloud::invalidateCache()
     {
-        m_cache_type = PCLCacheType::None;
+        invalidatePCLCache();
+        invalidateScalarCache();
+    }
+
+    void Cloud::invalidatePCLCache()
+    {
         m_cached_xyz.reset();
         m_cached_xyzrgb.reset();
         m_cached_xyzrgbn.reset();
+    }
+
+    void Cloud::invalidateScalarCache()
+    {
         m_scalar_cache.clear();
     }
 
     pcl::PointCloud<PointXYZ>::Ptr Cloud::toPCL_XYZ() const
     {
-        if (m_cache_type == PCLCacheType::XYZ && m_cached_xyz) return m_cached_xyz;
-
-        // 互斥：清除其他类型缓存
-        m_cached_xyzrgb.reset();
-        m_cached_xyzrgbn.reset();
+        if (m_cached_xyz) return m_cached_xyz;
 
         m_cached_xyz = std::make_shared<pcl::PointCloud<PointXYZ>>();
         m_cached_xyz->reserve(m_point_count);
@@ -764,16 +769,12 @@ namespace ct
             m_cached_xyz->insert(m_cached_xyz->end(), block->m_points.begin(), block->m_points.end());
         }
 
-        m_cache_type = PCLCacheType::XYZ;
         return m_cached_xyz;
     }
 
     pcl::PointCloud<PointXYZRGB>::Ptr Cloud::toPCL_XYZRGB() const
     {
-        if (m_cache_type == PCLCacheType::XYZRGB && m_cached_xyzrgb) return m_cached_xyzrgb;
-
-        m_cached_xyz.reset();
-        m_cached_xyzrgbn.reset();
+        if (m_cached_xyzrgb) return m_cached_xyzrgb;
 
         m_cached_xyzrgb = std::make_shared<pcl::PointCloud<PointXYZRGB>>();
         m_cached_xyzrgb->resize(m_point_count);
@@ -804,16 +805,12 @@ namespace ct
             global_idx += n;
         }
 
-        m_cache_type = PCLCacheType::XYZRGB;
         return m_cached_xyzrgb;
     }
 
     pcl::PointCloud<PointXYZRGBN>::Ptr Cloud::toPCL_XYZRGBN() const
     {
-        if (m_cache_type == PCLCacheType::XYZRGBN && m_cached_xyzrgbn) return m_cached_xyzrgbn;
-
-        m_cached_xyz.reset();
-        m_cached_xyzrgb.reset();
+        if (m_cached_xyzrgbn) return m_cached_xyzrgbn;
 
         m_cached_xyzrgbn = std::make_shared<pcl::PointCloud<PointXYZRGBN>>();
         m_cached_xyzrgbn->resize(m_point_count);
@@ -852,7 +849,6 @@ namespace ct
             global_idx += n;
         }
 
-        m_cache_type = PCLCacheType::XYZRGBN;
         return m_cached_xyzrgbn;
     }
 
@@ -1101,7 +1097,6 @@ namespace ct
         for (auto& block : m_all_blocks) {
             block->m_scalar_fields.clear();
             block->rebuildScalarPtrCache();
-            block->m_scalar_fields.clear();
         }
         m_scalar_cache.clear();
     }
@@ -1197,7 +1192,7 @@ namespace ct
         }
 
         m_color_modified = true;
-        invalidateCache(); // 通知视图更新
+        invalidatePCLCache(); // 通知视图更新
     }
 
     void Cloud::setCloudColor(const std::string& axis)
@@ -1276,7 +1271,6 @@ namespace ct
                     hsv2rgb(hue, 1.0f, 1.0f, p.r, p.g, p.b);
                 }
                 node->m_lod_dirty = true;
-                node->m_vtk_lod_polydata.reset();
             }
 
             // 2. 递归子节点
@@ -1295,7 +1289,7 @@ namespace ct
 
         m_current_color_mode = axis;
         m_color_modified = true;
-        invalidateCache();
+        invalidatePCLCache();
     }
 
     void Cloud::updateLODColorRecursive(OctreeNode* node, const ColorRGB& rgb)
@@ -1311,7 +1305,6 @@ namespace ct
             }
             // 标记 LOD 脏，强制 VTK 重新上传
             node->m_lod_dirty = true;
-            node->m_vtk_lod_polydata.reset();
         }
 
         // 递归子节点
@@ -1665,7 +1658,7 @@ namespace ct
                 this->generateLOD();
             }
             m_current_color_mode = "RGB (Default)";
-            invalidateCache();
+            invalidatePCLCache();
         }
     }
 
@@ -1865,10 +1858,10 @@ namespace ct
         // 存入当前节点
         // 使用 std::move 避免拷贝
         node->m_lod_points = std::move(candidates);
+        node->m_lod_points.shrink_to_fit();
         node->m_lod_dirty = true;
 
         // 清理旧的 VTK 缓存，等待渲染器上传
-        node->m_vtk_lod_polydata.reset();
     }
 
     // 查找包含目标坐标的叶子 block（递归八叉树查找）
@@ -1922,7 +1915,6 @@ namespace ct
             }
 
             node->m_lod_dirty = true;
-            node->m_vtk_lod_polydata.reset();
         }
 
         for (int i = 0; i < 8; ++i) {
@@ -1964,7 +1956,6 @@ namespace ct
         update();
 
         // 缓存失效
-        invalidateCache();
         invalidateCache();
     }
 

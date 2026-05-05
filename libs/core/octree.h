@@ -162,13 +162,11 @@ namespace ct{
 
         std::vector<LODPoint> m_lod_points;
 
-        std::shared_ptr<void> m_vtk_lod_polydata;  // VTK LOD 缓存（由 OctreeRenderer 管理）
         bool m_lod_dirty = true;
 
         void clearLOD() {
             m_lod_points.clear();
             m_lod_points.shrink_to_fit();
-            m_vtk_lod_polydata.reset();
             m_lod_dirty = true;
         }
 

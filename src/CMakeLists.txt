@@ -117,8 +117,6 @@ target_include_directories(pointworks PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(pointworks PRIVATE
     ct_core
-    ct_viz
-    ct_io
     ct_algorithm
     ct_ui_base
     ct_python

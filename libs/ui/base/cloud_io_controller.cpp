@@ -57,7 +57,7 @@ void CloudIOController::init(QWidget* parentWidget, ProgressManager* progress)
     connect(m_fileio, &FileIO::saveMeshResult, this, &CloudIOController::onSaveMeshResult);
 
     connect(this, &CloudIOController::cloudLoaded, this, [](const Cloud::Ptr&, const pcl::PolygonMesh::Ptr&,
-             QTreeWidgetItem*, float) {});
+             QTreeWidgetItem*, float, const QString&) {});
     connect(this, &CloudIOController::texturedMeshLoaded, this, [](const QString&, const QString&) {});
 
     connect(m_fileio, &FileIO::requestFieldMapping, this, &CloudIOController::onFieldMappingRequested, Qt::BlockingQueuedConnection);
@@ -135,10 +135,10 @@ void CloudIOController::saveMeshFile(const pcl::PolygonMesh::Ptr& mesh, const QS
 }
 
 void CloudIOController::onLoadCloudResult(bool success, const Cloud::Ptr& cloud,
-                                          const pcl::PolygonMesh::Ptr& mesh, float time)
+                                          const pcl::PolygonMesh::Ptr& mesh, float time, const QString& error)
 {
     if (!success) {
-        emit cloudLoaded(nullptr, nullptr, nullptr, time);
+        emit cloudLoaded(nullptr, nullptr, nullptr, time, error);
     } else {
         QTreeWidgetItem* parent = nullptr;
         if (!m_pending_parents.isEmpty()) {
@@ -147,7 +147,7 @@ void CloudIOController::onLoadCloudResult(bool success, const Cloud::Ptr& cloud,
             if (parent) m_pending_parents.remove(fp);
         }
         m_path = QFileInfo(QString::fromStdString(cloud->filepath())).path();
-        emit cloudLoaded(cloud, mesh, parent, time);
+        emit cloudLoaded(cloud, mesh, parent, time, QString());
     }
 
     m_progress->setLoadingQueueCount(m_progress->loadingQueueCount() - 1);
@@ -163,10 +163,10 @@ void CloudIOController::onLoadCloudResult(bool success, const Cloud::Ptr& cloud,
     }
 }
 
-void CloudIOController::onSaveCloudResult(bool success, const QString& path, float time)
+void CloudIOController::onSaveCloudResult(bool success, const QString& path, float time, const QString& error)
 {
     if (success) m_path = path;
-    emit saveComplete(success, path, time);
+    emit saveComplete(success, path, time, error);
     int remaining = m_progress->savingQueueCount() - 1;
     m_progress->setSavingQueueCount(remaining);
     if (remaining <= 0) {
@@ -178,10 +178,10 @@ void CloudIOController::onSaveCloudResult(bool success, const QString& path, flo
     }
 }
 
-void CloudIOController::onSaveMeshResult(bool success, const QString& path, float time)
+void CloudIOController::onSaveMeshResult(bool success, const QString& path, float time, const QString& error)
 {
     if (success) m_path = path;
-    emit meshSaveComplete(success, path, time);
+    emit meshSaveComplete(success, path, time, error);
     int remaining = m_progress->savingQueueCount() - 1;
     m_progress->setSavingQueueCount(remaining);
     if (remaining <= 0) {

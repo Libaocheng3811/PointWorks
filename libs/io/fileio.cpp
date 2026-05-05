@@ -65,7 +65,9 @@ void FileIO::loadPointCloud(const QString &filename) {
 
     // 失败处理
     if (!is_success || m_is_canceled){
-        emit loadCloudResult(false, cloud, mesh, time.toc());
+        QString errorMsg = m_is_canceled ? "Operation canceled by user"
+            : QString("Failed to load '%1': unknown error").arg(filename);
+        emit loadCloudResult(false, cloud, mesh, time.toc(), errorMsg);
         return;
     }
 
@@ -121,7 +123,8 @@ void FileIO::savePointCloud(const Cloud::Ptr &cloud, const QString &filename, bo
     }
 
     if (is_success) emit saveCloudResult(true, filename, time.toc());
-    else emit saveCloudResult(false, filename, time.toc());
+    else emit saveCloudResult(false, filename, time.toc(),
+             QString("Failed to save '%1'").arg(filename));
 }
 
 // ================================================================
@@ -135,7 +138,8 @@ void FileIO::saveMesh(const pcl::PolygonMesh::Ptr &mesh, const QString &filename
     bool is_success = saveMeshFile(mesh, filename);
 
     if (is_success) emit saveMeshResult(true, filename, time.toc());
-    else emit saveMeshResult(false, filename, time.toc());
+    else emit saveMeshResult(false, filename, time.toc(),
+             QString("Failed to save mesh '%1'").arg(filename));
 }
 
 bool FileIO::saveMeshFile(const pcl::PolygonMesh::Ptr &mesh, const QString &filename) {

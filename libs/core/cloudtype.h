@@ -64,6 +64,15 @@ namespace ct {
         uint8_t b = 255;
     };
 
+    inline ColorRGB fromFloatRGB(float r, float g, float b)
+    {
+        return {
+            static_cast<uint8_t>(std::clamp(r * 255.f, 0.f, 255.f)),
+            static_cast<uint8_t>(std::clamp(g * 255.f, 0.f, 255.f)),
+            static_cast<uint8_t>(std::clamp(b * 255.f, 0.f, 255.f))
+        };
+    }
+
     // 压缩法线（球面坐标编码，2 bytes）
     struct CompressedNormal {
         uint16_t data = 0;

@@ -8,7 +8,7 @@ target_include_directories(ct_io PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ct_io
     PUBLIC
         ct_core
-        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Core
     PRIVATE
         LASlib
         E57Format

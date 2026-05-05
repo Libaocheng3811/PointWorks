@@ -25,6 +25,7 @@ namespace ct
         // 停靠栏管理
         void registerDock(const QString& name, CustomDock* dock);
         void unregisterDock(const QString& name);
+        void setDockVisible(const QString& name, bool visible);
         CustomDock* getDock(const QString& name);
         bool isDockVisible(const QString& name) const;
 
@@ -39,7 +40,7 @@ namespace ct
         std::map<QString, CustomDialog*> m_dialogs;
         std::map<QString, bool> m_dialog_visibility;
         std::map<QString, CustomDock*> m_docks;
-        std::set<QString> m_dock_visibility;
+        std::map<QString, bool> m_dock_visibility;
         std::set<QString> m_left_labels;
         std::set<QString> m_right_labels;
     };

@@ -93,7 +93,7 @@ namespace ct
                 reg.getDock(label)->setConsole(console);
             reg.getDock(label)->init();
             QObject::connect(reg.getDock(label), &QDockWidget::visibilityChanged, [=](bool state)
-                            { /* visibility tracked internally if needed */ });
+                            { reg.setDockVisible(label, state); });
             parent->addDockWidget(area, reg.getDock(label));
             if (area == Qt::LeftDockWidgetArea)
                 reg.addLeftLabel(label);

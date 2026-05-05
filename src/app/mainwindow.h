@@ -23,6 +23,8 @@ namespace Ui
 }
 QT_END_NAMESPACE
 
+namespace ct { class PythonConsole; }
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -66,6 +68,17 @@ private:
     bool isSupportedFile(const QString& suffix) const;
     void handleDroppedFiles(const QList<QUrl>& urls);
     void installDragFilterOnViews();
+
+    void setupInitialLayout(ct::PythonConsole* python_console);
+    void setupFileMenu();
+    void setupEditMenu();
+    void setupViewMenu();
+    void setupTools();
+    void setupPythonConsole(ct::PythonConsole* python_console);
+    void setupThemes();
+    void setupHelp();
+    void setupProjectManager();
+    void setupSelectionHandling();
 
 private slots:
     void onTreeSelectionChanged();

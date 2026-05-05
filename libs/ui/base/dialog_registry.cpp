@@ -21,8 +21,8 @@ void DialogRegistry::registerDialog(const QString& name, CustomDialog* dlg)
 
 void DialogRegistry::unregisterDialog(const QString& name)
 {
-    m_dialogs[name] = nullptr;
-    m_dialog_visibility[name] = false;
+    m_dialogs.erase(name);
+    m_dialog_visibility.erase(name);
 }
 
 CustomDialog* DialogRegistry::getDialog(const QString& name)
@@ -56,7 +56,13 @@ void DialogRegistry::registerDock(const QString& name, CustomDock* dock)
 
 void DialogRegistry::unregisterDock(const QString& name)
 {
-    m_docks[name] = nullptr;
+    m_docks.erase(name);
+    m_dock_visibility.erase(name);
+}
+
+void DialogRegistry::setDockVisible(const QString& name, bool visible)
+{
+    m_dock_visibility[name] = visible;
 }
 
 CustomDock* DialogRegistry::getDock(const QString& name)
@@ -68,7 +74,9 @@ CustomDock* DialogRegistry::getDock(const QString& name)
 
 bool DialogRegistry::isDockVisible(const QString& name) const
 {
-    return m_dock_visibility.count(name) > 0;
+    auto it = m_dock_visibility.find(name);
+    if (it == m_dock_visibility.end()) return false;
+    return it->second;
 }
 
 // --- 标签 ---
