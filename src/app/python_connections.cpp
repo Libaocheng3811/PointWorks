@@ -172,13 +172,12 @@ void connectPythonSignals(
                 cloudview->addCube(box, id);
             }, Qt::QueuedConnection);
 
-    // TODO: CloudView::add3DLabel 未实现，暂时注释
-    // connect(bridge, &ct::PythonBridge::signalAdd3DLabel,
-    //         cloudview, [cloudview](const QString& text, float x, float y, float z, const QString& id) {
-    //     ct::PointXYZRGBN pos;
-    //     pos.x = x; pos.y = y; pos.z = z;
-    //     cloudview->add3DLabel(pos, text, id);
-    // }, Qt::QueuedConnection);
+    QObject::connect(bridge, &ct::PythonBridge::signalAdd3DLabel,
+            cloudview, [cloudview](const QString& text, float x, float y, float z, const QString& id) {
+        ct::PointXYZRGBN pos;
+        pos.x = x; pos.y = y; pos.z = z;
+        cloudview->add3DLabel(pos, text, id);
+    }, Qt::QueuedConnection);
 
     QObject::connect(bridge, &ct::PythonBridge::signalRemoveShape,
             cloudview, [cloudview](const QString &id) { cloudview->removeShape(id); },

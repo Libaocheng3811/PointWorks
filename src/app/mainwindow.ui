@@ -197,18 +197,6 @@
     <addaction name="actionRecognition"/>
     <addaction name="separator"/>
    </widget>
-   <widget class="QMenu" name="menuDevices">
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="title">
-     <string>Devices</string>
-    </property>
-    <addaction name="actionPhotoNeo"/>
-    <addaction name="actionAzureKinect"/>
-   </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="font">
      <font>
@@ -286,7 +274,6 @@
    <addaction name="menuEdit"/>
    <addaction name="menuView"/>
    <addaction name="menuTools"/>
-   <addaction name="menuDevices"/>
    <addaction name="menuPlugins"/>
    <addaction name="menuOptions"/>
    <addaction name="menuHelp"/>
@@ -1354,36 +1341,6 @@ QScrollBar::sub-line:horizontal {
    </property>
    <property name="text">
     <string>RangeImage</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionPhotoNeo">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/device.svg</normaloff>:/res/icon/device.svg</iconset>
-   </property>
-   <property name="text">
-    <string>PhotoNeo</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Microsoft YaHei UI</family>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-  </action>
-  <action name="actionAzureKinect">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/device.svg</normaloff>:/res/icon/device.svg</iconset>
-   </property>
-   <property name="text">
-    <string>AzureKinect</string>
    </property>
    <property name="font">
     <font>

@@ -104,11 +104,16 @@ cloud = ct.get_cloud("my_cloud")
 # 属性
 cloud.size()                  # 总点数
 cloud.name()                  # 名称
+cloud.set_name("new_name")    # 设置名称
 cloud.center()                # [x, y, z]
 cloud.bounding_box()          # {cx, cy, cz, width, height, depth}
 cloud.resolution()            # 点分辨率
+cloud.volume()                # 包围盒体积
+cloud.filepath()              # 源文件路径
 cloud.has_colors()            # 是否有颜色
 cloud.has_normals()           # 是否有法线
+cloud.num_blocks()            # 数据块数量
+cloud.block_size(i)           # 第 i 块点数
 
 # 数据访问
 xyz = cloud.to_numpy()        # shape (N, 3), float32 全量拷贝
@@ -127,6 +132,8 @@ cloud.get_scalar_field("heights")
 cloud.update_color_by_field("heights")
 cloud.get_scalar_field_names()
 cloud.remove_scalar_field("heights")
+cloud.has_scalar_field("heights")   # 是否存在
+cloud.clear_scalar_fields()          # 清除所有标量场
 
 # ===== 变换（Layer 1 便捷方法） =====
 new_cloud = cloud.translate(1.0, 2.0, 3.0)
@@ -310,6 +317,10 @@ ct.zoom_to_bounds()
 ct.zoom_to_selected()
 ct.set_top_view()
 ct.set_front_view()
+ct.set_back_view()
+ct.set_left_side_view()
+ct.set_right_side_view()
+ct.set_bottom_view()
 ct.set_auto_render(enable)
 ```
 
@@ -323,6 +334,12 @@ ct.set_color_by_axis(id, axis)
 ct.reset_cloud_color(id)
 ct.set_cloud_visibility(id, visible)
 ct.set_background_color(r, g, b)
+ct.reset_background_color()
+ct.show_id(show)
+ct.show_axes(show)
+ct.show_fps(show)
+ct.show_info(text)
+ct.clear_info()
 ```
 
 ### 叠加物
@@ -334,6 +351,15 @@ ct.add_arrow(x1, y1, z1, x2, y2, z2, r=1, g=1, b=1, id="arrow")
 ct.add_polygon(cloud_id, r=1, g=1, b=1, id="polygon")
 ct.remove_shape(id)
 ct.remove_all_shapes()
+ct.set_shape_color(id, r, g, b)
+ct.set_shape_size(id, size)
+ct.set_shape_opacity(id, value)
+ct.set_shape_line_width(id, value)
+ct.set_shape_font_size(id, value)
+ct.set_shape_representation(id, type)
+ct.zoom_to_bounds_xyz(min_x, min_y, min_z, max_x, max_y, max_z)
+ct.invalidate_cloud_render(id)
+ct.set_interactor_enable(enable)
 ```
 
 ### 进度管理
