@@ -4,7 +4,7 @@
 #include <QFileInfo>
 #include <QDir>
 
-namespace ct
+namespace pw
 {
 
 // ================================================================
@@ -292,4 +292,4 @@ QString ProjectFile::toRelativePath(const QString& baseDir, const QString& absol
     return rel;
 }
 
-} // namespace ct
+} // namespace pw

@@ -17,7 +17,7 @@
 #include <string>
 
 
-namespace ct
+namespace pw
 {
     /**
     * @brief 流式加载缓冲区
@@ -65,7 +65,7 @@ namespace ct
         }
     };
 
-    class CT_IO_EXPORT FileIO : public QObject
+    class PW_IO_EXPORT FileIO : public QObject
     {
         Q_OBJECT
     public:
@@ -98,21 +98,21 @@ namespace ct
         * @param fields 文件中探测到的字段列表
         * @param result 用户选择的映射结果 (引用传出)
         */
-        void requestFieldMapping(const QList<ct::FieldInfo>& fields, std::map<std::string, std::string>& result);
+        void requestFieldMapping(const QList<pw::FieldInfo>& fields, std::map<std::string, std::string>& result);
 
         /**
          * @brief 显示映射对话框 (阻塞式)
          * @param preview_lines 文件中探测到的字段列表
          * @param params 用户选择的映射结果 (引用传入)
          */
-         void requestTxtImportSetup(const QStringList& preview_lines, ct::TxtImportParams& params);
+         void requestTxtImportSetup(const QStringList& preview_lines, pw::TxtImportParams& params);
 
          /**
           * @brief 显示导出对话框 (阻塞式)
           * @param available_fields 告诉UI 可用的字段列表
           * @param params 接收用户配置
           */
-         void requestTxtExportSetup(const QStringList& available_fields, ct::TxtExportParams& params);
+         void requestTxtExportSetup(const QStringList& available_fields, pw::TxtExportParams& params);
 
          /**
           * @brief 进度信号

@@ -14,7 +14,7 @@
 
 QT_CHARTS_USE_NAMESPACE
 
-namespace ct {
+namespace pw {
 
 class SFHistogramChart : public QChartView {
     Q_OBJECT
@@ -79,6 +79,6 @@ private:
     static constexpr int kHitThreshold = 10;
 };
 
-}  // namespace ct
+}  // namespace pw
 
 #endif  // POINTWORKS_SF_HISTOGRAM_CHART_H

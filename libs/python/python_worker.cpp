@@ -9,7 +9,7 @@
 
 namespace py = pybind11;
 
-namespace ct
+namespace pw
 {
 
 PythonWorker::PythonWorker(PythonBridge* bridge, QObject* parent)
@@ -160,4 +160,4 @@ class _OutputRedirect:
     PyGILState_Release(gstate);
 }
 
-} // namespace ct
+} // namespace pw

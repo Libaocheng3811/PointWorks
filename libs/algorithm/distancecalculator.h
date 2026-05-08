@@ -16,7 +16,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-namespace ct {
+namespace pw {
 
     // M3C2 result
     struct M3C2Result {
@@ -83,6 +83,6 @@ namespace ct {
                                          std::function<void(int)> on_progress = nullptr);
     };
 
-} // namespace ct
+} // namespace pw
 
 #endif //POINTWORKS_DISTANCECALCULATOR_H

@@ -16,7 +16,7 @@
 // ======================== Constructor ========================
 
 AlignByCentersDialog::AlignByCentersDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_has_preview(false)
+    : pw::CustomDialog(parent), m_has_preview(false)
 {
     setupUi();
 
@@ -127,7 +127,7 @@ void AlignByCentersDialog::onAlign()
 
     // 参数快照对比：非首次且参数一致则跳过
     {
-        ct::ParamSnapshot snap;
+        pw::ParamSnapshot snap;
         snap.set("source_id", cbox_source_->currentText());
         snap.set("target_id", cbox_target_->currentText());
         if (snap == m_last_align_snapshot && m_has_preview) {
@@ -144,7 +144,7 @@ void AlignByCentersDialog::onAlign()
     // 显示模态进度条
     m_progress->showProgress("Aligning...");
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [this]() {
                     m_canceled.store(true);
                     if (m_progress->dialog())
@@ -163,24 +163,24 @@ void AlignByCentersDialog::onAlign()
     m_matrix(2, 3) = offset.z();
 
     // 深拷贝后变换，避免污染源点云缓存
-    auto future = QtConcurrent::run([=]() -> ct::Cloud::Ptr {
+    auto future = QtConcurrent::run([=]() -> pw::Cloud::Ptr {
         if (m_canceled.load()) return nullptr;
         auto pcl_cloud = source->toPCL_XYZRGBN();
-        auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_cloud);
+        auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_cloud);
         if (m_canceled.load()) return nullptr;
         pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_matrix);
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, source->getGlobalShift());
+        auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, source->getGlobalShift());
         return transformed;
     });
 
-    auto* watcher = new QFutureWatcher<ct::Cloud::Ptr>(this);
+    auto* watcher = new QFutureWatcher<pw::Cloud::Ptr>(this);
     watcher->setFuture(future);
-    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this, &AlignByCentersDialog::onAlignFinished);
+    connect(watcher, &QFutureWatcher<pw::Cloud::Ptr>::finished, this, &AlignByCentersDialog::onAlignFinished);
 }
 
 void AlignByCentersDialog::onAlignFinished()
 {
-    auto* watcher = dynamic_cast<QFutureWatcher<ct::Cloud::Ptr>*>(sender());
+    auto* watcher = dynamic_cast<QFutureWatcher<pw::Cloud::Ptr>*>(sender());
     m_progress->closeProgress();
     auto result = watcher->result();
     watcher->deleteLater();
@@ -215,7 +215,7 @@ void AlignByCentersDialog::onApply()
     if (!m_aligned_cloud || m_source_id.isEmpty()) return;
 
     auto clouds = m_cloudtree->getAllClouds();
-    ct::Cloud::Ptr source;
+    pw::Cloud::Ptr source;
     for (const auto& c : clouds) {
         if (QString::fromStdString(c->id()) == m_source_id) { source = c; break; }
     }
@@ -223,9 +223,9 @@ void AlignByCentersDialog::onApply()
 
     // 用变换矩阵变换原始源点云
     auto pcl_src = source->toPCL_XYZRGBN();
-    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, source->getGlobalShift());
+    auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, source->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     m_cloudtree->updateCloud(source, transformed);

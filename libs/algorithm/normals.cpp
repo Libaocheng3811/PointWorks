@@ -4,7 +4,7 @@
 #include <pcl/features/impl/normal_3d.hpp>
 #include <pcl/features/impl/normal_3d_omp.hpp>
 
-namespace ct
+namespace pw
 {
     static bool isCanceled(std::atomic<bool>* cancel)
     {
@@ -94,7 +94,7 @@ namespace ct
 
             reportProgress(on_progress, 90);
 
-            // 转回 ct::Cloud
+            // 转回 pw::Cloud
             auto result = Cloud::fromPCL_XYZRGBN(*result_cloud, cloud->getGlobalShift());
             result->setId(cloud->id());
             result->setFilepath(cloud->filepath());
@@ -117,4 +117,4 @@ namespace ct
         }
     }
 
-} // namespace ct
+} // namespace pw

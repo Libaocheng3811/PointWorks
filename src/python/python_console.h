@@ -7,7 +7,7 @@
 #include <QToolBar>
 #include <QStringList>
 
-namespace ct
+namespace pw
 {
 
 class PythonConsole : public QWidget
@@ -38,6 +38,6 @@ private:
     bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PYTHON_CONSOLE_H

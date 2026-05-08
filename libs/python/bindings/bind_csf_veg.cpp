@@ -11,7 +11,7 @@ void registerCsfVegBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto result = ct::CSFFilter::apply(cloud, smooth, time_step, class_threshold,
+        auto result = pw::CSFFilter::apply(cloud, smooth, time_step, class_threshold,
                                             cloth_resolution, rigidness, iterations);
 
         if (result.ground_cloud) {
@@ -20,7 +20,7 @@ void registerCsfVegBindings(py::module_& m)
             getRegistry().registerCloud(result.ground_cloud);
             getRegistry().holdCloud(result.ground_cloud);
             if (shouldAutoInsert()) {
-                auto* bridge = ct::PythonManager::instance().bridge();
+                auto* bridge = pw::PythonManager::instance().bridge();
                 if (bridge) bridge->insertCloud(result.ground_cloud);
             }
         }
@@ -30,7 +30,7 @@ void registerCsfVegBindings(py::module_& m)
             getRegistry().registerCloud(result.off_ground_cloud);
             getRegistry().holdCloud(result.off_ground_cloud);
             if (shouldAutoInsert()) {
-                auto* bridge = ct::PythonManager::instance().bridge();
+                auto* bridge = pw::PythonManager::instance().bridge();
                 if (bridge) bridge->insertCloud(result.off_ground_cloud);
             }
         }
@@ -50,7 +50,7 @@ void registerCsfVegBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto result = ct::VegetationFilter::apply(cloud, index_type, threshold);
+        auto result = pw::VegetationFilter::apply(cloud, index_type, threshold);
 
         if (result.veg_cloud) {
             result.veg_cloud->setId("veg-" + name);
@@ -58,7 +58,7 @@ void registerCsfVegBindings(py::module_& m)
             getRegistry().registerCloud(result.veg_cloud);
             getRegistry().holdCloud(result.veg_cloud);
             if (shouldAutoInsert()) {
-                auto* bridge = ct::PythonManager::instance().bridge();
+                auto* bridge = pw::PythonManager::instance().bridge();
                 if (bridge) bridge->insertCloud(result.veg_cloud);
             }
         }
@@ -68,7 +68,7 @@ void registerCsfVegBindings(py::module_& m)
             getRegistry().registerCloud(result.non_veg_cloud);
             getRegistry().holdCloud(result.non_veg_cloud);
             if (shouldAutoInsert()) {
-                auto* bridge = ct::PythonManager::instance().bridge();
+                auto* bridge = pw::PythonManager::instance().bridge();
                 if (bridge) bridge->insertCloud(result.non_veg_cloud);
             }
         }

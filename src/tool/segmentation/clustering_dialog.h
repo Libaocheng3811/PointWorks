@@ -18,7 +18,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class ClusteringDialog : public ct::CustomDialog
+class ClusteringDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -47,7 +47,7 @@ private:
 
     // --- 异步执行 ---
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::SegmentationResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::SegmentationResult>* m_watcher = nullptr;
 
     // --- 控件（_ 后缀） ---
     QComboBox* cbox_algorithm_;
@@ -91,7 +91,7 @@ private:
     QPushButton* btn_cancel_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 #endif // POINTWORKS_CLUSTERING_DIALOG_H

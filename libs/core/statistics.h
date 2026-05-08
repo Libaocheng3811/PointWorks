@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace ct {
+namespace pw {
 
 struct ScalarFieldStats {
     int total_points = 0;
@@ -58,6 +58,6 @@ inline ScalarFieldStats computeStatistics(const std::vector<float>& values)
     return stats;
 }
 
-}  // namespace ct
+}  // namespace pw
 
 #endif  // POINTWORKS_STATISTICS_H

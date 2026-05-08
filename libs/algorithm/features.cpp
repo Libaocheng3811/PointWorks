@@ -28,7 +28,7 @@
 #include <pcl/features/impl/usc.hpp>
 #include <pcl/features/impl/vfh.hpp>
 
-namespace ct
+namespace pw
 {
     Box Features::boundingBoxAABB(const Cloud::Ptr& cloud)
     {
@@ -750,4 +750,4 @@ namespace ct
         return result;
     }
 
-} // namespace ct
+} // namespace pw

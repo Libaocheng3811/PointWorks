@@ -14,7 +14,7 @@
 #include <atomic>
 #include <string>
 
-namespace ct
+namespace pw
 {
     typedef pcl::PointCloud<pcl::ShapeContext1980>          SC3DFeature;
     typedef pcl::PointCloud<pcl::Histogram<90>>             CRHFeature;
@@ -174,6 +174,6 @@ namespace ct
     };
 
 
-} // namespace ct
+} // namespace pw
 
 #endif //POINTWORKS_FEATURES_H

@@ -19,11 +19,11 @@
 // ======================== Constructor ========================
 
 RangeImage::RangeImage(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setupUi();
 
-    m_range_image = std::make_shared<ct::RangeImage>();
+    m_range_image = std::make_shared<pw::RangeImage>();
     m_debounce_timer_ = new QTimer(this);
     m_debounce_timer_->setSingleShot(true);
     m_debounce_timer_->setInterval(200);
@@ -117,7 +117,7 @@ void RangeImage::setupUi()
 
 void RangeImage::init()
 {
-    connect(m_cloudview, &ct::CloudView::viewerPose, this, &RangeImage::onViewerPoseChanged);
+    connect(m_cloudview, &pw::CloudView::viewerPose, this, &RangeImage::onViewerPoseChanged);
 
     // Get current viewer pose and trigger initial generation
     auto selected_clouds = m_cloudtree->getSelectedClouds();
@@ -132,7 +132,7 @@ void RangeImage::init()
 
 void RangeImage::reset()
 {
-    disconnect(m_cloudview, &ct::CloudView::viewerPose, this, &RangeImage::onViewerPoseChanged);
+    disconnect(m_cloudview, &pw::CloudView::viewerPose, this, &RangeImage::onViewerPoseChanged);
     m_debounce_timer_->stop();
 
     m_cloudview->removePointCloud(RANGE_IMAGE_FLAG);
@@ -193,7 +193,7 @@ void RangeImage::onClose()
 void RangeImage::onTogglePointCloud(bool checked)
 {
     if (checked && m_range_image) {
-        m_cloudview->addPointCloudFromRangeImage(m_range_image, RANGE_IMAGE_FLAG, ct::Color::Green);
+        m_cloudview->addPointCloudFromRangeImage(m_range_image, RANGE_IMAGE_FLAG, pw::Color::Green);
         m_cloudview->setPointCloudSize(RANGE_IMAGE_FLAG, 4);
     } else {
         m_cloudview->removePointCloud(RANGE_IMAGE_FLAG);
@@ -218,7 +218,7 @@ void RangeImage::updateDepthImage()
     float h_fov = static_cast<float>(dspin_h_fov_->value());
     float v_fov = static_cast<float>(dspin_v_fov_->value());
 
-    m_range_image = std::make_shared<ct::RangeImage>();
+    m_range_image = std::make_shared<pw::RangeImage>();
     m_range_image->createFromPointCloud(
         *m_cloud->toPCL_XYZRGBN(),
         pcl::deg2rad(angular_res),
@@ -238,7 +238,7 @@ void RangeImage::updateDepthImage()
     fitToView();
     if (check_show_cloud_->isChecked()) {
         m_cloudview->removePointCloud(RANGE_IMAGE_FLAG);
-        m_cloudview->addPointCloudFromRangeImage(m_range_image, RANGE_IMAGE_FLAG, ct::Color::Green);
+        m_cloudview->addPointCloudFromRangeImage(m_range_image, RANGE_IMAGE_FLAG, pw::Color::Green);
         m_cloudview->setPointCloudSize(RANGE_IMAGE_FLAG, 4);
     }
 }
@@ -273,7 +273,7 @@ void RangeImage::applyScale()
 
 void RangeImage::showEvent(QShowEvent* event)
 {
-    ct::CustomDialog::showEvent(event);
+    pw::CustomDialog::showEvent(event);
     fitToView();
 }
 

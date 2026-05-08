@@ -33,14 +33,14 @@ int main() {
     QSettings settings("PointWorks", "PointWorks");
     QString customPy = settings.value("python_home").toString();
     if (!customPy.isEmpty()) {
-        ct::PythonManager::instance().setCustomPythonHome(customPy.toStdString());
+        pw::PythonManager::instance().setCustomPythonHome(customPy.toStdString());
     }
 
-    ct::PythonManager::instance().initialize();  // Py_Initialize + 注册模块
+    pw::PythonManager::instance().initialize();  // Py_Initialize + 注册模块
     MainWindow w;
     w.show();
     int ret = app.exec();
-    ct::PythonManager::instance().finalize();     // 清理（不调用 Py_Finalize）
+    pw::PythonManager::instance().finalize();     // 清理（不调用 Py_Finalize）
     return ret;
 }
 ```
@@ -472,7 +472,7 @@ libs/python/
 
 ## 构建配置
 
-- **ct_python** 为 OBJECT 库（非 STATIC/SHARED），编译产物直接链接到 pointworks 可执行文件
+- **pw_python** 为 OBJECT 库（非 STATIC/SHARED），编译产物直接链接到 pointworks 可执行文件
 - pybind11 通过 `3rdparty/pybind11` git submodule 引入
 - Python 路径通过 QSettings 动态配置（注册表键 `PointWorks/PointWorks` → `python_home`），
   也可通过 Options → Display Settings → Python 页面交互式设置

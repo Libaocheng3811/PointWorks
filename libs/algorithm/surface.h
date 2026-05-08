@@ -1,5 +1,5 @@
-#ifndef CT_MODULES_SURFACE_H
-#define CT_MODULES_SURFACE_H
+#ifndef PW_MODULES_SURFACE_H
+#define PW_MODULES_SURFACE_H
 
 #include "core/cloud.h"
 
@@ -8,7 +8,7 @@
 #include <functional>
 #include <atomic>
 
-namespace ct
+namespace pw
 {
     typedef pcl::PolygonMesh PolygonMesh;
 
@@ -144,6 +144,6 @@ namespace ct
                                          std::function<void(int)> on_progress = nullptr);
     };
 
-}  // namespace ct
+}  // namespace pw
 
-#endif  // CT_MODULES_SURFACE_H
+#endif  // PW_MODULES_SURFACE_H

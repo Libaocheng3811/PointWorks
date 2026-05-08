@@ -1,6 +1,6 @@
 #include "python_bridge.h"
 
-namespace ct
+namespace pw
 {
 
 PythonBridge::PythonBridge(QObject* parent) : QObject(parent) {}
@@ -36,4 +36,4 @@ void PythonBridge::clearScriptData()
     }
 }
 
-} // namespace ct
+} // namespace pw

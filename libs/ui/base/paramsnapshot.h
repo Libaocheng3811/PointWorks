@@ -1,5 +1,5 @@
-#ifndef CT_PARAM_SNAPSHOT_H
-#define CT_PARAM_SNAPSHOT_H
+#ifndef PW_PARAM_SNAPSHOT_H
+#define PW_PARAM_SNAPSHOT_H
 
 #include <QMap>
 #include <QString>
@@ -8,7 +8,7 @@
 
 #include <Eigen/Dense>
 
-namespace ct {
+namespace pw {
 
 class ParamSnapshot {
 public:
@@ -47,6 +47,6 @@ private:
     QMap<QString, QVariant> m_params;
 };
 
-} // namespace ct
+} // namespace pw
 
-#endif // CT_PARAM_SNAPSHOT_H
+#endif // PW_PARAM_SNAPSHOT_H

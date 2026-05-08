@@ -11,7 +11,7 @@
 #include <limits>
 #include <omp.h>
 
-namespace ct
+namespace pw
 {
     std::vector<float> Cloud::s_jet_lut;
 
@@ -53,7 +53,7 @@ namespace ct
 
     Cloud::~Cloud() = default;
 
-    void Cloud::swap(ct::Cloud &other) {
+    void Cloud::swap(pw::Cloud &other) {
         // 使用 std::swap 交换所有成员
         std::swap(m_octree_root, other.m_octree_root);
         std::swap(m_all_blocks, other.m_all_blocks);
@@ -90,7 +90,7 @@ namespace ct
 
         // 第一级：直通模式 (Passthrough)
         // 如果点数极少 (< 200万)，不需要八叉树，直接当做一个大块处理
-        if (totalPoints < ct::AutoOctreeConfig::MIN_POINTS_FOR_OCTREE) {
+        if (totalPoints < pw::AutoOctreeConfig::MIN_POINTS_FOR_OCTREE) {
             config.enableOctree = false;
             config.maxPointsPerBlock = totalPoints + 1000; // 确保不分裂
             config.maxDepth = 0;
@@ -102,28 +102,28 @@ namespace ct
 
         // 第二级：分块大小自适应
         // 目标：让叶子节点数量保持在 1000 ~ 5000 之间，以平衡剔除效率和 DrawCall
-        const size_t targetBlockCount = ct::AutoOctreeConfig::TARGET_BLOCK_COUNT;
+        const size_t targetBlockCount = pw::AutoOctreeConfig::TARGET_BLOCK_COUNT;
         size_t idealBlockSize = totalPoints / targetBlockCount;
 
         // 钳位到硬件友好区间 [10k, 500k]
-        if (idealBlockSize < ct::AutoOctreeConfig::MIN_BLOCK_SIZE) idealBlockSize = ct::AutoOctreeConfig::MIN_BLOCK_SIZE;
-        if (idealBlockSize > ct::AutoOctreeConfig::MAX_BLOCK_SIZE) idealBlockSize = ct::AutoOctreeConfig::MAX_BLOCK_SIZE;
+        if (idealBlockSize < pw::AutoOctreeConfig::MIN_BLOCK_SIZE) idealBlockSize = pw::AutoOctreeConfig::MIN_BLOCK_SIZE;
+        if (idealBlockSize > pw::AutoOctreeConfig::MAX_BLOCK_SIZE) idealBlockSize = pw::AutoOctreeConfig::MAX_BLOCK_SIZE;
 
         config.maxPointsPerBlock = idealBlockSize;
 
         // 第三级：LOD 密度自适应
         // LOD 点数通常是 Block 点数的 20% ~ 50%
         // 如果 Block 很大，LOD 也要大，否则远看会变空
-        config.maxLODPoints = static_cast<size_t>(idealBlockSize * ct::AutoOctreeConfig::LOD_POINT_RATIO);
+        config.maxLODPoints = static_cast<size_t>(idealBlockSize * pw::AutoOctreeConfig::LOD_POINT_RATIO);
 
         // LOD 硬上限 (防止单个 DrawCall 过大)
-        if (config.maxLODPoints > ct::AutoOctreeConfig::MAX_LOD_SIZE) config.maxLODPoints = ct::AutoOctreeConfig::MAX_LOD_SIZE;
-        if (config.maxLODPoints < ct::AutoOctreeConfig::MIN_LOD_SIZE) config.maxLODPoints = ct::AutoOctreeConfig::MIN_LOD_SIZE;
+        if (config.maxLODPoints > pw::AutoOctreeConfig::MAX_LOD_SIZE) config.maxLODPoints = pw::AutoOctreeConfig::MAX_LOD_SIZE;
+        if (config.maxLODPoints < pw::AutoOctreeConfig::MIN_LOD_SIZE) config.maxLODPoints = pw::AutoOctreeConfig::MIN_LOD_SIZE;
 
         // 估算深度
         // 简单的对数估算: log8(Total / BlockSize)
         // 但通常 8 层足够应对大部分场景
-        config.maxDepth = ct::AutoOctreeConfig::DEFAULT_MAX_DEPTH;
+        config.maxDepth = pw::AutoOctreeConfig::DEFAULT_MAX_DEPTH;
 
         return config;
     }
@@ -146,16 +146,16 @@ namespace ct
             if (!config.enableOctree) {
                 // 强制修正为八叉树模式
                 config.enableOctree = true;
-                config.maxDepth = ct::AutoOctreeConfig::DEFAULT_MAX_DEPTH; // 恢复默认深度
+                config.maxDepth = pw::AutoOctreeConfig::DEFAULT_MAX_DEPTH; // 恢复默认深度
 
-                config.maxPointsPerBlock = ct::AutoOctreeConfig::DEFAULT_BLOCK_SIZE;
+                config.maxPointsPerBlock = pw::AutoOctreeConfig::DEFAULT_BLOCK_SIZE;
             }
 
-            size_t calcLOD = static_cast<size_t>(config.maxPointsPerBlock * ct::AutoOctreeConfig::LOD_POINT_RATIO);
+            size_t calcLOD = static_cast<size_t>(config.maxPointsPerBlock * pw::AutoOctreeConfig::LOD_POINT_RATIO);
 
             // 应用上下限钳位 (Clamping)
-            if (calcLOD < ct::AutoOctreeConfig::MIN_LOD_SIZE) calcLOD = ct::AutoOctreeConfig::MIN_LOD_SIZE;
-            if (calcLOD > ct::AutoOctreeConfig::MAX_LOD_SIZE) calcLOD = ct::AutoOctreeConfig::MAX_LOD_SIZE;
+            if (calcLOD < pw::AutoOctreeConfig::MIN_LOD_SIZE) calcLOD = pw::AutoOctreeConfig::MIN_LOD_SIZE;
+            if (calcLOD > pw::AutoOctreeConfig::MAX_LOD_SIZE) calcLOD = pw::AutoOctreeConfig::MAX_LOD_SIZE;
 
             config.maxLODPoints = calcLOD;
         }
@@ -183,7 +183,7 @@ namespace ct
         this->update();
     }
 
-    void Cloud::initOctree(const ct::Box &globalBox) {
+    void Cloud::initOctree(const pw::Box &globalBox) {
         // 清空现有数据
         clear();
 
@@ -634,14 +634,14 @@ namespace ct
         }
     }
 
-    void Cloud::addPoint(const ct::PointXYZRGBN &pt) {
+    void Cloud::addPoint(const pw::PointXYZRGBN &pt) {
         ColorRGB color(pt.r, pt.g, pt.b);
         CompressedNormal normal;
         normal.set(Eigen::Vector3f(pt.normal_x, pt.normal_y, pt.normal_z));
         addPoint(PointXYZ(pt.x, pt.y, pt.z), &color, &normal);
     }
 
-    void ct::Cloud::generateLOD()
+    void pw::Cloud::generateLOD()
     {
         if (!m_octree_root) return;
 
@@ -2212,4 +2212,4 @@ namespace ct
         return (255<<16) | (255<<8) | 255;
     }
 
-} // namespace ct
+} // namespace pw

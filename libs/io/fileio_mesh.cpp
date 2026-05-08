@@ -13,7 +13,7 @@
 
 #include <cfloat>
 
-namespace ct
+namespace pw
 {
 
 // ================================================================
@@ -190,4 +190,4 @@ bool FileIO::loadGeneralPCL(const QString &filename, Cloud::Ptr &cloud, pcl::Pol
     return true;
 }
 
-} // namespace ct
+} // namespace pw

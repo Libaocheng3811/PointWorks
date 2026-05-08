@@ -17,9 +17,9 @@ void registerCloudMgmtBindings(py::module_& m)
         size_t count = static_cast<size_t>(buf.shape[0]);
         const float* data = static_cast<const float*>(buf.ptr);
 
-        auto new_cloud = std::make_shared<ct::Cloud>();
+        auto new_cloud = std::make_shared<pw::Cloud>();
         new_cloud->setId(old_cloud->id());
-        auto config = ct::Cloud::calculateAdaptiveConfig(count);
+        auto config = pw::Cloud::calculateAdaptiveConfig(count);
         new_cloud->setConfig(config);
 
         float min_x = FLT_MAX, min_y = FLT_MAX, min_z = FLT_MAX;
@@ -30,20 +30,20 @@ void registerCloudMgmtBindings(py::module_& m)
             if (y < min_y) min_y = y; if (y > max_y) max_y = y;
             if (z < min_z) min_z = z; if (z > max_z) max_z = z;
         }
-        ct::Box globalBox;
+        pw::Box globalBox;
         globalBox.translation = Eigen::Vector3f((min_x+max_x)*0.5f, (min_y+max_y)*0.5f, (min_z+max_z)*0.5f);
         globalBox.width = max_x - min_x;
         globalBox.height = max_y - min_y;
         globalBox.depth = max_z - min_z;
         new_cloud->initOctree(globalBox);
 
-        std::vector<ct::PointXYZ> points(count);
+        std::vector<pw::PointXYZ> points(count);
         for (size_t i = 0; i < count; ++i) {
             points[i].x = data[i*3]; points[i].y = data[i*3+1]; points[i].z = data[i*3+2];
         }
 
         bool has_colors = !colors_obj.is_none();
-        std::vector<ct::ColorRGB> colors;
+        std::vector<pw::ColorRGB> colors;
         if (has_colors) {
             auto color_arr = py::cast<py::array_t<uint8_t>>(colors_obj);
             auto cbuf = color_arr.request();
@@ -64,7 +64,7 @@ void registerCloudMgmtBindings(py::module_& m)
         new_cloud->generateLOD();
         new_cloud->update();
 
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->updateCloud(QString::fromStdString(name), new_cloud);
     }, py::arg("name"), py::arg("xyz"), py::arg("colors") = py::none(),
        "Replace cloud data in-place with new xyz (and optional colors) arrays");
@@ -84,7 +84,7 @@ void registerCloudMgmtBindings(py::module_& m)
         auto cloud = registry.getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         registry.unregisterCloud(name);
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->removeCloud(QString::fromStdString(name));
     }, py::arg("name"), "Remove a cloud by name");
 
@@ -94,19 +94,19 @@ void registerCloudMgmtBindings(py::module_& m)
         auto names = registry.getCloudNames();
         for (const auto& n : names)
             registry.unregisterCloud(n);
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->removeAllClouds();
     }, "Remove all clouds from the scene");
 
     // Clear all Python-generated data
     m.def("clear_all", []() {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->requestClearAll();
     }, "Clear all Python-generated data (clouds and meshes) from the scene");
 
     // Clear script-generated unmounted data only
     m.def("clear_script_data", []() {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->clearScriptData();
     }, "Clear script-generated data that has not been explicitly shown via .show() or add_to_scene()");
 
@@ -116,7 +116,7 @@ void registerCloudMgmtBindings(py::module_& m)
         if (!name.empty()) cloud_ptr->setId(name);
         getRegistry().registerCloud(cloud_ptr);
         getRegistry().markSceneMounted(cloud_ptr->id());
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->insertCloud(cloud_ptr);
     }, py::arg("cloud"), py::arg("name") = "",
        "Explicitly add a ct.Cloud to the scene tree and view. Equivalent to cloud.show(name).");
@@ -133,7 +133,7 @@ void registerCloudMgmtBindings(py::module_& m)
         registry.registerCloud(cloned);
         registry.holdCloud(cloned);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(cloned);
         }
 
@@ -146,7 +146,7 @@ void registerCloudMgmtBindings(py::module_& m)
         if (name_list.size() < 2)
             throw std::runtime_error("Need at least 2 clouds to merge");
 
-        std::vector<ct::Cloud::Ptr> clouds;
+        std::vector<pw::Cloud::Ptr> clouds;
         for (auto item : name_list) {
             std::string n = py::cast<std::string>(item);
             auto c = registry.getCloud(n);
@@ -154,9 +154,9 @@ void registerCloudMgmtBindings(py::module_& m)
             clouds.push_back(c);
         }
 
-        auto merged = std::make_shared<ct::Cloud>();
+        auto merged = std::make_shared<pw::Cloud>();
         merged->setId("merge-" + clouds[0]->id());
-        auto config = ct::Cloud::calculateAdaptiveConfig(
+        auto config = pw::Cloud::calculateAdaptiveConfig(
             [&]() {
                 size_t total = 0;
                 for (auto& c : clouds) total += c->size();
@@ -175,7 +175,7 @@ void registerCloudMgmtBindings(py::module_& m)
             min_y = std::min(min_y, cen.y() - hy); max_y = std::max(max_y, cen.y() + hy);
             min_z = std::min(min_z, cen.z() - hz); max_z = std::max(max_z, cen.z() + hz);
         }
-        ct::Box globalBox;
+        pw::Box globalBox;
         globalBox.translation = Eigen::Vector3f((min_x+max_x)*0.5f, (min_y+max_y)*0.5f, (min_z+max_z)*0.5f);
         globalBox.width = max_x - min_x;
         globalBox.height = max_y - min_y;
@@ -186,8 +186,8 @@ void registerCloudMgmtBindings(py::module_& m)
 
         for (auto& c : clouds) {
             for (auto& block : c->getBlocks()) {
-                std::vector<ct::PointXYZ> pts = block->m_points;
-                std::vector<ct::ColorRGB> colors;
+                std::vector<pw::PointXYZ> pts = block->m_points;
+                std::vector<pw::ColorRGB> colors;
                 if (c->hasColors() && block->m_colors) {
                     colors = *block->m_colors;
                     merged->addPoints(pts, &colors);
@@ -203,7 +203,7 @@ void registerCloudMgmtBindings(py::module_& m)
         registry.registerCloud(merged);
         registry.holdCloud(merged);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(merged);
         }
 
@@ -212,13 +212,13 @@ void registerCloudMgmtBindings(py::module_& m)
 
     // Select a cloud
     m.def("select_cloud", [](const std::string& name) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->selectCloud(QString::fromStdString(name));
     }, py::arg("name"), "Select a cloud by name in the tree");
 
     // Load a cloud file
     m.def("load_cloud", [](const std::string& filepath) -> py::object {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->loadCloud(QString::fromStdString(filepath));
         return py::none();
     }, py::arg("filepath"), "Load a point cloud file into the scene (async)");
@@ -228,7 +228,7 @@ void registerCloudMgmtBindings(py::module_& m)
         auto& registry = getRegistry();
         auto cloud = registry.getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->saveCloud(QString::fromStdString(name), QString::fromStdString(filepath), binary);
     }, py::arg("name"), py::arg("filepath"), py::arg("binary") = true,
        "Save a cloud to file. binary=True for binary, False for ASCII (async)");

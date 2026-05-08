@@ -24,7 +24,7 @@
 #include <numeric>
 #include <random>
 
-namespace ct {
+namespace pw {
 
     // ================================================================
     // Internal helpers: C2C
@@ -1022,4 +1022,4 @@ namespace ct {
         return calculateC2C(ref, comp, c2c_params, cancel, on_progress);
     }
 
-} // namespace ct
+} // namespace pw

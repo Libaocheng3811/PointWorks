@@ -18,7 +18,7 @@
 #include <atomic>
 #include <QFutureWatcher>
 
-class CloudCloudDistDialog : public ct::CustomDialog {
+class CloudCloudDistDialog : public pw::CustomDialog {
     Q_OBJECT
 public:
     explicit CloudCloudDistDialog(QWidget* parent = nullptr);
@@ -37,11 +37,11 @@ private:
 
     // async
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::DistanceResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::DistanceResult>* m_watcher = nullptr;
 
     // business data
-    ct::Cloud::Ptr m_source_cloud;
-    ct::Cloud::Ptr m_target_cloud;
+    pw::Cloud::Ptr m_source_cloud;
+    pw::Cloud::Ptr m_target_cloud;
 
     // controls
     QComboBox* cbox_source_;

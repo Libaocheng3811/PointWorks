@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 
-namespace ct
+namespace pw
 {
 
 class PythonBridge;
@@ -55,6 +55,6 @@ private:
     std::string m_init_message;
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PYTHON_MANAGER_H

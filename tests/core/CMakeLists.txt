@@ -7,7 +7,7 @@ add_executable(test_core ${TEST_CORE_SRCS})
 
 target_link_libraries(test_core
     PRIVATE
-        ct_core
+        pw_core
         test_common
         GTest::gtest
         GTest::gtest_main

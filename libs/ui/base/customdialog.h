@@ -16,7 +16,7 @@
 #include <QResizeEvent>
 #include <map>
 
-namespace ct
+namespace pw
 {
     class CustomDialog : public QDialog
     {

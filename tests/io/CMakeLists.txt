@@ -8,9 +8,9 @@ add_executable(test_io ${TEST_IO_SRCS})
 
 target_link_libraries(test_io
     PRIVATE
-        ct_io
-        ct_core
-        ct_algorithm
+        pw_io
+        pw_core
+        pw_algorithm
         test_common
         GTest::gtest
         Qt5::Core

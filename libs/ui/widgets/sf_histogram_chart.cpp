@@ -5,7 +5,7 @@
 #include <cstring>
 #include <QGraphicsLayout>
 
-namespace ct {
+namespace pw {
 
 SFHistogramChart::SFHistogramChart(QWidget* parent)
     : QChartView(parent), m_chart(new QChart)
@@ -328,4 +328,4 @@ void SFHistogramChart::mouseReleaseEvent(QMouseEvent* event)
     QChartView::mouseReleaseEvent(event);
 }
 
-}  // namespace ct
+}  // namespace pw

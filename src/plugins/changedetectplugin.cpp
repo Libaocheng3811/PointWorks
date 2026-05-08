@@ -8,7 +8,7 @@
 #include <cmath>
 
 ChangeDetectPlugin::ChangeDetectPlugin(QWidget *parent) :
-        ct::CustomDialog(parent), ui(new Ui::ChangeDetectPlugin) {
+        pw::CustomDialog(parent), ui(new Ui::ChangeDetectPlugin) {
     ui->setupUi(this);
 
     connect(ui->btn_ok, &QPushButton::clicked, this, &ChangeDetectPlugin::onApply);
@@ -23,7 +23,7 @@ void ChangeDetectPlugin::init() {
     ui->combo_phase1->clear();
     ui->combo_phase2->clear();
 
-    std::vector<ct::Cloud::Ptr> allClouds = m_cloudtree->getAllClouds();
+    std::vector<pw::Cloud::Ptr> allClouds = m_cloudtree->getAllClouds();
     if (allClouds.empty()){
         printW(QString("No clouds available"));
         ui->btn_ok->setEnabled(false);
@@ -36,7 +36,7 @@ void ChangeDetectPlugin::init() {
         ui->combo_phase2->addItem(cloudId, QVariant::fromValue(cloud));
     }
 
-    std::vector<ct::Cloud::Ptr> selectedClouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selectedClouds = m_cloudtree->getSelectedClouds();
     if (selectedClouds.size() >= 2){
         int idx1 = ui->combo_phase1->findText(QString::fromStdString(selectedClouds[0]->id()));
         int idx2 = ui->combo_phase2->findText(QString::fromStdString(selectedClouds[1]->id()));
@@ -57,9 +57,9 @@ void ChangeDetectPlugin::init() {
     }
 
     ui->combo_method->clear();
-    ui->combo_method->addItem("C2C - Nearest Neighbor", ct::DistanceParams::C2C_NEAREST);
-    ui->combo_method->addItem("C2C - K-Mean", ct::DistanceParams::C2C_KNN_MEAN);
-    ui->combo_method->addItem("C2C - Radius Mean", ct::DistanceParams::C2C_RADIUS_MEAN);
+    ui->combo_method->addItem("C2C - Nearest Neighbor", pw::DistanceParams::C2C_NEAREST);
+    ui->combo_method->addItem("C2C - K-Mean", pw::DistanceParams::C2C_KNN_MEAN);
+    ui->combo_method->addItem("C2C - Radius Mean", pw::DistanceParams::C2C_RADIUS_MEAN);
 
     connect(ui->combo_method, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ChangeDetectPlugin::onMethodChanged);
@@ -68,8 +68,8 @@ void ChangeDetectPlugin::init() {
 }
 
 void ChangeDetectPlugin::onApply() {
-    m_phase1Cloud = ui->combo_phase1->currentData().value<ct::Cloud::Ptr>();
-    m_phase2Cloud = ui->combo_phase2->currentData().value<ct::Cloud::Ptr>();
+    m_phase1Cloud = ui->combo_phase1->currentData().value<pw::Cloud::Ptr>();
+    m_phase2Cloud = ui->combo_phase2->currentData().value<pw::Cloud::Ptr>();
 
     if (!m_phase1Cloud || !m_phase2Cloud){
         printE(QString("Invalid clouds selected"));
@@ -81,18 +81,18 @@ void ChangeDetectPlugin::onApply() {
         return;
     }
 
-    ct::DistanceParams params;
-    params.method = static_cast<ct::DistanceParams::Method>(ui->combo_method->currentData().toInt());
+    pw::DistanceParams params;
+    params.method = static_cast<pw::DistanceParams::Method>(ui->combo_method->currentData().toInt());
 
-    if (params.method == ct::DistanceParams::C2C_NEAREST) {
+    if (params.method == pw::DistanceParams::C2C_NEAREST) {
         m_threshold = ui->dsb_nearestThreshold->value();
     }
     else {
         m_threshold = ui->dsb_meanThreshold->value();
-        if (params.method == ct::DistanceParams::C2C_KNN_MEAN) {
+        if (params.method == pw::DistanceParams::C2C_KNN_MEAN) {
             params.k_knn = ui->sb_Knn->value();
         }
-        else if (params.method == ct::DistanceParams::C2C_RADIUS_MEAN) {
+        else if (params.method == pw::DistanceParams::C2C_RADIUS_MEAN) {
             params.radius = ui->dsb_radius->value();
         }
     }
@@ -111,18 +111,18 @@ void ChangeDetectPlugin::onApply() {
     auto phase2_id = phase2->id();
     auto* cloudtree = m_cloudtree;
 
-    using ResultPair = std::pair<ct::DistanceResult, ct::DistanceResult>;
+    using ResultPair = std::pair<pw::DistanceResult, pw::DistanceResult>;
 
     m_progress->runAsync<ResultPair>(
         "Change Detection: Calculating Distance...",
-        [=](std::atomic<bool>& cancel, ct::ProgressCallback progress) -> ResultPair {
-            ct::DistanceResult resultAdded = ct::DistanceCalculator::calculate(phase1, phase2, params_copy, &cancel,
+        [=](std::atomic<bool>& cancel, pw::ProgressCallback progress) -> ResultPair {
+            pw::DistanceResult resultAdded = pw::DistanceCalculator::calculate(phase1, phase2, params_copy, &cancel,
                 [progress](int pct) { progress(pct / 2); });
 
             if (!resultAdded.success || cancel)
                 return {};
 
-            ct::DistanceResult resultRemoved = ct::DistanceCalculator::calculate(phase2, phase1, params_copy, &cancel,
+            pw::DistanceResult resultRemoved = pw::DistanceCalculator::calculate(phase2, phase1, params_copy, &cancel,
                 [progress](int pct) { progress(50 + pct / 2); });
 
             return {resultAdded, resultRemoved};
@@ -143,7 +143,7 @@ void ChangeDetectPlugin::onApply() {
                .arg(resultAdded.time_ms).arg(resultRemoved.time_ms));
 
         // Extract added points from phase2 (phase2→phase1 distance exceeds threshold)
-        ct::Cloud::Ptr addedCloud(new ct::Cloud);
+        pw::Cloud::Ptr addedCloud(new pw::Cloud);
         addedCloud->initOctree(phase2->box());
         if (phase2_has_colors) addedCloud->enableColors();
         if (phase2_has_normals) addedCloud->enableNormals();
@@ -152,9 +152,9 @@ void ChangeDetectPlugin::onApply() {
         size_t globalIdx = 0;
 
         struct BatchBuf {
-            std::vector<ct::PointXYZ> pts;
-            std::vector<ct::ColorRGB> colors;
-            std::vector<ct::CompressedNormal> normals;
+            std::vector<pw::PointXYZ> pts;
+            std::vector<pw::ColorRGB> colors;
+            std::vector<pw::CompressedNormal> normals;
             void clear() { pts.clear(); colors.clear(); normals.clear(); }
         };
         BatchBuf buf;
@@ -190,7 +190,7 @@ void ChangeDetectPlugin::onApply() {
         addedCloud->setGlobalShift(phase2->getGlobalShift());
 
         // Extract removed points from phase1 (phase1→phase2 distance exceeds threshold)
-        ct::Cloud::Ptr removedCloud(new ct::Cloud);
+        pw::Cloud::Ptr removedCloud(new pw::Cloud);
         removedCloud->initOctree(phase1->box());
         if (phase1_has_colors) removedCloud->enableColors();
         if (phase1_has_normals) removedCloud->enableNormals();
@@ -228,7 +228,7 @@ void ChangeDetectPlugin::onApply() {
         removedCloud->update();
         removedCloud->setGlobalShift(phase1->getGlobalShift());
 
-        std::vector<ct::Cloud::Ptr> results;
+        std::vector<pw::Cloud::Ptr> results;
 
         if (!addedCloud->empty()) {
             addedCloud->makeAdaptive();
@@ -265,15 +265,15 @@ void ChangeDetectPlugin::onCancel() {
 }
 
 void ChangeDetectPlugin::onMethodChanged(int index) {
-    auto method = static_cast<ct::DistanceParams::Method>(ui->combo_method->itemData(index).toInt());
+    auto method = static_cast<pw::DistanceParams::Method>(ui->combo_method->itemData(index).toInt());
 
-    if (method == ct::DistanceParams::C2C_NEAREST) {
+    if (method == pw::DistanceParams::C2C_NEAREST) {
         ui->stackedWidget->setCurrentIndex(0);
     }
     else {
         ui->stackedWidget->setCurrentIndex(1);
 
-        if (method == ct::DistanceParams::C2C_KNN_MEAN) {
+        if (method == pw::DistanceParams::C2C_KNN_MEAN) {
             ui->lblParamName->setText("Neighbors (K):");
             ui->stackInput->setCurrentIndex(0);
         } else {

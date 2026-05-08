@@ -1,5 +1,5 @@
-#ifndef CT_MODULES_KEYPOINTS_H
-#define CT_MODULES_KEYPOINTS_H
+#ifndef PW_MODULES_KEYPOINTS_H
+#define PW_MODULES_KEYPOINTS_H
 
 #include "core/exports.h"
 #include "core/cloud.h"
@@ -10,7 +10,7 @@
 #include <functional>
 #include <atomic>
 
-namespace ct
+namespace pw
 {
     typedef pcl::PointXYZI      PointXYZI;
     typedef pcl::PointXYZRGB    PointXYZRGB;
@@ -76,6 +76,6 @@ namespace ct
                                                     std::atomic<bool>* cancel = nullptr,
                                                     std::function<void(int)> on_progress = nullptr);
     };
-}  // namespace ct
+}  // namespace pw
 
-#endif  // CT_MODULES_KEYPOINTS_H
+#endif  // PW_MODULES_KEYPOINTS_H

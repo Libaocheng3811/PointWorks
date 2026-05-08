@@ -16,7 +16,7 @@
 #include <vtkIdTypeArray.h>
 #include <omp.h>
 
-namespace ct {
+namespace pw {
 
 // 计算节点在屏幕上的投影大小（近似值）
     float screenSizeInPixels(const Box &box, const Eigen::Vector3f &camPos, vtkRenderer *renderer) {
@@ -469,4 +469,4 @@ namespace ct {
         return (maxSize / dist) * pixelsPerUnit;
     }
 
-} // namespace ct
+} // namespace pw

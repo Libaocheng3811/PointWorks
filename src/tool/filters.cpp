@@ -221,7 +221,7 @@ Filters::~Filters() {
     delete ui;
 }
 
-void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_progress)
+void Filters::runFilter(std::function<pw::FilterResult()> filterFn, bool show_progress)
 {
     // 始终异步执行，禁止主线程阻塞
     if (show_progress) {
@@ -230,7 +230,7 @@ void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_pr
 
     m_cancel = false;
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [this]() { m_cancel = true; }, Qt::UniqueConnection);
     }
 
@@ -250,18 +250,18 @@ void Filters::runFilter(std::function<ct::FilterResult()> filterFn, bool show_pr
 
     auto future = QtConcurrent::run(filterFn);
     if (!m_preview_watcher) {
-        m_preview_watcher = new QFutureWatcher<ct::FilterResult>(this);
+        m_preview_watcher = new QFutureWatcher<pw::FilterResult>(this);
     }
     m_preview_watcher->setFuture(future);
 
-    connect(m_preview_watcher, &QFutureWatcher<ct::FilterResult>::finished, this, [=]() {
+    connect(m_preview_watcher, &QFutureWatcher<pw::FilterResult>::finished, this, [=]() {
         if (show_progress) m_progress->closeProgress();
         auto result = m_preview_watcher->result();
         handleFilterResult(result);
     });
 }
 
-void Filters::handleFilterResult(const ct::FilterResult& result)
+void Filters::handleFilterResult(const pw::FilterResult& result)
 {
     if (!result.result_cloud) return;
 
@@ -272,14 +272,14 @@ void Filters::handleFilterResult(const ct::FilterResult& result)
     cloud->setId(id + FILTER_PRE_FLAG);
 
     m_cloudview->addPointCloud(cloud);
-    m_cloudview->setPointCloudColor(QString::fromStdString(cloud->id()), ct::Color::Green);
+    m_cloudview->setPointCloudColor(QString::fromStdString(cloud->id()), pw::Color::Green);
     m_cloudview->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize() + 2);
     m_filter_map[id] = cloud;
 }
 
 void Filters::preview()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -308,7 +308,7 @@ void Filters::preview()
                 float min_val = (float)ui->slider_min->value() / 1000;
                 float max_val = (float)ui->slider_max->value() / 1000;
                 runFilter([cloud, field, min_val, max_val, negative, this, on_progress]() {
-                    return ct::Filters::PassThrough(cloud, field, min_val, max_val, negative, &m_cancel, on_progress);
+                    return pw::Filters::PassThrough(cloud, field, min_val, max_val, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -319,7 +319,7 @@ void Filters::preview()
                 float ly = ui->dspin_leafy->value();
                 float lz = ui->dspin_leafz->value();
                 runFilter([cloud, lx, ly, lz, negative, this, on_progress]() {
-                    return ct::Filters::VoxelGrid(cloud, lx, ly, lz, negative, &m_cancel, on_progress);
+                    return pw::Filters::VoxelGrid(cloud, lx, ly, lz, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -329,7 +329,7 @@ void Filters::preview()
                 int nr_k = ui->spin_meank->value();
                 double stddev = ui->dspin_stddevmulthresh->value();
                 runFilter([cloud, nr_k, stddev, negative, this, on_progress]() {
-                    return ct::Filters::StatisticalOutlierRemoval(cloud, nr_k, stddev, negative, &m_cancel, on_progress);
+                    return pw::Filters::StatisticalOutlierRemoval(cloud, nr_k, stddev, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -339,7 +339,7 @@ void Filters::preview()
                 double radius = ui->dspin_radius->value();
                 int min_pts = ui->spin_minneiborsinradius->value();
                 runFilter([cloud, radius, min_pts, negative, this, on_progress]() {
-                    return ct::Filters::RadiusOutlierRemoval(cloud, radius, min_pts, negative, &m_cancel, on_progress);
+                    return pw::Filters::RadiusOutlierRemoval(cloud, radius, min_pts, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -348,7 +348,7 @@ void Filters::preview()
                 m_cloudview->showInfo("ConditionalRemoval", 1);
                 auto con = this->getCondition();
                 runFilter([cloud, con, negative, this, on_progress]() {
-                    return ct::Filters::ConditionalRemoval(cloud, con, negative, &m_cancel, on_progress);
+                    return pw::Filters::ConditionalRemoval(cloud, con, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -357,7 +357,7 @@ void Filters::preview()
                 m_cloudview->showInfo("GridMinimum", 1);
                 float resolution = ui->dspin_resolution->value();
                 runFilter([cloud, resolution, negative, this, on_progress]() {
-                    return ct::Filters::GridMinimun(cloud, resolution, negative, &m_cancel, on_progress);
+                    return pw::Filters::GridMinimun(cloud, resolution, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -366,7 +366,7 @@ void Filters::preview()
                 m_cloudview->showInfo("LocalMaximum", 1);
                 float radius = ui->dspin_radius_3->value();
                 runFilter([cloud, radius, negative, this, on_progress]() {
-                    return ct::Filters::LocalMaximum(cloud, radius, negative, &m_cancel, on_progress);
+                    return pw::Filters::LocalMaximum(cloud, radius, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -380,7 +380,7 @@ void Filters::preview()
                 m_cloudview->showInfo("ShadowPoints", 1);
                 float threshold = ui->dspin_threshold->value();
                 runFilter([cloud, threshold, negative, this, on_progress]() {
-                    return ct::Filters::ShadowPoints(cloud, threshold, negative, &m_cancel, on_progress);
+                    return pw::Filters::ShadowPoints(cloud, threshold, negative, &m_cancel, on_progress);
                 }, show_progress);
                 break;
             }
@@ -390,7 +390,7 @@ void Filters::preview()
 
 void Filters::add()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         return;
@@ -402,14 +402,14 @@ void Filters::add()
             printW(QString("The cloud[id:1%] has no filtered cloud!").arg(QString::fromStdString(cloud->id())));
             continue;
         }
-        ct::Cloud::Ptr new_cloud = m_filter_map.find(cloud->id())->second;
+        pw::Cloud::Ptr new_cloud = m_filter_map.find(cloud->id())->second;
         // 从视图器中移除旧的过滤点云
         m_cloudview->removePointCloud(QString::fromStdString(new_cloud->id()));
         // 为过滤后的点云设置新的ID
         new_cloud->setId(FILTER_ADD_FLAG + cloud->id());
         // 策略一：滤波结果作为兄弟节点挂载
         QTreeWidgetItem * item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
+        m_cloudtree->insertCloud(new_cloud, item, true, pw::MountStrategy::Sibling);
 
         m_filter_map.erase(cloud->id());
         printI(QString("Add filtered cloud[id:1%] done.").arg(QString::fromStdString(new_cloud->id())));
@@ -419,7 +419,7 @@ void Filters::add()
 
 void Filters::apply()
 {
-    std::vector<ct::Cloud::Ptr > selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr > selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -432,7 +432,7 @@ void Filters::apply()
             printI(QString("The cloud[id:1%] has no filtered cloud!").arg(QString::fromStdString(cloud->id())));
             continue;
         }
-        ct::Cloud::Ptr new_cloud = m_filter_map.find(cloud->id())->second;
+        pw::Cloud::Ptr new_cloud = m_filter_map.find(cloud->id())->second;
         m_cloudview->removePointCloud(QString::fromStdString(new_cloud->id()));
         m_cloudtree->updateCloud(cloud, new_cloud);
         m_filter_map.erase(cloud->id());
@@ -454,7 +454,7 @@ void Filters::reset()
     m_cloudview->clearInfo();
 }
 
-ct::ConditionBase::Ptr Filters::getCondition()
+pw::ConditionBase::Ptr Filters::getCondition()
 {
     int rowCount = ui->table_condition->rowCount();
     QString condition;
@@ -465,20 +465,20 @@ ct::ConditionBase::Ptr Filters::getCondition()
     else
         condition = ui->table_condition->item(0, 0)->text();
     std::string field;
-    ct::CompareOp op;
+    pw::CompareOp op;
     double value;
     if (condition == "And")
     {
-        // ct::ConditionAnd是一个逻辑与条件，创建一个新对象add_cond
-        ct::ConditionAnd::Ptr add_cond(new ct::ConditionAnd);
+        // pw::ConditionAnd是一个逻辑与条件，创建一个新对象add_cond
+        pw::ConditionAnd::Ptr add_cond(new pw::ConditionAnd);
         for (int i = 0; i < rowCount; i++)
         {
             field = ((QComboBox*)ui->table_condition->cellWidget(i, 1))->currentText().toStdString();
             // op是从第i行第2列的单元格中的QComboBox获取的当前索引，并转换为ct::CompareOp枚举类型。
-            op = ct::CompareOp(((QComboBox*)ui->table_condition->cellWidget(i, 2))->currentIndex());
+            op = pw::CompareOp(((QComboBox*)ui->table_condition->cellWidget(i, 2))->currentIndex());
             value = ((QDoubleSpinBox*)ui->table_condition->cellWidget(i, 3))->value();
             // fieldcomp是一个ct::FieldComparison对象，是一个条件比较对象，由字段名、比较操作符和比较值构造而成。
-            ct::FieldComparison::Ptr fieldcomp(new ct::FieldComparison(field, op, value));
+            pw::FieldComparison::Ptr fieldcomp(new pw::FieldComparison(field, op, value));
             // 将条件比较对象添加到逻辑对象中
             add_cond->addComparison(fieldcomp);
         }
@@ -486,13 +486,13 @@ ct::ConditionBase::Ptr Filters::getCondition()
     }
     else
     {
-        ct::ConditionOr::Ptr or_cond(new ct::ConditionOr );
+        pw::ConditionOr::Ptr or_cond(new pw::ConditionOr );
         for (int i = 0; i < rowCount; i++)
         {
             field = ((QComboBox*)ui->table_condition->cellWidget(i, 1))->currentText().toStdString();
-            op = ct::CompareOp(((QComboBox*)ui->table_condition->cellWidget(i, 2))->currentIndex());
+            op = pw::CompareOp(((QComboBox*)ui->table_condition->cellWidget(i, 2))->currentIndex());
             value = ((QDoubleSpinBox*)ui->table_condition->cellWidget(i, 3))->value();
-            ct::FieldComparison::Ptr fieldcomp(new ct::FieldComparison(field, op, value));
+            pw::FieldComparison::Ptr fieldcomp(new pw::FieldComparison(field, op, value));
             or_cond->addComparison(fieldcomp);
         }
         return or_cond;
@@ -501,7 +501,7 @@ ct::ConditionBase::Ptr Filters::getCondition()
 
 void Filters::getRange(int index)
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");

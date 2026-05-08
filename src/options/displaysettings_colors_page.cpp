@@ -20,7 +20,7 @@ const QColor ColorsPage::s_palette[5][10] = {
             QColor("#10239e"), QColor("#391085")}
 };
 
-ColorsPage::ColorsPage(ct::CloudView* cloudview, ct::CloudTree* cloudtree, QWidget* parent)
+ColorsPage::ColorsPage(pw::CloudView* cloudview, pw::CloudTree* cloudtree, QWidget* parent)
     : DisplaySettingsPage(parent),
       m_cloudview(cloudview),
       m_cloudtree(cloudtree),
@@ -123,7 +123,7 @@ void ColorsPage::apply()
         static_cast<uint8_t>(m_bg_color.blue())});
 
     // 应用包围盒色到所有点云/模型
-    ct::ColorRGB boxRGB{
+    pw::ColorRGB boxRGB{
         static_cast<uint8_t>(m_box_color.red()),
         static_cast<uint8_t>(m_box_color.green()),
         static_cast<uint8_t>(m_box_color.blue())};
@@ -151,7 +151,7 @@ void ColorsPage::reset()
     m_box_preview->setStyleSheet(
         "QPushButton{background-color:rgb(0,255,0);border:1px solid #999;border-radius:3px;min-width:40px;min-height:22px;}");
 
-    ct::ColorRGB defaultBoxColor{0, 255, 0};
+    pw::ColorRGB defaultBoxColor{0, 255, 0};
     for (auto& cloud : m_cloudtree->getAllClouds()) {
         cloud->setBoxColor(defaultBoxColor);
         QString boxId = QString::fromStdString(cloud->boxId());

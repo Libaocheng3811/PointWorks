@@ -12,7 +12,7 @@
 
 Measure::Measure(QWidget *parent)
     : CustomDialog(parent), ui(new Ui::Measure),
-      m_marker_cloud(new ct::Cloud),
+      m_marker_cloud(new pw::Cloud),
       m_first_screen_pos(-1, -1)
 {
     ui->setupUi(this);
@@ -86,7 +86,7 @@ void Measure::onStartStop()
 {
     if (!m_measuring) {
         // Start measuring
-        std::vector<ct::Cloud::Ptr> selected = m_cloudtree->getSelectedClouds();
+        std::vector<pw::Cloud::Ptr> selected = m_cloudtree->getSelectedClouds();
         if (selected.empty()) {
             printW("Please select a cloud first!");
             return;
@@ -97,10 +97,10 @@ void Measure::onStartStop()
 
         ui->btnStartStop->setText("Stop");
 
-        connect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &Measure::mouseLeftPressed);
-        connect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &Measure::mouseLeftReleased);
-        connect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &Measure::mouseRightReleased);
-        connect(m_cloudview, &ct::CloudView::mouseMoved, this, &Measure::mouseMoved);
+        connect(m_cloudview, &pw::CloudView::mouseLeftPressed, this, &Measure::mouseLeftPressed);
+        connect(m_cloudview, &pw::CloudView::mouseLeftReleased, this, &Measure::mouseLeftReleased);
+        connect(m_cloudview, &pw::CloudView::mouseRightReleased, this, &Measure::mouseRightReleased);
+        connect(m_cloudview, &pw::CloudView::mouseMoved, this, &Measure::mouseMoved);
 
         updateInfoText();
     } else {
@@ -110,10 +110,10 @@ void Measure::onStartStop()
 
         ui->btnStartStop->setText("Start");
 
-        disconnect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &Measure::mouseLeftPressed);
-        disconnect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &Measure::mouseLeftReleased);
-        disconnect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &Measure::mouseRightReleased);
-        disconnect(m_cloudview, &ct::CloudView::mouseMoved, this, &Measure::mouseMoved);
+        disconnect(m_cloudview, &pw::CloudView::mouseLeftPressed, this, &Measure::mouseLeftPressed);
+        disconnect(m_cloudview, &pw::CloudView::mouseLeftReleased, this, &Measure::mouseLeftReleased);
+        disconnect(m_cloudview, &pw::CloudView::mouseRightReleased, this, &Measure::mouseRightReleased);
+        disconnect(m_cloudview, &pw::CloudView::mouseMoved, this, &Measure::mouseMoved);
 
         clearMarkerCloud();
         m_cloudview->removeShape(previewArrowId());
@@ -194,7 +194,7 @@ void Measure::onShowLabelsChanged(int state)
     bool show = (state == Qt::Checked);
     for (const auto& m : m_measurements) {
         if (show) {
-            ct::PointXYZRGBN mid;
+            pw::PointXYZRGBN mid;
             mid.x = (m.start_pt.x + m.end_pt.x) / 2.0f;
             mid.y = (m.start_pt.y + m.end_pt.y) / 2.0f;
             mid.z = (m.start_pt.z + m.end_pt.z) / 2.0f;
@@ -211,7 +211,7 @@ void Measure::onShowArrowsChanged(int state)
     bool show = (state == Qt::Checked);
     for (const auto& m : m_measurements) {
         if (show) {
-            m_cloudview->addArrow(m.end_pt, m.start_pt, arrowId(m.id), false, ct::Color::Green);
+            m_cloudview->addArrow(m.end_pt, m.start_pt, arrowId(m.id), false, pw::Color::Green);
         } else {
             m_cloudview->removeShape(arrowId(m.id));
         }
@@ -249,18 +249,18 @@ void Measure::onMeasurementSelected(int row, int col)
         .arg(m.dy, 0, 'f', m_precision)
         .arg(m.dz, 0, 'f', m_precision);
 
-    m_cloudview->showInfo(info, 5, ct::Color::Yellow);
+    m_cloudview->showInfo(info, 5, pw::Color::Yellow);
 }
 
 // ============================================================
 // CloudView Mouse Events
 // ============================================================
 
-void Measure::mouseLeftPressed(const ct::PointXY& pt)
+void Measure::mouseLeftPressed(const pw::PointXY& pt)
 {
     if (!m_measuring) return;
 
-    ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
+    pw::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
     if (!res.valid) return;
 
     if (!m_first_point_set) {
@@ -269,30 +269,30 @@ void Measure::mouseLeftPressed(const ct::PointXY& pt)
     // Second point is handled in mouseLeftReleased
 }
 
-void Measure::mouseLeftReleased(const ct::PointXY& pt)
+void Measure::mouseLeftReleased(const pw::PointXY& pt)
 {
     if (!m_measuring || !m_first_point_set) return;
 
     // Ignore if released at the same position as press (avoid re-triggering)
     if (pt.x == m_first_screen_pos.x && pt.y == m_first_screen_pos.y) return;
 
-    ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
+    pw::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
     if (!res.valid) return;
 
     pickSecondPoint(res.point);
 }
 
-void Measure::mouseRightReleased(const ct::PointXY&)
+void Measure::mouseRightReleased(const pw::PointXY&)
 {
     if (!m_measuring) return;
     cancelCurrentPick();
 }
 
-void Measure::mouseMoved(const ct::PointXY& pt)
+void Measure::mouseMoved(const pw::PointXY& pt)
 {
     if (!m_measuring || !m_first_point_set) return;
 
-    ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
+    pw::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_selected_cloud->id()));
     if (!res.valid) {
         m_cloudview->removeShape(previewArrowId());
         m_cloudview->remove3DBadge(previewLabelId());
@@ -306,7 +306,7 @@ void Measure::mouseMoved(const ct::PointXY& pt)
 // Internal: Pick Logic
 // ============================================================
 
-void Measure::pickFirstPoint(const ct::PointXYZRGBN& pt3d, const ct::PointXY& screenPt)
+void Measure::pickFirstPoint(const pw::PointXYZRGBN& pt3d, const pw::PointXY& screenPt)
 {
     clearMarkerCloud();
     updateMarkerCloud(pt3d);
@@ -317,12 +317,12 @@ void Measure::pickFirstPoint(const ct::PointXYZRGBN& pt3d, const ct::PointXY& sc
     m_cloudview->showInfo("Pick End Point...", 3);
 }
 
-void Measure::pickSecondPoint(const ct::PointXYZRGBN& pt3d)
+void Measure::pickSecondPoint(const pw::PointXYZRGBN& pt3d)
 {
-    ct::PointXYZ first_pt;
+    pw::PointXYZ first_pt;
     if (!m_marker_cloud->getFirstPoint(first_pt)) return;
 
-    ct::PointXYZRGBN start_pt;
+    pw::PointXYZRGBN start_pt;
     start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
 
     // Remove preview
@@ -361,21 +361,21 @@ void Measure::pickSecondPoint(const ct::PointXYZRGBN& pt3d)
     m_cloudview->showInfo("Pick Start Point...", 3);
 }
 
-void Measure::updatePreview(const ct::PointXYZRGBN& hover_pt)
+void Measure::updatePreview(const pw::PointXYZRGBN& hover_pt)
 {
-    ct::PointXYZ first_pt;
+    pw::PointXYZ first_pt;
     if (!m_marker_cloud->getFirstPoint(first_pt)) return;
 
-    ct::PointXYZRGBN start_pt;
+    pw::PointXYZRGBN start_pt;
     start_pt.x = first_pt.x; start_pt.y = first_pt.y; start_pt.z = first_pt.z;
 
     float dist = (start_pt.getVector3fMap() - hover_pt.getVector3fMap()).norm();
 
     // Preview arrow (yellow)
-    m_cloudview->addArrow(hover_pt, start_pt, previewArrowId(), false, ct::Color::Yellow);
+    m_cloudview->addArrow(hover_pt, start_pt, previewArrowId(), false, pw::Color::Yellow);
 
     // Preview label at midpoint
-    ct::PointXYZRGBN mid;
+    pw::PointXYZRGBN mid;
     mid.x = (start_pt.x + hover_pt.x) / 2.0f;
     mid.y = (start_pt.y + hover_pt.y) / 2.0f;
     mid.z = (start_pt.z + hover_pt.z) / 2.0f;
@@ -405,12 +405,12 @@ void Measure::addMeasurementToScene(const Measurement& m)
 {
     // Arrow (green)
     if (ui->chkShowArrows->isChecked()) {
-        m_cloudview->addArrow(m.end_pt, m.start_pt, arrowId(m.id), false, ct::Color::Green);
+        m_cloudview->addArrow(m.end_pt, m.start_pt, arrowId(m.id), false, pw::Color::Green);
     }
 
     // Label at midpoint
     if (ui->chkShowLabels->isChecked()) {
-        ct::PointXYZRGBN mid;
+        pw::PointXYZRGBN mid;
         mid.x = (m.start_pt.x + m.end_pt.x) / 2.0f;
         mid.y = (m.start_pt.y + m.end_pt.y) / 2.0f;
         mid.z = (m.start_pt.z + m.end_pt.z) / 2.0f;
@@ -445,7 +445,7 @@ void Measure::refreshAllSceneDisplay()
 // Internal: Marker Cloud
 // ============================================================
 
-void Measure::updateMarkerCloud(const ct::PointXYZRGBN& pt)
+void Measure::updateMarkerCloud(const pw::PointXYZRGBN& pt)
 {
     m_marker_cloud->clear();
     m_marker_cloud->addPoint(pt);
@@ -454,7 +454,7 @@ void Measure::updateMarkerCloud(const ct::PointXYZRGBN& pt)
 
     m_cloudview->removePointCloud(markerCloudId());
     m_cloudview->addPointCloud(m_marker_cloud);
-    m_cloudview->setPointCloudColor(m_marker_cloud, ct::Color::Red);
+    m_cloudview->setPointCloudColor(m_marker_cloud, pw::Color::Red);
 }
 
 void Measure::clearMarkerCloud()

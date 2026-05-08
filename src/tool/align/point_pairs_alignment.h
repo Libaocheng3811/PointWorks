@@ -19,7 +19,7 @@
 #include <atomic>
 
 
-class PointPairsAlignment : public ct::CustomDialog
+class PointPairsAlignment : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -41,7 +41,7 @@ private slots:
     void onAlign();
     void onApply();
     void onCancel();
-    void onMouseLeftPressed(const ct::PointXY& pt);
+    void onMouseLeftPressed(const pw::PointXY& pt);
     void onToggleSourceVisibility(bool visible);
     void onToggleTargetVisibility(bool visible);
     void onAddSourcePoint();
@@ -60,7 +60,7 @@ private:
     void updateAllLines();
     void clearAllLines();
     void updateTables();
-    void updateTableErrors(const ct::PointPairErrorResult& result);
+    void updateTableErrors(const pw::PointPairErrorResult& result);
     void deleteSourcePoint(int index);
     void deleteTargetPoint(int index);
     void rebuildMarkers();
@@ -69,8 +69,8 @@ private:
     QVector<Eigen::Vector3d> displaySourcePoints() const;
     double calcLabelScale() const;
     void refreshCloudList();
-    ct::PickResult doPick(const ct::PointXY& pt);
-    ct::ConstrainedTransformParams currentConstraintParams() const;
+    pw::PickResult doPick(const pw::PointXY& pt);
+    pw::ConstrainedTransformParams currentConstraintParams() const;
     void hideNonSelectedClouds();
     void restoreAllCloudVisibility();
 
@@ -119,11 +119,11 @@ private:
     std::atomic<bool> m_canceled;
     QVector<Eigen::Vector3d> m_source_points;
     QVector<Eigen::Vector3d> m_target_points;
-    ct::PointPairErrorResult m_last_result;
+    pw::PointPairErrorResult m_last_result;
     bool m_has_preview;
-    ct::Cloud::Ptr m_original_source_cloud;  // 缓存原始源点云用于还原
+    pw::Cloud::Ptr m_original_source_cloud;  // 缓存原始源点云用于还原
     QString m_source_id;                     // 源点云 ID
-    ct::ParamSnapshot m_last_align_snapshot;
+    pw::ParamSnapshot m_last_align_snapshot;
 
     static constexpr const char* MARKER_SRC_ID = "ppa_markers_src";
     static constexpr const char* MARKER_TGT_ID = "ppa_markers_tgt";

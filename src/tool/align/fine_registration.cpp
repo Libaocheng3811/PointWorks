@@ -17,7 +17,7 @@
 // ======================== Constructor ========================
 
 FineRegistrationDialog::FineRegistrationDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
 
@@ -273,7 +273,7 @@ void FineRegistrationDialog::onCompute()
 
     // 参数快照对比：非首次且参数一致则跳过
     {
-        ct::ParamSnapshot snap;
+        pw::ParamSnapshot snap;
         snap.set("source_id", cbox_source_->currentText());
         snap.set("target_id", cbox_target_->currentText());
         snap.set("algorithm", cbox_algorithm_->currentIndex());
@@ -356,7 +356,7 @@ void FineRegistrationDialog::onCompute()
     // 显示模态进度条
     m_progress->showProgress("Fine Registration...");
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [this]() {
                     m_canceled.store(true);
                     if (m_progress->dialog())
@@ -375,8 +375,8 @@ void FineRegistrationDialog::onCompute()
     auto target = m_target;
     auto* cancel = &m_canceled;
 
-    auto future = QtConcurrent::run([=]() -> ct::RegistrationResult {
-        ct::RegistrationContext ctx;
+    auto future = QtConcurrent::run([=]() -> pw::RegistrationResult {
+        pw::RegistrationContext ctx;
         ctx.source_cloud = source;
         ctx.target_cloud = target;
         ctx.params.max_iterations = max_iter;
@@ -385,25 +385,25 @@ void FineRegistrationDialog::onCompute()
 
         switch (algo) {
         case 0:
-            return ct::Registration::IterativeClosestPoint(ctx, reciprocal, cancel, on_progress);
+            return pw::Registration::IterativeClosestPoint(ctx, reciprocal, cancel, on_progress);
         case 1:
-            return ct::Registration::IterativeClosestPointWithNormals(
+            return pw::Registration::IterativeClosestPointWithNormals(
                 ctx, reciprocal, icpn_symmetric, icpn_enforce, cancel, on_progress);
         case 2:
-            return ct::Registration::IterativeClosestPointNonLinear(ctx, reciprocal, cancel, on_progress);
+            return pw::Registration::IterativeClosestPointNonLinear(ctx, reciprocal, cancel, on_progress);
         case 3:
-            return ct::Registration::GeneralizedIterativeClosestPoint(
+            return pw::Registration::GeneralizedIterativeClosestPoint(
                 ctx, gicp_k, max_iter, 0.0, gicp_rol, false, cancel, on_progress);
         case 4:
-            return ct::Registration::NormalDistributionsTransform(
+            return pw::Registration::NormalDistributionsTransform(
                 ctx, ndt_res, ndt_step, ndt_outlier, cancel, on_progress);
         }
         return {false, nullptr, 0, Eigen::Matrix4f::Identity(), 0};
     });
 
-    auto* watcher = new QFutureWatcher<ct::RegistrationResult>(this);
+    auto* watcher = new QFutureWatcher<pw::RegistrationResult>(this);
     watcher->setFuture(future);
-    connect(watcher, &QFutureWatcher<ct::RegistrationResult>::finished, this, [=]() {
+    connect(watcher, &QFutureWatcher<pw::RegistrationResult>::finished, this, [=]() {
         m_progress->closeProgress();
         auto result = watcher->result();
         watcher->deleteLater();
@@ -459,9 +459,9 @@ void FineRegistrationDialog::onApply()
 
     // 用变换矩阵变换原始源点云（深拷贝避免缓存污染）
     auto pcl_src = m_source->toPCL_XYZRGBN();
-    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
+    auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     m_cloudtree->updateCloud(m_source, transformed);

@@ -10,11 +10,11 @@
 #include <QDateTime>
 #include <Eigen/Dense>
 
-namespace ct
+namespace pw
 {
 
 /// 单个点云的元数据
-struct CT_IO_EXPORT CloudEntry
+struct PW_IO_EXPORT CloudEntry
 {
     QString uuid;            // Cloud::id()
     QString file_path;       // 原始文件路径
@@ -37,7 +37,7 @@ struct CT_IO_EXPORT CloudEntry
 };
 
 /// 树节点（文件、点云或分组）
-struct CT_IO_EXPORT TreeNode
+struct PW_IO_EXPORT TreeNode
 {
     QString type;          // "file", "cloud", "group"
     QString text;          // 显示名
@@ -52,7 +52,7 @@ struct CT_IO_EXPORT TreeNode
 };
 
 /// 项目数据
-struct CT_IO_EXPORT ProjectData
+struct PW_IO_EXPORT ProjectData
 {
     QString version = "1.0";
     QString app_name = "PointWorks";
@@ -66,7 +66,7 @@ struct CT_IO_EXPORT ProjectData
 };
 
 /// 项目文件读写
-class CT_IO_EXPORT ProjectFile
+class PW_IO_EXPORT ProjectFile
 {
 public:
     /// 保存项目到 JSON 文件
@@ -86,6 +86,6 @@ public:
     static QString defaultSuffix() { return "pwproj"; }
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PROJECTFILE_H

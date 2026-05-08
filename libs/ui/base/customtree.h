@@ -7,7 +7,7 @@
 #include <QTreeWidget>
 #include <QTableWidget>
 
-namespace ct
+namespace pw
 {
     class CloudView;
     class Console;

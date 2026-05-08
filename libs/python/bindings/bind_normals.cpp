@@ -11,7 +11,7 @@ void registerNormalBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto result = ct::Normals::estimate(cloud, k_search, radius_search, vpx, vpy, vpz, reverse);
+        auto result = pw::Normals::estimate(cloud, k_search, radius_search, vpx, vpy, vpz, reverse);
         if (!result.cloud) throw std::runtime_error(result.error_msg);
 
         result.cloud->setId("normals-" + name);
@@ -19,7 +19,7 @@ void registerNormalBindings(py::module_& m)
         getRegistry().registerCloud(result.cloud);
         getRegistry().holdCloud(result.cloud);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(result.cloud);
         }
 

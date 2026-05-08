@@ -8,7 +8,7 @@
 #include "point_cloud.h"
 #include <pcl/filters/extract_indices.h>
 
-namespace ct{
+namespace pw{
 
     CSFResult CSFFilter::apply(const Cloud::Ptr& cloud,
                                 bool bSloopSmooth, float time_step, double class_threshold,
@@ -82,14 +82,14 @@ namespace ct{
         if (cancel && cancel->load()) return {};
         if (on_progress) on_progress(80);
 
-        ct::Cloud::Ptr ground_cloud = Cloud::fromPCL_XYZRGBN(*pcl_ground, cloud->getGlobalShift());
+        pw::Cloud::Ptr ground_cloud = Cloud::fromPCL_XYZRGBN(*pcl_ground, cloud->getGlobalShift());
         ground_cloud->setId(cloud->id() + "_ground");
         syncAllScalarFields(cloud, ground_cloud, groundIndexes);
 
         if (cancel && cancel->load()) return {};
         if (on_progress) on_progress(90);
 
-        ct::Cloud::Ptr off_ground_cloud = Cloud::fromPCL_XYZRGBN(*pcl_off_ground, cloud->getGlobalShift());
+        pw::Cloud::Ptr off_ground_cloud = Cloud::fromPCL_XYZRGBN(*pcl_off_ground, cloud->getGlobalShift());
         off_ground_cloud->setId(cloud->id() + "_off_ground");
         syncAllScalarFields(cloud, off_ground_cloud, offGroundIndexes);
 
@@ -99,4 +99,4 @@ namespace ct{
         return {ground_cloud, off_ground_cloud, static_cast<float>(time.toc())};
     }
 
-} // namespace ct
+} // namespace pw

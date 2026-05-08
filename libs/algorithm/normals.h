@@ -1,5 +1,5 @@
-#ifndef CT_ALGORITHM_NORMALS_H
-#define CT_ALGORITHM_NORMALS_H
+#ifndef PW_ALGORITHM_NORMALS_H
+#define PW_ALGORITHM_NORMALS_H
 
 #include "core/cloud.h"
 
@@ -7,7 +7,7 @@
 #include <atomic>
 #include <string>
 
-namespace ct
+namespace pw
 {
     struct NormalsResult {
         Cloud::Ptr cloud;         // 带法线的点云
@@ -35,6 +35,6 @@ namespace ct
                                       std::function<void(int)> on_progress = nullptr);
     };
 
-} // namespace ct
+} // namespace pw
 
-#endif // CT_ALGORITHM_NORMALS_H
+#endif // PW_ALGORITHM_NORMALS_H

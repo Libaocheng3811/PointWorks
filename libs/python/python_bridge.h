@@ -10,7 +10,7 @@
 
 #include <pcl/PolygonMesh.h>
 
-namespace ct
+namespace pw
 {
 
 /// Python->C++ signal bridge
@@ -248,7 +248,7 @@ signals:
     void signalSetInteractorEnable(bool enable);
 
     // Cloud management
-    void signalInsertCloud(ct::Cloud::Ptr cloud);
+    void signalInsertCloud(pw::Cloud::Ptr cloud);
     void signalRemoveSelectedClouds();
     void signalRemoveCloud(QString id);
     void signalRemoveAllClouds();
@@ -259,10 +259,10 @@ signals:
     void signalSaveCloud(QString id, QString filepath, bool binary);
 
     // Algorithm result groups
-    void signalAddResultGroup(QString origin_id, std::vector<ct::Cloud::Ptr> results, QString group_name);
+    void signalAddResultGroup(QString origin_id, std::vector<pw::Cloud::Ptr> results, QString group_name);
 
     // In-place update
-    void signalUpdateCloud(QString id, ct::Cloud::Ptr new_cloud);
+    void signalUpdateCloud(QString id, pw::Cloud::Ptr new_cloud);
 
     // Mesh display
     void signalAddMesh(pcl::PolygonMesh::Ptr mesh, QString id);
@@ -287,6 +287,6 @@ private:
     PythonCloudRegistry m_registry;
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PYTHON_BRIDGE_H

@@ -91,14 +91,14 @@ size_t meshNumFaces(const pcl::PolygonMesh& mesh)
 // ==================== 曲面重建算法 ====================
 
 std::shared_ptr<pcl::PolygonMesh> surfacePoisson(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     int depth, int min_depth, float point_weight,
     float scale, int solver_divide, int iso_divide,
     float samples_per_node, bool confidence,
     bool output_polygons, bool manifold,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::Poisson(cloud, depth, min_depth, point_weight, scale,
+    auto sr = pw::Surface::Poisson(cloud, depth, min_depth, point_weight, scale,
                                     solver_divide, iso_divide, samples_per_node,
                                     confidence, output_polygons, manifold);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
@@ -106,68 +106,68 @@ std::shared_ptr<pcl::PolygonMesh> surfacePoisson(
 }
 
 std::shared_ptr<pcl::PolygonMesh> surfaceGreedyTriangulation(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     double mu, int nnn, double radius,
     double min_angle, double max_angle, double ep,
     bool consistent, bool consistent_ordering,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::GreedyProjectionTriangulation(
+    auto sr = pw::Surface::GreedyProjectionTriangulation(
         cloud, mu, nnn, radius, min_angle, max_angle, ep, consistent, consistent_ordering);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;
 }
 
 std::shared_ptr<pcl::PolygonMesh> surfaceMarchingCubesHoppe(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     float iso_level, int res_x, int res_y, int res_z,
     float percentage, float dist_ignore,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::MarchingCubesHoppe(
+    auto sr = pw::Surface::MarchingCubesHoppe(
         cloud, iso_level, res_x, res_y, res_z, percentage, dist_ignore);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;
 }
 
 std::shared_ptr<pcl::PolygonMesh> surfaceConvexHull(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     bool compute_area_volume, int dimension,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::ConvexHull(cloud, compute_area_volume, dimension);
+    auto sr = pw::Surface::ConvexHull(cloud, compute_area_volume, dimension);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;
 }
 
 std::shared_ptr<pcl::PolygonMesh> surfaceConcaveHull(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     double alpha, bool keep_information, int dimension,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::ConcaveHull(cloud, alpha, keep_information, dimension);
+    auto sr = pw::Surface::ConcaveHull(cloud, alpha, keep_information, dimension);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;
 }
 
 std::shared_ptr<pcl::PolygonMesh> surfaceMarchingCubesRBF(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     float iso_level, int res_x, int res_y, int res_z,
     float percentage, float epsilon,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::MarchingCubesRBF(
+    auto sr = pw::Surface::MarchingCubesRBF(
         cloud, iso_level, res_x, res_y, res_z, percentage, epsilon);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;
 }
 
 std::shared_ptr<pcl::PolygonMesh> surfaceGridProjection(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     double resolution, int padding_size, int k, int max_binary_search_level,
     std::string& error_msg)
 {
-    auto sr = ct::Surface::GridProjection(
+    auto sr = pw::Surface::GridProjection(
         cloud, resolution, padding_size, k, max_binary_search_level);
     if (!sr.mesh && !sr.error_msg.empty()) error_msg = sr.error_msg;
     return sr.mesh;

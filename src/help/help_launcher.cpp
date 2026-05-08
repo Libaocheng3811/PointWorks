@@ -6,7 +6,7 @@
 #include <QDialogButtonBox>
 #include <QPixmap>
 
-namespace ct {
+namespace pw {
 
 void HelpLauncher::showAbout(QWidget* parent) {
     QDialog dlg(parent);
@@ -68,4 +68,4 @@ void HelpLauncher::showAbout(QWidget* parent) {
     dlg.exec();
 }
 
-} // namespace ct
+} // namespace pw

@@ -6,7 +6,7 @@
 #include <vtkUnsignedCharArray.h>
 #include <vtkPointData.h>
 
-namespace ct
+namespace pw
 {
 
 void prepareSurfaceForRendering(const pcl::PolygonMesh::Ptr& mesh,
@@ -61,4 +61,4 @@ void prepareSurfaceForRendering(const pcl::PolygonMesh::Ptr& mesh,
     viz.prepared_polydata = polydata;
 }
 
-}  // namespace ct
+}  // namespace pw

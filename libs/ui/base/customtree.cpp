@@ -8,7 +8,7 @@
 #include <QDropEvent>
 #include <QMimeData>
 
-namespace ct
+namespace pw
 {
 
 void CustomTree::printI(const QString& message) { m_console->print(LOG_INFO, message); }

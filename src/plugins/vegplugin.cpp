@@ -9,7 +9,7 @@
 
 
 VegPlugin::VegPlugin(QWidget *parent) :
-        ct::CustomDialog(parent), ui(new Ui::VegPlugin) {
+        pw::CustomDialog(parent), ui(new Ui::VegPlugin) {
     ui->setupUi(this);
 
     connect(ui->m_comboType, SIGNAL(currentIndexChanged(int)), this, SLOT(onIndexChanged(int)));
@@ -86,12 +86,12 @@ void VegPlugin::onApply() {
     auto cloud = m_cloud;
     auto* cloudtree = m_cloudtree;
 
-    m_progress->runAsync<ct::VegResult>(
+    m_progress->runAsync<pw::VegResult>(
         "Vegetation Filter...",
-        [cloud, type, threshold](std::atomic<bool>& cancel, ct::ProgressCallback progress) {
-            return ct::VegetationFilter::apply(cloud, type, threshold, &cancel, progress);
+        [cloud, type, threshold](std::atomic<bool>& cancel, pw::ProgressCallback progress) {
+            return pw::VegetationFilter::apply(cloud, type, threshold, &cancel, progress);
         },
-        [=](const ct::VegResult& result) {
+        [=](const pw::VegResult& result) {
             printI(QString("Vegetation Filter Finished in %1 s").arg(result.time_ms));
 
             auto veg_cloud = result.veg_cloud;
@@ -107,7 +107,7 @@ void VegPlugin::onApply() {
                 if (!non_veg_cloud->empty()) non_veg_cloud->makeAdaptive();
             }
 
-            std::vector<ct::Cloud::Ptr> results;
+            std::vector<pw::Cloud::Ptr> results;
             results.push_back(veg_cloud);
             results.push_back(non_veg_cloud);
 

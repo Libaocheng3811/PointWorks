@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-namespace ct
+namespace pw
 {
 
 /**
@@ -22,4 +22,4 @@ struct TexturedMesh
 
 using TexturedMeshPtr = std::shared_ptr<TexturedMesh>;
 
-} // namespace ct
+} // namespace pw

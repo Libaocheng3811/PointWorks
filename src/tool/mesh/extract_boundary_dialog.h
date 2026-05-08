@@ -14,7 +14,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class ExtractBoundaryDialog : public ct::CustomDialog
+class ExtractBoundaryDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -34,7 +34,7 @@ private:
 
     // --- 异步执行 ---
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::Cloud::Ptr>* m_watcher = nullptr;
+    QFutureWatcher<pw::Cloud::Ptr>* m_watcher = nullptr;
 
     // --- 控件（_ 后缀） ---
     QSpinBox* spin_k_;
@@ -46,7 +46,7 @@ private:
     QPushButton* btn_close_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 #endif // POINTWORKS_EXTRACT_BOUNDARY_DIALOG_H

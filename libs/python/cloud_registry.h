@@ -10,7 +10,7 @@
 #include <memory>
 #include "core/cloud.h"
 
-namespace ct
+namespace pw
 {
 
 /// Qt-free 的线程安全 Python 云注册表
@@ -66,6 +66,6 @@ private:
     std::atomic<bool> m_script_mode{false};
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PYTHON_CLOUD_REGISTRY_H

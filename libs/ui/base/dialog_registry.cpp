@@ -2,7 +2,7 @@
 #include "customdialog.h"
 #include "customdock.h"
 
-namespace ct
+namespace pw
 {
 
 DialogRegistry& DialogRegistry::instance()

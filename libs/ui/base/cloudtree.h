@@ -19,7 +19,7 @@
 #define CLONE_ADD_FLAG "clone-"
 #define MERGE_ADD_FLAG "merge-"
 
-namespace ct
+namespace pw
 {
 
     /// 点云挂载策略
@@ -161,6 +161,6 @@ namespace ct
     };
 }
 
-Q_DECLARE_METATYPE(ct::Cloud::Ptr)
+Q_DECLARE_METATYPE(pw::Cloud::Ptr)
 
 #endif //POINTWORKS_CLOUDTREE_H

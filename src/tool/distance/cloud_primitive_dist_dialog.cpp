@@ -12,7 +12,7 @@
 // ======================== Constructor ========================
 
 CloudPrimitiveDistDialog::CloudPrimitiveDistDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setupUi();
 }
@@ -199,26 +199,26 @@ void CloudPrimitiveDistDialog::onPrimitiveChanged(int index)
 
 void CloudPrimitiveDistDialog::onCompute()
 {
-    m_source_cloud = cbox_source_->currentData().value<ct::Cloud::Ptr>();
+    m_source_cloud = cbox_source_->currentData().value<pw::Cloud::Ptr>();
 
     if (!m_source_cloud) {
         printW("Please select a compare cloud.");
         return;
     }
 
-    ct::C2PParams params;
+    pw::C2PParams params;
     // No max_distance spinbox for C2P — analytical computation is fast
 
     switch (cbox_primitive_->currentIndex()) {
         case 0: // Plane
-            params.primitive_type = ct::PrimitiveType::PLANE;
+            params.primitive_type = pw::PrimitiveType::PLANE;
             params.plane_params.a = dspin_plane_a_->value();
             params.plane_params.b = dspin_plane_b_->value();
             params.plane_params.c = dspin_plane_c_->value();
             params.plane_params.d = dspin_plane_d_->value();
             break;
         case 1: // Sphere
-            params.primitive_type = ct::PrimitiveType::SPHERE;
+            params.primitive_type = pw::PrimitiveType::SPHERE;
             params.sphere_params.cx = dspin_sphere_cx_->value();
             params.sphere_params.cy = dspin_sphere_cy_->value();
             params.sphere_params.cz = dspin_sphere_cz_->value();
@@ -241,7 +241,7 @@ void CloudPrimitiveDistDialog::onCompute()
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -262,12 +262,12 @@ void CloudPrimitiveDistDialog::onCompute()
     m_canceled.store(false);
 
     auto future = QtConcurrent::run([source, params, cancel, on_progress]() {
-        return ct::DistanceCalculator::calculateC2P(source, params, cancel, on_progress);
+        return pw::DistanceCalculator::calculateC2P(source, params, cancel, on_progress);
     });
 
     // ---- Step 6: Handle result ----
-    auto* watcher = new QFutureWatcher<ct::DistanceResult>(this);
-    connect(watcher, &QFutureWatcher<ct::DistanceResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::DistanceResult>(this);
+    connect(watcher, &QFutureWatcher<pw::DistanceResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();

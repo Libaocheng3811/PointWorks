@@ -15,7 +15,7 @@ namespace Ui
 }
 QT_END_NAMESPACE
 
-class BoundingBox : public ct::CustomDialog
+class BoundingBox : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -38,7 +38,7 @@ public slots:
 private:
     Ui::BoundingBox *ui;
     int m_box_type;
-    std::map<std::string, ct::Box> m_box_map;
+    std::map<std::string, pw::Box> m_box_map;
 };
 
 

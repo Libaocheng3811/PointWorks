@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace ct {
+namespace pw {
 
 enum class ColormapType {
     JET = 0,
@@ -68,7 +68,7 @@ inline bool isDivergingColormap(ColormapType type)
 // LUT data: 1024 entries, each float packs RGB as (R<<16)|(G<<8)|B
 using ColormapLUT = std::vector<float>;
 
-CT_CORE_EXPORT ColormapLUT buildColormapLUT(ColormapType type);
+PW_CORE_EXPORT ColormapLUT buildColormapLUT(ColormapType type);
 
 inline const ColormapLUT& getColormapLUT(ColormapType type)
 {
@@ -85,6 +85,6 @@ inline const ColormapLUT& getColormapLUT(ColormapType type)
     return lut_cache[idx >= 0 && idx < static_cast<int>(ColormapType::COUNT) ? idx : 0];
 }
 
-}  // namespace ct
+}  // namespace pw
 
 #endif  // POINTWORKS_COLORMAP_H

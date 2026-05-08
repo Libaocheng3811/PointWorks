@@ -92,13 +92,13 @@ cmake --build build --config Release
 ```
 PointWorks/
 ├── libs/                        # 库层（可复用组件）
-│   ├── core/                    # ct_core — 核心数据结构（点云、八叉树）
-│   ├── viz/                     # ct_viz — 可视化（VTK 渲染、日志）
-│   ├── io/                      # ct_io — 文件 I/O（点云/模型格式读写）
-│   ├── algorithm/               # ct_algorithm — 算法模块（滤波、配准、分割等）
-│   ├── ui/base/                 # ct_ui_base — 基础 UI 控件
-│   ├── ui/dialog/               # ct_ui_dialog — 通用对话框
-│   └── python/                  # ct_python — 嵌入式 Python
+│   ├── core/                    # pw_core — 核心数据结构（点云、八叉树）
+│   ├── viz/                     # pw_viz — 可视化（VTK 渲染、日志）
+│   ├── io/                      # pw_io — 文件 I/O（点云/模型格式读写）
+│   ├── algorithm/               # pw_algorithm — 算法模块（滤波、配准、分割等）
+│   ├── ui/base/                 # pw_ui_base — 基础 UI 控件
+│   ├── ui/dialog/               # pw_ui_dialog — 通用对话框
+│   └── python/                  # pw_python — 嵌入式 Python
 ├── src/                        # 应用层
 │   ├── app/                    # 主程序
 │   ├── edit/                   # 编辑工具（颜色、变换、法线等）
@@ -120,8 +120,8 @@ PointWorks/
                    │
 ┌──────────────────┴──────────────────────────┐
 │ 库层 (libs/)                                │
-│ ct_core, ct_viz, ct_io, ct_algorithm,      │
-│ ct_ui_base, ct_ui_dialog, ct_python        │
+│ pw_core, pw_viz, pw_io, pw_algorithm,      │
+│ pw_ui_base, pw_ui_dialog, pw_python        │
 └─────────────────────────────────────────────┘
 ```
 
@@ -251,7 +251,7 @@ scripts\deploy_collect.bat
 | 步骤 | 说明 |
 |------|------|
 | 创建输出目录 | `cmake-build-release-visual-studio/dist/pointworks/` |
-| 复制 exe 和项目 DLL | `pointworks.exe`, `ct_core.dll`, `ct_viz.dll`, `ct_io.dll` |
+| 复制 exe 和项目 DLL | `pointworks.exe`, `pw_core.dll`, `pw_viz.dll`, `pw_io.dll` |
 | 收集 Qt 依赖 | 通过 `windeployqt` 自动收集 Qt DLL 和插件 |
 | 收集 PCL/VTK DLL | 从 PCL 和 VTK 安装目录复制 Release 版 DLL |
 | 收集第三方 DLL | FLANN、Qhull 等 |
@@ -264,7 +264,7 @@ scripts\deploy_collect.bat
 dist/pointworks/
 ├── pointworks.exe
 ├── python39.dll, python3.dll       # Python 运行时加载
-├── ct_core.dll, ct_viz.dll, ...   # 项目 DLL
+├── pw_core.dll, pw_viz.dll, ...   # 项目 DLL
 ├── Qt5Core.dll, Qt5Widgets.dll, ... # Qt DLL (windeployqt)
 ├── vtk*.dll                      # VTK DLL
 ├── pcl_*.dll                     # PCL DLL

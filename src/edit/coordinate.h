@@ -1,5 +1,5 @@
-#ifndef CT_EDIT_COORDINATE_H
-#define CT_EDIT_COORDINATE_H
+#ifndef PW_EDIT_COORDINATE_H
+#define PW_EDIT_COORDINATE_H
 
 #include "ui/base/customdialog.h"
 
@@ -11,7 +11,7 @@ QT_END_NAMESPACE
 
 #define COORDINATE_ADD_FLAG   "-coord"
 
-class Coordinate : public ct::CustomDialog {
+class Coordinate : public pw::CustomDialog {
     Q_OBJECT
 
 public:
@@ -30,8 +30,8 @@ private:
 
 private:
     Ui::Coordinate* ui;
-    ct::Coord m_origin_coord;
-    std::map<std::string, ct::Coord> m_coord_map;
+    pw::Coord m_origin_coord;
+    std::map<std::string, pw::Coord> m_coord_map;
 };
 
-#endif // CT_EDIT_COORDINATE_H
+#endif // PW_EDIT_COORDINATE_H

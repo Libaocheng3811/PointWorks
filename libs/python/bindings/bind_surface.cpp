@@ -12,7 +12,7 @@ void registerSurfaceBindings(py::module_& m)
         .def("show", [](PyMesh& self, const std::string& id) {
             auto mesh_ptr = self.meshPtr();
             if (!mesh_ptr) throw std::runtime_error("Mesh is empty");
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->addMesh(mesh_ptr, QString::fromStdString(id));
         }, py::arg("id"), "Display this mesh in the 3D view.");
 
@@ -152,13 +152,13 @@ void registerSurfaceBindings(py::module_& m)
     m.def("show_mesh", [](PyMesh& mesh, const std::string& id) {
         auto mesh_ptr = mesh.meshPtr();
         if (!mesh_ptr) throw std::runtime_error("Mesh is empty");
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->addMesh(mesh_ptr, QString::fromStdString(id));
     }, py::arg("mesh"), py::arg("id"),
        "Display a ct.Mesh in the 3D view under the given id.");
 
     m.def("remove_mesh", [](const std::string& id) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->removeMesh(QString::fromStdString(id));
     }, py::arg("id"),
        "Remove a displayed mesh from the 3D view by id.");

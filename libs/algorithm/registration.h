@@ -23,7 +23,7 @@
 #include <limits>
 #include <vector>
 
-namespace ct {
+namespace pw {
     typedef pcl::registration::TransformationEstimation<PointXYZRGBN, PointXYZRGBN, float> TransEst;
     typedef pcl::registration::CorrespondenceEstimationBase<PointXYZRGBN, PointXYZRGBN, float> CorreEst;
     typedef pcl::registration::CorrespondenceRejector CorreRej;

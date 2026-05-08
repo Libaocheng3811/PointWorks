@@ -16,7 +16,7 @@
 #include <cmath>
 #include <algorithm>
 
-namespace ct {
+namespace pw {
     typedef pcl::PointXYZ PointXYZ;
     typedef pcl::PointXYZRGB PointXYZRGB;
     typedef pcl::PointXYZRGBNormal PointXYZRGBN;
@@ -182,6 +182,6 @@ namespace ct {
         size_t pointBudget = 10000000;
     };
 
-} // namespace ct
+} // namespace pw
 
 #endif POINTWORKS_CLOUDTYPE_H

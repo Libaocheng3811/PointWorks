@@ -7,7 +7,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <omp.h>
 
-namespace ct{
+namespace pw{
 
     static double calculateOtsuThreshold(const std::vector<float> &values) {
         if (values.empty()) return 0.0;
@@ -162,7 +162,7 @@ namespace ct{
         extract.setInputCloud(pcl_cloud_xyzrgbn);
 
         // 提取植被点
-        ct::Cloud::Ptr veg_cloud(new Cloud);
+        pw::Cloud::Ptr veg_cloud(new Cloud);
         veg_cloud->setId(cloud->id() + "_veg");
         if (!veg_indices.empty()){
             pcl::PointCloud<PointXYZRGBN>::Ptr pcl_veg(new pcl::PointCloud<PointXYZRGBN>);
@@ -180,7 +180,7 @@ namespace ct{
         if (on_progress) on_progress(80);
 
         // 提取非植被点
-        ct::Cloud::Ptr non_veg_cloud(new Cloud);
+        pw::Cloud::Ptr non_veg_cloud(new Cloud);
         non_veg_cloud->setId(cloud->id() + "_non_veg");
         if (!non_veg_indices.empty()) {
             pcl::PointCloud<PointXYZRGBN>::Ptr pcl_non_veg(new pcl::PointCloud<PointXYZRGBN>);
@@ -200,4 +200,4 @@ namespace ct{
         return {veg_cloud, non_veg_cloud, static_cast<float>(time.toc())};
     }
 
-} // namespace ct
+} // namespace pw

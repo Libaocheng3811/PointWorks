@@ -5,7 +5,7 @@
 
 #include <Eigen/Dense>
 
-namespace ct
+namespace pw
 {
 
 /// 相机参数（纯数据结构）
@@ -31,6 +31,6 @@ struct ViewOptions
     double bg_color2[3] = {0.05, 0.4, 0.6};
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_VIEW_PARAMS_H

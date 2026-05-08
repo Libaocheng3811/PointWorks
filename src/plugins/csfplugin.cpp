@@ -8,7 +8,7 @@
 #include "ui_csfplugin.h"
 
 CSFPlugin::CSFPlugin(QWidget *parent) :
-        ct::CustomDialog(parent), ui(new Ui::CSFPlugin) {
+        pw::CustomDialog(parent), ui(new Ui::CSFPlugin) {
     ui->setupUi(this);
 
     // ui按钮
@@ -51,14 +51,14 @@ void CSFPlugin::onApply() {
     auto cloud = m_cloud;
     auto* cloudtree = m_cloudtree;
 
-    m_progress->runAsync<ct::CSFResult>(
+    m_progress->runAsync<pw::CSFResult>(
         "Running Cloth Simulation Filter...",
         [cloud, smooth, thresh, res, rigidness, iter](
-            std::atomic<bool>& cancel, ct::ProgressCallback progress) {
-            return ct::CSFFilter::apply(cloud, smooth, 0.65f, thresh, res,
+            std::atomic<bool>& cancel, pw::ProgressCallback progress) {
+            return pw::CSFFilter::apply(cloud, smooth, 0.65f, thresh, res,
                                          rigidness, iter, &cancel, progress);
         },
-        [=](const ct::CSFResult& result) {
+        [=](const pw::CSFResult& result) {
             printI(QString("CSF Finished in %1 s").arg(result.time_ms));
 
             auto ground_cloud = result.ground_cloud;
@@ -68,14 +68,14 @@ void CSFPlugin::onApply() {
             off_ground_cloud->setId(cloud->id() + "_off_ground");
 
             if (!cloud->hasColors()){
-                ground_cloud->setCloudColor(ct::ColorRGB{0, 255, 0});
-                off_ground_cloud->setCloudColor(ct::ColorRGB{255, 0, 0});
+                ground_cloud->setCloudColor(pw::ColorRGB{0, 255, 0});
+                off_ground_cloud->setCloudColor(pw::ColorRGB{255, 0, 0});
             }
 
             if (ground_cloud && !ground_cloud->empty()) ground_cloud->makeAdaptive();
             if (off_ground_cloud && !off_ground_cloud->empty()) off_ground_cloud->makeAdaptive();
 
-            std::vector<ct::Cloud::Ptr> results;
+            std::vector<pw::Cloud::Ptr> results;
             results.push_back(ground_cloud);
             results.push_back(off_ground_cloud);
 

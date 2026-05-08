@@ -16,7 +16,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class FineRegistrationDialog : public ct::CustomDialog
+class FineRegistrationDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -79,14 +79,14 @@ private:
     QPushButton* btn_cancel_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_source;
-    ct::Cloud::Ptr m_target;
+    pw::Cloud::Ptr m_source;
+    pw::Cloud::Ptr m_target;
     QString m_source_id;
     Eigen::Matrix4f m_result_matrix;
-    ct::Cloud::Ptr m_aligned_cloud;
+    pw::Cloud::Ptr m_aligned_cloud;
 
     std::atomic<bool> m_canceled;
-    ct::ParamSnapshot m_last_compute_snapshot;
+    pw::ParamSnapshot m_last_compute_snapshot;
 
     static constexpr const char* PREVIEW_ID = "fr_preview";
 };

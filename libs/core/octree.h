@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <string>
 
-namespace ct{
+namespace pw{
 
     struct LODPoint {
         float x, y, z;
@@ -30,9 +30,9 @@ namespace ct{
 
         // --- 核心数据存储 ---
         std::vector<pcl::PointXYZ> m_points;
-        std::unique_ptr<std::vector<ct::ColorRGB>> m_colors;
-        std::unique_ptr<std::vector<ct::ColorRGB>> m_backup_colors;
-        std::unique_ptr<std::vector<ct::CompressedNormal>> m_normals;
+        std::unique_ptr<std::vector<pw::ColorRGB>> m_colors;
+        std::unique_ptr<std::vector<pw::ColorRGB>> m_backup_colors;
+        std::unique_ptr<std::vector<pw::CompressedNormal>> m_normals;
         std::unordered_map<std::string, std::vector<float>> m_scalar_fields;
 
         // 标量场指针缓存，避免 addPoint 逐点哈希查找
@@ -57,9 +57,9 @@ namespace ct{
 
         void addPoint(const pcl::PointXYZ& pt) {
             m_points.push_back(pt);
-            if (m_colors) m_colors->push_back(ct::Color::White);
+            if (m_colors) m_colors->push_back(pw::Color::White);
 
-            if (m_normals) m_normals->push_back(ct::CompressedNormal());
+            if (m_normals) m_normals->push_back(pw::CompressedNormal());
 
             if (!m_scalar_ptrs.empty()) {
                 for (auto& [name, ptr] : m_scalar_ptrs)
@@ -69,8 +69,8 @@ namespace ct{
         }
 
         void addPoint(const pcl::PointXYZ& pt,
-                      const ct::ColorRGB* color,
-                      const ct::CompressedNormal* normal,
+                      const pw::ColorRGB* color,
+                      const pw::CompressedNormal* normal,
                       const std::unordered_map<std::string, float>* scalars = nullptr)
         {
             m_points.push_back(pt);
@@ -78,11 +78,11 @@ namespace ct{
             if (color && !m_colors) {
                 m_colors = std::make_unique<std::vector<ColorRGB>>();
                 if (!m_points.empty()) {
-                    m_colors->resize(m_points.size() - 1, ct::Color::White);
+                    m_colors->resize(m_points.size() - 1, pw::Color::White);
                 }
             }
             if (m_colors){
-                m_colors->push_back(color ? *color : ct::Color::White);
+                m_colors->push_back(color ? *color : pw::Color::White);
             }
 
             if (normal && !m_normals) {
@@ -92,7 +92,7 @@ namespace ct{
                 }
             }
             if (m_normals) {
-                m_normals->push_back(normal ? *normal : ct::CompressedNormal());
+                m_normals->push_back(normal ? *normal : pw::CompressedNormal());
             }
 
             // 同步标量场（使用预缓存指针避免逐点哈希）
@@ -188,6 +188,6 @@ namespace ct{
             return index;
         }
     };
-} // namespace ct
+} // namespace pw
 
 #endif //POINTWORKS_OCTREE_H

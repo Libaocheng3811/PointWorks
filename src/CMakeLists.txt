@@ -116,10 +116,10 @@ add_executable(pointworks WIN32 ${Srcs} ${Hdrs} ${UIS} ${QRCs} ${IRCs})
 target_include_directories(pointworks PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(pointworks PRIVATE
-    ct_core
-    ct_algorithm
-    ct_ui_base
-    ct_python
+    pw_core
+    pw_algorithm
+    pw_ui_base
+    pw_python
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Concurrent
     ${VTK_LIBRARIES}

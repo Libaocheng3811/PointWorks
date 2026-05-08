@@ -2,7 +2,7 @@
 
 #include <QApplication>
 
-namespace ct
+namespace pw
 {
 
 ProgressManager::ProgressManager(QObject* parent)
@@ -64,4 +64,4 @@ void ProgressManager::bindWorker(QObject* worker)
     connect(m_dialog, &ProcessingDialog::cancelRequested, this, &ProgressManager::closeProgress);
 }
 
-} // namespace ct
+} // namespace pw

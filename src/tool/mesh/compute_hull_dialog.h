@@ -16,7 +16,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class ComputeHullDialog : public ct::CustomDialog
+class ComputeHullDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -38,7 +38,7 @@ private:
 
     // --- 异步执行 ---
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::SurfaceResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::SurfaceResult>* m_watcher = nullptr;
 
     // --- 控件（_ 后缀） ---
     QRadioButton* radio_convex_;
@@ -52,7 +52,7 @@ private:
     QLabel* label_warning_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 #endif // POINTWORKS_COMPUTE_HULL_DIALOG_H

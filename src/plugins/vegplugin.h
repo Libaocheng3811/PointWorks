@@ -14,7 +14,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class VegPlugin; }
 QT_END_NAMESPACE
 
-class VegPlugin : public ct::CustomDialog {
+class VegPlugin : public pw::CustomDialog {
 Q_OBJECT
 
 public:
@@ -30,7 +30,7 @@ private slots:
 
 private:
     Ui::VegPlugin *ui;
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 #endif //POINTWORKS_VEGPLUGIN_H

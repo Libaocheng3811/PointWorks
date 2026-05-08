@@ -2,7 +2,7 @@
 
 #include <QTreeWidgetItem>
 
-namespace ct
+namespace pw
 {
 
 CloudRegistry::CloudRegistry(QObject* parent)
@@ -203,4 +203,4 @@ bool CloudRegistry::isCloudInUse(const QString& id) const
     return m_clouds_in_use.contains(id);
 }
 
-} // namespace ct
+} // namespace pw

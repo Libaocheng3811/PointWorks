@@ -16,7 +16,7 @@ namespace Ui
 /**
  * @brief 采样对话框 - 模态对话框，执行采样后生成新点云挂到原点云下
  */
-class Sampling : public ct::CustomDialog
+class Sampling : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -30,13 +30,13 @@ private slots:
     void onOkClicked();
     void onCancelClicked();
 
-    void handleSamplingResult(const ct::FilterResult& result);
+    void handleSamplingResult(const pw::FilterResult& result);
 
 private:
     Ui::Sampling* ui;
 
     // 当前正在处理的点云
-    ct::Cloud::Ptr m_current_cloud;
+    pw::Cloud::Ptr m_current_cloud;
     bool m_cancel = false;
 
     enum SamplingMethod {

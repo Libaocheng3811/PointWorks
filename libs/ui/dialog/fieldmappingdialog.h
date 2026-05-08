@@ -17,11 +17,11 @@
 
 #include <algorithm>
 
-namespace ct {
+namespace pw {
     class FieldMappingDialog : public QDialog {
     Q_OBJECT
     public:
-        explicit FieldMappingDialog(const QList<ct::FieldInfo> &input_fields, QWidget *parent = nullptr)
+        explicit FieldMappingDialog(const QList<pw::FieldInfo> &input_fields, QWidget *parent = nullptr)
                 : QDialog(parent) {
             setWindowTitle("Field Mapping");
             resize(500, 400);
@@ -30,7 +30,7 @@ namespace ct {
             QVBoxLayout *layout = new QVBoxLayout(this);
             layout->addWidget(new QLabel("Map file fields to Cloud properties:"));
 
-            QList<ct::FieldInfo> fields = input_fields; // 创建副本进行排序
+            QList<pw::FieldInfo> fields = input_fields; // 创建副本进行排序
 
             // 定义优先级计算函数 (越小越靠前)
             auto getFieldRank = [](const std::string& rawName) -> int {
@@ -60,7 +60,7 @@ namespace ct {
                 return 100;
             };
 
-            std::sort(fields.begin(), fields.end(), [&](const ct::FieldInfo& a, const ct::FieldInfo& b){
+            std::sort(fields.begin(), fields.end(), [&](const pw::FieldInfo& a, const pw::FieldInfo& b){
                 int rankA = getFieldRank(a.name);
                 int rankB = getFieldRank(b.name);
                 if (rankA != rankB) return rankA < rankB;
@@ -142,5 +142,5 @@ namespace ct {
     private:
         QTableWidget *m_table;
     };
-} // namespace ct
+} // namespace pw
 #endif //POINTWORKS_FIELDMAPPINGDIALOG_H

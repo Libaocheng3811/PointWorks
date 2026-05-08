@@ -2,7 +2,7 @@
 
 #include <QDateTime>
 
-namespace ct
+namespace pw
 {
     void Console::print(log_level level, const QString &message)
     {

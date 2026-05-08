@@ -10,7 +10,7 @@
 // ======================== Constructor ========================
 
 ClosestPointSetDialog::ClosestPointSetDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setupUi();
 }
@@ -132,8 +132,8 @@ void ClosestPointSetDialog::onTargetChanged(int /*index*/)
 
 void ClosestPointSetDialog::onExtract()
 {
-    m_source_cloud = cbox_source_->currentData().value<ct::Cloud::Ptr>();
-    m_target_cloud = cbox_target_->currentData().value<ct::Cloud::Ptr>();
+    m_source_cloud = cbox_source_->currentData().value<pw::Cloud::Ptr>();
+    m_target_cloud = cbox_target_->currentData().value<pw::Cloud::Ptr>();
 
     if (!m_source_cloud || !m_target_cloud) {
         printW("Please select both source and target clouds.");
@@ -144,7 +144,7 @@ void ClosestPointSetDialog::onExtract()
         return;
     }
 
-    ct::CPSParams params;
+    pw::CPSParams params;
     params.max_distance = check_limit_dist_->isChecked() ? dspin_max_dist_->value() : 0.0;
     params.keep_colors = check_keep_colors_->isChecked();
     params.keep_intensity = check_keep_intensity_->isChecked();
@@ -164,7 +164,7 @@ void ClosestPointSetDialog::onExtract()
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -186,12 +186,12 @@ void ClosestPointSetDialog::onExtract()
     m_canceled.store(false);
 
     auto future = QtConcurrent::run([source, target, params, cancel, on_progress]() {
-        return ct::DistanceCalculator::extractClosestPoints(source, target, params, cancel, on_progress);
+        return pw::DistanceCalculator::extractClosestPoints(source, target, params, cancel, on_progress);
     });
 
     // ---- Step 6: Handle result ----
-    auto* watcher = new QFutureWatcher<ct::CPSResult>(this);
-    connect(watcher, &QFutureWatcher<ct::CPSResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::CPSResult>(this);
+    connect(watcher, &QFutureWatcher<pw::CPSResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();

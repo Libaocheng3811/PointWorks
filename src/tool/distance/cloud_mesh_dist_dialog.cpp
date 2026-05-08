@@ -12,7 +12,7 @@
 // ======================== Constructor ========================
 
 CloudMeshDistDialog::CloudMeshDistDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setupUi();
 }
@@ -147,7 +147,7 @@ void CloudMeshDistDialog::onSignedToggled(bool checked)
 
 void CloudMeshDistDialog::onCompute()
 {
-    m_source_cloud = cbox_source_->currentData().value<ct::Cloud::Ptr>();
+    m_source_cloud = cbox_source_->currentData().value<pw::Cloud::Ptr>();
 
     // Look up target mesh by ID from cloudtree
     QString meshId = cbox_mesh_->currentData().toString();
@@ -166,7 +166,7 @@ void CloudMeshDistDialog::onCompute()
         return;
     }
 
-    ct::C2MParams params;
+    pw::C2MParams params;
     params.max_distance = check_limit_dist_->isChecked() ? dspin_max_dist_->value() : 0.0;
     params.signed_distance = check_signed_->isChecked();
     params.flip_normals = radio_inside_->isChecked();
@@ -186,7 +186,7 @@ void CloudMeshDistDialog::onCompute()
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -208,12 +208,12 @@ void CloudMeshDistDialog::onCompute()
     m_canceled.store(false);
 
     auto future = QtConcurrent::run([source, mesh, params, cancel, on_progress]() {
-        return ct::DistanceCalculator::calculateC2M(source, mesh, params, cancel, on_progress);
+        return pw::DistanceCalculator::calculateC2M(source, mesh, params, cancel, on_progress);
     });
 
     // ---- Step 6: Handle result ----
-    auto* watcher = new QFutureWatcher<ct::DistanceResult>(this);
-    connect(watcher, &QFutureWatcher<ct::DistanceResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::DistanceResult>(this);
+    connect(watcher, &QFutureWatcher<pw::DistanceResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();

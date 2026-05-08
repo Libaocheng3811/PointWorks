@@ -20,7 +20,7 @@
 // ======================== Constructor ========================
 
 ReconstructSurfaceDialog::ReconstructSurfaceDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
     this->setWindowTitle("Reconstruct Surface");
@@ -425,7 +425,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -443,19 +443,19 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
 
     // ========== Step 5: 准备点云 (Preview 时下采样) ==========
     auto cloud = m_cloud;
-    ct::Cloud::Ptr work_cloud = cloud;
+    pw::Cloud::Ptr work_cloud = cloud;
     if (is_preview && downsample_rate < 1.0) {
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
         size_t total = pcl_cloud->size();
         size_t target = static_cast<size_t>(total * downsample_rate);
         if (target < 100) target = 100;
 
-        pcl::RandomSample<ct::PointXYZRGBN> rs;
+        pcl::RandomSample<pw::PointXYZRGBN> rs;
         rs.setInputCloud(pcl_cloud);
         rs.setSample(static_cast<int>(target));
-        auto filtered = pcl::PointCloud<ct::PointXYZRGBN>::Ptr(new pcl::PointCloud<ct::PointXYZRGBN>);
+        auto filtered = pcl::PointCloud<pw::PointXYZRGBN>::Ptr(new pcl::PointCloud<pw::PointXYZRGBN>);
         rs.filter(*filtered);
-        work_cloud = ct::Cloud::fromPCL_XYZRGBN(*filtered, cloud->getGlobalShift());
+        work_cloud = pw::Cloud::fromPCL_XYZRGBN(*filtered, cloud->getGlobalShift());
     }
 
     // 确保 work_cloud 有 ID
@@ -464,7 +464,7 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
 
     m_canceled.store(false);
 
-    auto viz = std::make_shared<ct::SurfaceResultViz>();
+    auto viz = std::make_shared<pw::SurfaceResultViz>();
 
     // ========== Step 6: 提交算法到工作线程 ==========
     auto future = QtConcurrent::run(
@@ -473,45 +473,45 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
          search_radius, mu, max_neighbors, min_angle, max_angle, eps_angle, consistent,
          iso_level, grid_res, percentage, epsilon,
          resolution, padding_size, k,
-         cancel, on_progress, viz]() -> ct::SurfaceResult {
-            ct::SurfaceResult result;
+         cancel, on_progress, viz]() -> pw::SurfaceResult {
+            pw::SurfaceResult result;
             switch (algorithm) {
             case 0: // Poisson
-                result = ct::Surface::Poisson(work_cloud, depth, min_depth,
+                result = pw::Surface::Poisson(work_cloud, depth, min_depth,
                     point_weight, scale, solver_divide, iso_divide,
                     samples_per_node, confidence, false, manifold,
                     cancel, on_progress);
                 break;
             case 1: // Greedy Projection
-                result = ct::Surface::GreedyProjectionTriangulation(work_cloud,
+                result = pw::Surface::GreedyProjectionTriangulation(work_cloud,
                     mu, max_neighbors, search_radius,
                     min_angle, max_angle, eps_angle,
                     consistent, true,
                     cancel, on_progress);
                 break;
             case 2: // Marching Cubes Hoppe
-                result = ct::Surface::MarchingCubesHoppe(work_cloud,
+                result = pw::Surface::MarchingCubesHoppe(work_cloud,
                     iso_level, grid_res, grid_res, grid_res,
                     percentage, epsilon,
                     cancel, on_progress);
                 break;
             case 3: // Grid Projection
-                result = ct::Surface::GridProjection(work_cloud,
+                result = pw::Surface::GridProjection(work_cloud,
                     resolution, padding_size, k, 8,
                     cancel, on_progress);
                 break;
             default:
-                return ct::SurfaceResult{};
+                return pw::SurfaceResult{};
             }
 
             // 在工作线程中完成所有耗时的数据准备
-            ct::prepareSurfaceForRendering(result.mesh, *viz);
+            pw::prepareSurfaceForRendering(result.mesh, *viz);
             return result;
         });
 
     // ========== Step 7: 监听完成信号 ==========
-    auto* watcher = new QFutureWatcher<ct::SurfaceResult>(this);
-    connect(watcher, &QFutureWatcher<ct::SurfaceResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::SurfaceResult>(this);
+    connect(watcher, &QFutureWatcher<pw::SurfaceResult>::finished, this,
         [=]() {
             auto result = watcher->result();
             watcher->deleteLater();
@@ -588,8 +588,8 @@ void ReconstructSurfaceDialog::runReconstruct(bool is_preview)
                     viz->prepared_cloud->setId(result_id.toStdString());
 
                     QTreeWidgetItem* origin_item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-                    m_cloudtree->insertCloud(viz->prepared_cloud, origin_item, true, ct::MountStrategy::Sibling,
-                                             ct::NodeMesh);
+                    m_cloudtree->insertCloud(viz->prepared_cloud, origin_item, true, pw::MountStrategy::Sibling,
+                                             pw::NodeMesh);
 
                     if (viz->prepared_polydata) {
                         m_cloudtree->registerMeshPrebuilt(result_id, result.mesh, viz->prepared_polydata);

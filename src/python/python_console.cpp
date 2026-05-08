@@ -9,7 +9,7 @@
 #include <QScrollBar>
 #include <QFont>
 
-namespace ct
+namespace pw
 {
 
 PythonConsole::PythonConsole(QWidget* parent)
@@ -49,7 +49,7 @@ PythonConsole::PythonConsole(QWidget* parent)
     layout->addWidget(m_input);
 
     // === 显示 Python 初始化状态 ===
-    auto& pm = ct::PythonManager::instance();
+    auto& pm = pw::PythonManager::instance();
     if (pm.isInitialized()) {
         appendToOutput(QString::fromStdString(pm.initMessage()) + "\n", QColor("#52c41a"));
     } else {
@@ -57,8 +57,8 @@ PythonConsole::PythonConsole(QWidget* parent)
     }
 
     // === Worker & Bridge 信号连接 ===
-    auto* worker = ct::PythonManager::instance().worker();
-    auto* bridge = ct::PythonManager::instance().bridge();
+    auto* worker = pw::PythonManager::instance().worker();
+    auto* bridge = pw::PythonManager::instance().bridge();
 
     if (worker) {
         connect(worker, &PythonWorker::scriptStarted,
@@ -130,7 +130,7 @@ void PythonConsole::appendStderr(QString text)
 
 void PythonConsole::executeCode(const QString& code)
 {
-    auto* worker = ct::PythonManager::instance().worker();
+    auto* worker = pw::PythonManager::instance().worker();
     if (!worker) {
         appendToOutput("Error: Python interpreter not available\n", QColor("#f44747"));
         return;
@@ -180,4 +180,4 @@ bool PythonConsole::eventFilter(QObject* obj, QEvent* event)
     return QWidget::eventFilter(obj, event);
 }
 
-} // namespace ct
+} // namespace pw

@@ -4,11 +4,11 @@
 #include "python_bridge.h"
 
 // PyCloud — Python 端的点云访问包装
-// 不放在 namespace ct 中，避免与 PYBIND11_EMBEDDED_MODULE(ct, ...) 冲突
+// 不放在 namespace pw 中，避免与 PYBIND11_EMBEDDED_MODULE(pw, ...) 冲突
 class PyCloud
 {
 public:
-    explicit PyCloud(ct::Cloud::Ptr cloud) : m_cloud(cloud) {}
+    explicit PyCloud(pw::Cloud::Ptr cloud) : m_cloud(cloud) {}
 
     size_t size() const { return m_cloud->size(); }
 
@@ -36,9 +36,9 @@ public:
 
         auto& pts = blocks[idx]->m_points;
 
-        auto* holder = new ct::Cloud::Ptr(m_cloud);
+        auto* holder = new pw::Cloud::Ptr(m_cloud);
         auto capsule = py::capsule(holder, [](void* ptr) {
-            delete reinterpret_cast<ct::Cloud::Ptr*>(ptr);
+            delete reinterpret_cast<pw::Cloud::Ptr*>(ptr);
         });
 
         return py::array_t<float>(
@@ -64,14 +64,14 @@ public:
 
         auto& colors = *block->m_colors;
 
-        auto* holder = new ct::Cloud::Ptr(m_cloud);
+        auto* holder = new pw::Cloud::Ptr(m_cloud);
         auto capsule = py::capsule(holder, [](void* ptr) {
-            delete reinterpret_cast<ct::Cloud::Ptr*>(ptr);
+            delete reinterpret_cast<pw::Cloud::Ptr*>(ptr);
         });
 
         return py::array_t<uint8_t>(
             {static_cast<py::ssize_t>(colors.size()), static_cast<py::ssize_t>(3)},
-            {static_cast<py::ssize_t>(sizeof(ct::ColorRGB)),
+            {static_cast<py::ssize_t>(sizeof(pw::ColorRGB)),
              static_cast<py::ssize_t>(sizeof(uint8_t))},
             reinterpret_cast<const uint8_t*>(colors.data()),
             capsule
@@ -92,7 +92,7 @@ public:
 
         auto& block = blocks[idx];
         if (!block->m_colors)
-            block->m_colors = std::make_unique<std::vector<ct::ColorRGB>>();
+            block->m_colors = std::make_unique<std::vector<pw::ColorRGB>>();
 
         auto& colors = *block->m_colors;
         auto count = static_cast<size_t>(buf.shape[0]);
@@ -178,7 +178,7 @@ public:
         m_cloud->update();
         m_cloud->invalidateCache();
 
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) {
             bridge->cloudChanged(QString::fromStdString(m_cloud->id()));
             bridge->refreshView();
@@ -298,18 +298,18 @@ public:
         m_cloud->updateColorByField(field_name);
     }
 
-    ct::Cloud::Ptr cloudPtr() const { return m_cloud; }
+    pw::Cloud::Ptr cloudPtr() const { return m_cloud; }
 
     void show(const std::string& name = "") {
         if (!name.empty()) m_cloud->setId(name);
         getRegistry().registerCloud(m_cloud);
         getRegistry().markSceneMounted(m_cloud->id());
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->insertCloud(m_cloud);
     }
 
 private:
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 // 注册核心绑定：PyCloud 类 + get_cloud + add_cloud + insert_cloud + remove_selected_clouds

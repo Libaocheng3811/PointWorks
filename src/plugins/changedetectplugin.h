@@ -16,9 +16,9 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class ChangeDetectPlugin; }
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(ct::DistanceParams)
+Q_DECLARE_METATYPE(pw::DistanceParams)
 
-class ChangeDetectPlugin : public ct::CustomDialog {
+class ChangeDetectPlugin : public pw::CustomDialog {
 Q_OBJECT
 
 public:
@@ -38,8 +38,8 @@ private slots:
 private:
     Ui::ChangeDetectPlugin *ui;
 
-    ct::Cloud::Ptr m_phase1Cloud;
-    ct::Cloud::Ptr m_phase2Cloud;
+    pw::Cloud::Ptr m_phase1Cloud;
+    pw::Cloud::Ptr m_phase2Cloud;
 
     double m_threshold;
 };

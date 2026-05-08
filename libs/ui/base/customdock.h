@@ -14,7 +14,7 @@
 #include <map>
 #include <set>
 
-namespace ct
+namespace pw
 {
     class CustomDock : public QDockWidget
     {

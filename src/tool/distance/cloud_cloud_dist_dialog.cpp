@@ -12,7 +12,7 @@
 // ======================== Constructor ========================
 
 CloudCloudDistDialog::CloudCloudDistDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setupUi();
 }
@@ -178,8 +178,8 @@ void CloudCloudDistDialog::onMethodChanged(int id)
 void CloudCloudDistDialog::onCompute()
 {
     // Compare = source combo, Reference = target combo
-    m_source_cloud = cbox_source_->currentData().value<ct::Cloud::Ptr>();
-    m_target_cloud = cbox_target_->currentData().value<ct::Cloud::Ptr>();
+    m_source_cloud = cbox_source_->currentData().value<pw::Cloud::Ptr>();
+    m_target_cloud = cbox_target_->currentData().value<pw::Cloud::Ptr>();
 
     if (!m_source_cloud || !m_target_cloud) {
         printW("Please select both compare and reference clouds.");
@@ -191,19 +191,19 @@ void CloudCloudDistDialog::onCompute()
     }
 
     // Build params
-    ct::C2CParams params;
+    pw::C2CParams params;
     params.max_distance = check_limit_dist_->isChecked() ? dspin_max_dist_->value() : 0.0;
 
     switch (method_group_->checkedId()) {
         case 0:
-            params.method = ct::C2CParams::C2C_NEAREST;
+            params.method = pw::C2CParams::C2C_NEAREST;
             break;
         case 1:
-            params.method = ct::C2CParams::C2C_KNN_MEAN;
+            params.method = pw::C2CParams::C2C_KNN_MEAN;
             params.k_knn = spin_k_->value();
             break;
         case 2:
-            params.method = ct::C2CParams::C2C_RADIUS_MEAN;
+            params.method = pw::C2CParams::C2C_RADIUS_MEAN;
             params.radius = dspin_radius_->value();
             break;
     }
@@ -223,7 +223,7 @@ void CloudCloudDistDialog::onCompute()
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -247,12 +247,12 @@ void CloudCloudDistDialog::onCompute()
     m_canceled.store(false);
 
     auto future = QtConcurrent::run([reference, compare, params, cancel, on_progress]() {
-        return ct::DistanceCalculator::calculateC2C(reference, compare, params, cancel, on_progress);
+        return pw::DistanceCalculator::calculateC2C(reference, compare, params, cancel, on_progress);
     });
 
     // ---- Step 6: Handle result ----
-    auto* watcher = new QFutureWatcher<ct::DistanceResult>(this);
-    connect(watcher, &QFutureWatcher<ct::DistanceResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::DistanceResult>(this);
+    connect(watcher, &QFutureWatcher<pw::DistanceResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();

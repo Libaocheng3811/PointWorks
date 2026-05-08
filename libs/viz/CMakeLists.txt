@@ -8,18 +8,18 @@ find_package(VTK COMPONENTS
     vtkRenderingVolumeOpenGL2
     vtkIOImage)
 
-add_library(ct_viz SHARED ${VizSrcs} ${VizHdrs})
+add_library(pw_viz SHARED ${VizSrcs} ${VizHdrs})
 
-target_include_directories(ct_viz PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pw_viz PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(ct_viz
+target_link_libraries(pw_viz
     PUBLIC
-        ct_core
+        pw_core
         Qt${QT_VERSION_MAJOR}::Widgets
         ${VTK_LIBRARIES}
         ${PCL_LIBRARIES}
     PRIVATE
-        ct_io
+        pw_io
 )
 
-target_compile_definitions(ct_viz PRIVATE CT_BUILDING_CT_VIZ)
+target_compile_definitions(pw_viz PRIVATE PW_BUILDING_PW_VIZ)

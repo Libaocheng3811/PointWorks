@@ -12,8 +12,8 @@
 #include <QShowEvent>
 
 // Target 下拉框索引
-#define CT_TARGET_POINTS    (0)
-#define CT_TARGET_NORMALS   (1)
+#define PW_TARGET_POINTS    (0)
+#define PW_TARGET_NORMALS   (1)
 
 const QColor colors[5][10] = {
         {QColor("#ffffff"), QColor("#e5e5e7"), QColor("#cccccc"), QColor("#9a9a9a"),
@@ -83,7 +83,7 @@ Color::Color(QWidget *parent) :
     connect(this, &Color::field, this, &Color::setColorField);
     // 切换目标时更新坐标轴按钮
     connect(ui->cbox_target, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [=](int) {
-        bool normalsMode = (ui->cbox_target->currentIndex() == CT_TARGET_NORMALS);
+        bool normalsMode = (ui->cbox_target->currentIndex() == PW_TARGET_NORMALS);
         ui->btn_x->setEnabled(!normalsMode && isPointCloudOnly());
         ui->btn_y->setEnabled(!normalsMode && isPointCloudOnly());
         ui->btn_z->setEnabled(!normalsMode && isPointCloudOnly());
@@ -98,7 +98,7 @@ bool Color::hasPointCloudSelection() const
 {
     for (auto& cloud : m_cloudtree->getSelectedClouds()) {
         auto* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        if (item && ct::CustomTree::getNodeType(item) == ct::NodeCloud)
+        if (item && pw::CustomTree::getNodeType(item) == pw::NodeCloud)
             return true;
     }
     return false;
@@ -108,7 +108,7 @@ bool Color::hasMeshSelection() const
 {
     for (auto& cloud : m_cloudtree->getSelectedClouds()) {
         auto* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        if (item && ct::CustomTree::getNodeType(item) == ct::NodeMesh)
+        if (item && pw::CustomTree::getNodeType(item) == pw::NodeMesh)
             return true;
     }
     return false;
@@ -126,10 +126,10 @@ void Color::updateUIState()
 
     // Target 下拉框：仅点云时显示（模型只有一个目标，无需选择）
     ui->cbox_target->setVisible(hasPC);
-    ui->cbox_target->setCurrentIndex(CT_TARGET_POINTS);
+    ui->cbox_target->setCurrentIndex(PW_TARGET_POINTS);
 
     // 坐标轴按钮：仅点云+Points 模式时启用
-    bool normalsMode = (ui->cbox_target->currentIndex() == CT_TARGET_NORMALS);
+    bool normalsMode = (ui->cbox_target->currentIndex() == PW_TARGET_NORMALS);
     ui->btn_x->setEnabled(pcOnly && !normalsMode);
     ui->btn_y->setEnabled(pcOnly && !normalsMode);
     ui->btn_z->setEnabled(pcOnly && !normalsMode);
@@ -139,11 +139,11 @@ void Color::apply()
 {
     bool was_restore = m_restore_default;
     bool targetNormals = ui->cbox_target->isVisible() &&
-                         ui->cbox_target->currentIndex() == CT_TARGET_NORMALS;
+                         ui->cbox_target->currentIndex() == PW_TARGET_NORMALS;
     m_restore_default = false;
     m_applied = true;
 
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("please select clouds!");
@@ -152,13 +152,13 @@ void Color::apply()
     for (auto& cloud : selected_clouds)
     {
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        ct::SceneNodeType type = ct::CustomTree::getNodeType(item);
+        pw::SceneNodeType type = pw::CustomTree::getNodeType(item);
 
-        if (type == ct::NodeCloud)
+        if (type == pw::NodeCloud)
         {
             if (targetNormals)
             {
-                ct::ColorRGB normalRGB{static_cast<uint8_t>(m_rgb.red()),
+                pw::ColorRGB normalRGB{static_cast<uint8_t>(m_rgb.red()),
                                        static_cast<uint8_t>(m_rgb.green()),
                                        static_cast<uint8_t>(m_rgb.blue())};
                 cloud->setNormalColor(normalRGB);
@@ -182,7 +182,7 @@ void Color::apply()
                 }
                 else
                 {
-                    cloud->setCloudColor(ct::ColorRGB{static_cast<uint8_t>(m_rgb.red()),
+                    cloud->setCloudColor(pw::ColorRGB{static_cast<uint8_t>(m_rgb.red()),
                                                      static_cast<uint8_t>(m_rgb.green()),
                                                      static_cast<uint8_t>(m_rgb.blue())});
                     printI(QString("Apply cloud[id%1] point cloud[r:%2, g:%3, b:%4] done.")
@@ -191,7 +191,7 @@ void Color::apply()
                 m_cloudview->addPointCloud(cloud);
             }
         }
-        else if (type == ct::NodeMesh)
+        else if (type == pw::NodeMesh)
         {
             QString cloudId = QString::fromStdString(cloud->id());
             if (was_restore)
@@ -220,19 +220,19 @@ void Color::reset()
     m_applied = true;
 
     bool targetNormals = ui->cbox_target->isVisible() &&
-                         ui->cbox_target->currentIndex() == CT_TARGET_NORMALS;
+                         ui->cbox_target->currentIndex() == PW_TARGET_NORMALS;
 
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     for (auto& cloud : selected_clouds)
     {
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        ct::SceneNodeType type = ct::CustomTree::getNodeType(item);
+        pw::SceneNodeType type = pw::CustomTree::getNodeType(item);
 
-        if (type == ct::NodeCloud)
+        if (type == pw::NodeCloud)
         {
             if (targetNormals)
             {
-                ct::ColorRGB defaultNormal{0, 255, 0};
+                pw::ColorRGB defaultNormal{0, 255, 0};
                 cloud->setNormalColor(defaultNormal);
                 QString normalId = QString::fromStdString(cloud->normalId());
                 if (m_cloudview->contains(normalId))
@@ -243,7 +243,7 @@ void Color::reset()
                 m_cloudview->resetPointCloudColor(cloud);
             }
         }
-        else if (type == ct::NodeMesh)
+        else if (type == pw::NodeMesh)
         {
             m_cloudview->setTextureMeshColor(QString::fromStdString(cloud->id()), 0.8, 0.8, 0.8);
             m_cloudview->refresh();
@@ -273,26 +273,26 @@ void Color::setColorRGB(const QColor &rgb)
     m_restore_default = false;
     m_applied = false;
 
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
         return;
     }
 
-    ct::ColorRGB colorRGB{static_cast<uint8_t>(rgb.red()),
+    pw::ColorRGB colorRGB{static_cast<uint8_t>(rgb.red()),
                           static_cast<uint8_t>(rgb.green()),
                           static_cast<uint8_t>(rgb.blue())};
 
     bool targetNormals = ui->cbox_target->isVisible() &&
-                         ui->cbox_target->currentIndex() == CT_TARGET_NORMALS;
+                         ui->cbox_target->currentIndex() == PW_TARGET_NORMALS;
 
     for (auto& cloud : selected_clouds)
     {
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        ct::SceneNodeType type = ct::CustomTree::getNodeType(item);
+        pw::SceneNodeType type = pw::CustomTree::getNodeType(item);
 
-        if (type == ct::NodeCloud)
+        if (type == pw::NodeCloud)
         {
             if (targetNormals)
             {
@@ -306,7 +306,7 @@ void Color::setColorRGB(const QColor &rgb)
                 m_cloudview->setPointCloudColor(cloud, colorRGB);
             }
         }
-        else if (type == ct::NodeMesh)
+        else if (type == pw::NodeMesh)
         {
             m_cloudview->setTextureMeshColor(QString::fromStdString(cloud->id()),
                 rgb.red() / 255.0f,
@@ -323,7 +323,7 @@ void Color::setColorField(const QString &field)
     m_restore_default = false;
     m_applied = false;
 
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -333,9 +333,9 @@ void Color::setColorField(const QString &field)
     for (auto& cloud : selected_clouds)
     {
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        ct::SceneNodeType type = ct::CustomTree::getNodeType(item);
+        pw::SceneNodeType type = pw::CustomTree::getNodeType(item);
 
-        if (type == ct::NodeCloud)
+        if (type == pw::NodeCloud)
         {
             m_cloudview->setPointCloudColor(cloud, field);
         }

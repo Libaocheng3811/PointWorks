@@ -12,7 +12,7 @@
 // 辅助：从 FeatureType 中提取描述子数据为 numpy 数组
 // PCL 描述子类型都是 pcl::PointCloud<Descriptor>，每个 point 有 .histogram[] 数组
 // 通过 pcl::PCLPointCloud2 泛型提取 float 数据
-py::object extractDescriptorToPy(const ct::FeatureType::Ptr& feature)
+py::object extractDescriptorToPy(const pw::FeatureType::Ptr& feature)
 {
     if (!feature) return py::none();
 
@@ -98,7 +98,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto box = ct::Features::boundingBoxAABB(cloud);
+        auto box = pw::Features::boundingBoxAABB(cloud);
         py::dict dict;
         dict["center_x"] = static_cast<double>(box.translation.x());
         dict["center_y"] = static_cast<double>(box.translation.y());
@@ -113,7 +113,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto box = ct::Features::boundingBoxOBB(cloud);
+        auto box = pw::Features::boundingBoxOBB(cloud);
         py::dict dict;
         dict["center_x"] = static_cast<double>(box.translation.x());
         dict["center_y"] = static_cast<double>(box.translation.y());
@@ -131,8 +131,8 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
-        auto fr = ct::Features::FPFHEstimation(cloud, k, radius, surface_cloud);
+        pw::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = pw::Features::FPFHEstimation(cloud, k, radius, surface_cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -149,8 +149,8 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
-        auto fr = ct::Features::SHOTEstimation(cloud, nullptr, radius, surface_cloud);
+        pw::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = pw::Features::SHOTEstimation(cloud, nullptr, radius, surface_cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -166,8 +166,8 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
-        auto fr = ct::Features::SHOTColorEstimation(cloud, nullptr, radius, surface_cloud);
+        pw::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = pw::Features::SHOTColorEstimation(cloud, nullptr, radius, surface_cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -186,7 +186,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto result = ct::Features::BoundaryEstimation(cloud, k, radius, angle);
+        auto result = pw::Features::BoundaryEstimation(cloud, k, radius, angle);
         if (!result) throw std::runtime_error("Boundary estimation produced no result");
 
         result->setId("boundary-" + name);
@@ -194,7 +194,7 @@ void registerFeatureBindings(py::module_& m)
         getRegistry().registerCloud(result);
         getRegistry().holdCloud(result);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(result);
         }
 
@@ -212,7 +212,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto lr = ct::Features::SHOTLocalReferenceFrameEstimation(cloud, radius);
+        auto lr = pw::Features::SHOTLocalReferenceFrameEstimation(cloud, radius);
 
         py::dict dict;
         dict["time_ms"] = lr.time_ms;
@@ -247,8 +247,8 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
-        auto fr = ct::Features::PFHEstimation(cloud, k, radius, surface_cloud);
+        pw::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = pw::Features::PFHEstimation(cloud, k, radius, surface_cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -267,8 +267,8 @@ void registerFeatureBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
-        ct::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
-        auto fr = ct::Features::VFHEstimation(cloud, dir, surface_cloud);
+        pw::Cloud::Ptr surface_cloud = surface ? cloud : nullptr;
+        auto fr = pw::Features::VFHEstimation(cloud, dir, surface_cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -283,7 +283,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto fr = ct::Features::ESFEstimation(cloud);
+        auto fr = pw::Features::ESFEstimation(cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -299,7 +299,7 @@ void registerFeatureBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
-        auto fr = ct::Features::GASDEstimation(cloud, dir, shgs, shs, interp);
+        auto fr = pw::Features::GASDEstimation(cloud, dir, shgs, shs, interp);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -318,7 +318,7 @@ void registerFeatureBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
-        auto fr = ct::Features::GASDColorEstimation(cloud, dir, shgs, shs, interp, chgs, chs, cinterp);
+        auto fr = pw::Features::GASDColorEstimation(cloud, dir, shgs, shs, interp, chgs, chs, cinterp);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -334,7 +334,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto fr = ct::Features::RSDEstimation(cloud, nr_subdiv, plane_radius);
+        auto fr = pw::Features::RSDEstimation(cloud, nr_subdiv, plane_radius);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -349,7 +349,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto fr = ct::Features::GRSDEstimation(cloud);
+        auto fr = pw::Features::GRSDEstimation(cloud);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -364,7 +364,7 @@ void registerFeatureBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
-        auto fr = ct::Features::CRHEstimation(cloud, dir);
+        auto fr = pw::Features::CRHEstimation(cloud, dir);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -382,7 +382,7 @@ void registerFeatureBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
         Eigen::Vector3f dir(static_cast<float>(dir_x), static_cast<float>(dir_y), static_cast<float>(dir_z));
-        auto fr = ct::Features::CVFHEstimation(cloud, dir, radius_normals, d1, d2, d3, min_points, normalize);
+        auto fr = pw::Features::CVFHEstimation(cloud, dir, radius_normals, d1, d2, d3, min_points, normalize);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -401,7 +401,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto fr = ct::Features::ShapeContext3DEstimation(cloud, min_radius, radius);
+        auto fr = pw::Features::ShapeContext3DEstimation(cloud, min_radius, radius);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -418,7 +418,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto fr = ct::Features::UniqueShapeContext(cloud, nullptr, lrf_radius, radius, loc_radius);
+        auto fr = pw::Features::UniqueShapeContext(cloud, nullptr, lrf_radius, radius, loc_radius);
 
         py::dict dict;
         dict["descriptor"] = extractDescriptorToPy(fr.feature);
@@ -437,7 +437,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto lr = ct::Features::BOARDLocalReferenceFrameEstimation(
+        auto lr = pw::Features::BOARDLocalReferenceFrameEstimation(
             cloud, radius, find_holes, margin_thresh, size, prob_thresh, steep_thresh);
 
         py::dict dict;
@@ -477,7 +477,7 @@ void registerFeatureBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        auto lr = ct::Features::FLARELocalReferenceFrameEstimation(
+        auto lr = pw::Features::FLARELocalReferenceFrameEstimation(
             cloud, radius, margin_thresh, min_neighbors_normal, min_neighbors_tangent);
 
         py::dict dict;

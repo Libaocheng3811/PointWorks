@@ -20,9 +20,9 @@
 #define BOX_PRE_FLAG         "-box"
 #define NORMALS_PRE_FLAG     "-normals"
 
-namespace ct
+namespace pw
 {
-    class CT_EXPORT Cloud :public std::enable_shared_from_this<Cloud>
+    class PW_EXPORT Cloud :public std::enable_shared_from_this<Cloud>
     {
     public:
         using Ptr = std::shared_ptr<Cloud>;

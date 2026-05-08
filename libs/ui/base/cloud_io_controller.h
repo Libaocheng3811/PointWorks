@@ -15,7 +15,7 @@
 class QTreeWidgetItem;
 class QWidget;
 
-namespace ct
+namespace pw
 {
     class FileIO;
     class ProgressManager;
@@ -57,9 +57,9 @@ namespace ct
         void onSaveCloudResult(bool success, const QString& path, float time, const QString& error = QString());
         void onSaveMeshResult(bool success, const QString& path, float time, const QString& error = QString());
         void onLoadTexturedMeshResult(const QString& cloudId, const QString& objFilePath);
-        void onFieldMappingRequested(const QList<ct::FieldInfo>& fields, std::map<std::string, std::string>& result);
-        void onTxtImportRequested(const QStringList& preview_lines, ct::TxtImportParams& params);
-        void onTxtExportRequested(const QStringList& available_fields, ct::TxtExportParams& params);
+        void onFieldMappingRequested(const QList<pw::FieldInfo>& fields, std::map<std::string, std::string>& result);
+        void onTxtImportRequested(const QStringList& preview_lines, pw::TxtImportParams& params);
+        void onTxtExportRequested(const QStringList& available_fields, pw::TxtExportParams& params);
         void onGlobalFilterRequested(const Eigen::Vector3d& min_pt, Eigen::Vector3d& suggested_shift, bool& skipped);
 
     private:

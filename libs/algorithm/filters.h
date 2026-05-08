@@ -15,7 +15,7 @@
 #include <pcl/filters/conditional_removal.h>
 #include <pcl/surface/mls.h>
 
-namespace ct
+namespace pw
 {
     typedef pcl::ConditionBase<PointXYZRGBN>    ConditionBase;
     typedef pcl::ConditionAnd<PointXYZRGBN>     ConditionAnd;

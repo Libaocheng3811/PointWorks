@@ -12,7 +12,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class SupervoxelDialog : public ct::CustomDialog
+class SupervoxelDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -32,7 +32,7 @@ private:
 
     // --- 异步执行 ---
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::SegmentationResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::SegmentationResult>* m_watcher = nullptr;
 
     // --- 控件（_ 后缀） ---
     QDoubleSpinBox* dspin_voxel_resolution_;
@@ -48,7 +48,7 @@ private:
     QPushButton* btn_cancel_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 #endif // POINTWORKS_SUPERVOXEL_DIALOG_H

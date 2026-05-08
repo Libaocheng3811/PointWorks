@@ -68,7 +68,7 @@ BoundingBox::~BoundingBox() {
 
 void BoundingBox::preview()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -81,18 +81,18 @@ void BoundingBox::preview()
         bool aabb = ui->rbtn_aabb->isChecked();
         int box_type = m_box_type;
 
-        auto future = QtConcurrent::run([cloud, aabb]() -> ct::Box {
-            return aabb ? ct::Features::boundingBoxAABB(cloud)
-                        : ct::Features::boundingBoxOBB(cloud);
+        auto future = QtConcurrent::run([cloud, aabb]() -> pw::Box {
+            return aabb ? pw::Features::boundingBoxAABB(cloud)
+                        : pw::Features::boundingBoxOBB(cloud);
         });
 
-        auto* watcher = new QFutureWatcher<ct::Box>(this);
+        auto* watcher = new QFutureWatcher<pw::Box>(this);
         QString cloud_id = QString::fromStdString(cloud->id());
-        connect(watcher, &QFutureWatcher<ct::Box>::finished, this, [=]() {
-            ct::Box box = watcher->result();
+        connect(watcher, &QFutureWatcher<pw::Box>::finished, this, [=]() {
+            pw::Box box = watcher->result();
             m_cloudview->addCube(box, QString::fromStdString(cloud->id()) + "_preview");
             m_cloudview->setShapeColor(cloud_id + "_preview",
-                                       aabb ? ct::Color::Red : ct::Color::Green);
+                                       aabb ? pw::Color::Red : pw::Color::Green);
             m_cloudview->setShapeRepersentation(cloud_id + "_preview", box_type);
 
             switch (box_type)
@@ -109,7 +109,7 @@ void BoundingBox::preview()
             }
 
             float roll, pitch, yaw;
-            ct::getEulerAngles(box.pose, roll, pitch, yaw);
+            pw::getEulerAngles(box.pose, roll, pitch, yaw);
             ui->dspin_rx->setValue(roll);
             ui->dspin_ry->setValue(pitch);
             ui->dspin_rz->setValue(yaw);
@@ -127,7 +127,7 @@ void BoundingBox::preview()
 
 void BoundingBox::apply()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -182,19 +182,19 @@ void BoundingBox::adjustEnable(bool state)
 
 void BoundingBox::adjustBox(float r, float p, float y) {
     for (auto &cloud: m_cloudtree->getSelectedClouds()) {
-        Eigen::Affine3f affine = ct::getTransformation(cloud->center()[0], cloud->center()[1], cloud->center()[2], r, p, y);
+        Eigen::Affine3f affine = pw::getTransformation(cloud->center()[0], cloud->center()[1], cloud->center()[2], r, p, y);
         int box_type = m_box_type;
 
-        auto future = QtConcurrent::run([cloud, affine]() -> ct::Box {
-            return ct::Features::boundingBoxAdjust(cloud, affine.inverse());
+        auto future = QtConcurrent::run([cloud, affine]() -> pw::Box {
+            return pw::Features::boundingBoxAdjust(cloud, affine.inverse());
         });
 
-        auto* watcher = new QFutureWatcher<ct::Box>(this);
-        connect(watcher, &QFutureWatcher<ct::Box>::finished, this, [=]() {
-            ct::Box box = watcher->result();
+        auto* watcher = new QFutureWatcher<pw::Box>(this);
+        connect(watcher, &QFutureWatcher<pw::Box>::finished, this, [=]() {
+            pw::Box box = watcher->result();
             QString cloud_id = QString::fromStdString(cloud->id());
             m_cloudview->addCube(box, cloud_id + "_preview");
-            m_cloudview->setShapeColor(cloud_id + "_preview", ct::Color::Blue);
+            m_cloudview->setShapeColor(cloud_id + "_preview", pw::Color::Blue);
             m_cloudview->setShapeRepersentation(cloud_id + "_preview", box_type);
             switch (box_type) {
                 case BOX_TYPE_POINTS:

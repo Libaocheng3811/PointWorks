@@ -7,9 +7,9 @@
 #include <QWidget>
 #include <vector>
 
-namespace ct {
+namespace pw {
 
-class CT_VIZ_EXPORT ScalarBarWidget : public QWidget {
+class PW_VIZ_EXPORT ScalarBarWidget : public QWidget {
     Q_OBJECT
 public:
     explicit ScalarBarWidget(QWidget* parent = nullptr);
@@ -75,6 +75,6 @@ private:
     int m_left_pad = 0;
 };
 
-}  // namespace ct
+}  // namespace pw
 
 #endif  // POINTWORKS_SCALAR_BAR_WIDGET_H

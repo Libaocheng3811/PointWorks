@@ -18,7 +18,7 @@
 // ======================== Constructor ========================
 
 ExtractBoundaryDialog::ExtractBoundaryDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
     this->setWindowTitle("Extract Boundary");
@@ -147,7 +147,7 @@ void ExtractBoundaryDialog::onExtract()
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -167,13 +167,13 @@ void ExtractBoundaryDialog::onExtract()
     auto cloud = m_cloud;
     m_canceled.store(false);
 
-    auto future = QtConcurrent::run([cloud, k, radius, angle, cancel, on_progress]() -> ct::Cloud::Ptr {
-        return ct::Features::BoundaryEstimation(cloud, k, radius, angle, cancel, on_progress);
+    auto future = QtConcurrent::run([cloud, k, radius, angle, cancel, on_progress]() -> pw::Cloud::Ptr {
+        return pw::Features::BoundaryEstimation(cloud, k, radius, angle, cancel, on_progress);
     });
 
     // ========== Step 6: 监听完成信号 ==========
-    auto* watcher = new QFutureWatcher<ct::Cloud::Ptr>(this);
-    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::Cloud::Ptr>(this);
+    connect(watcher, &QFutureWatcher<pw::Cloud::Ptr>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();
@@ -207,7 +207,7 @@ void ExtractBoundaryDialog::onExtract()
                 result->setId(cloud->id() + "_boundary");
                 result->makeAdaptive();
                 m_cloudtree->addSiblingCloud(cloud, result, "-boundary");
-                m_cloudview->setPointCloudColor(QString::fromStdString(result->id()), ct::Color::Green);
+                m_cloudview->setPointCloudColor(QString::fromStdString(result->id()), pw::Color::Green);
 
                 printI(QString("Extract Boundary done, %1 boundary points added.")
                            .arg(result->size()));

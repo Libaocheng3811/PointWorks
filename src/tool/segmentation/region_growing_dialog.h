@@ -17,7 +17,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class RegionGrowingDialog : public ct::CustomDialog
+class RegionGrowingDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -36,14 +36,14 @@ private slots:
     void onPickSeed();
     void onApply();
     void onCancel();
-    void mouseLeftPressed(const ct::PointXY& pt);
+    void mouseLeftPressed(const pw::PointXY& pt);
 
 private:
     void setupUi();
 
     // --- 异步执行 ---
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::SegmentationResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::SegmentationResult>* m_watcher = nullptr;
 
     // --- 控件（_ 后缀） ---
     // Search Settings
@@ -84,9 +84,9 @@ private:
     QPushButton* btn_cancel_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
     bool m_picking = false;
-    ct::PointXYZRGBN m_seed_point;
+    pw::PointXYZRGBN m_seed_point;
     bool m_has_seed = false;
 };
 

@@ -11,7 +11,7 @@
 #include <functional>
 #include <atomic>
 
-namespace ct{
+namespace pw{
 
     struct CSFResult {
         Cloud::Ptr ground_cloud;
@@ -27,7 +27,7 @@ namespace ct{
                                 std::atomic<bool>* cancel = nullptr,
                                 std::function<void(int)> on_progress = nullptr);
     };
-} // namespace ct
+} // namespace pw
 
 
 #endif //POINTWORKS_CSFFILTER_H

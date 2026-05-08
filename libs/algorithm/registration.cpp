@@ -40,7 +40,7 @@
 #include <pcl/registration/transformation_validation.h>
 #include <pcl/registration/transformation_validation_euclidean.h>
 
-namespace ct
+namespace pw
 {
     // 通过反向投影（Back Projection）方法来计算源点云和目标点云之间的对应关系
     CorrespondenceResult Registration::CorrespondenceEstimationBackProjection(const RegistrationContext& ctx, int k,
@@ -1305,4 +1305,4 @@ namespace ct
 
         return result;
     }
-} // namespace ct
+} // namespace pw

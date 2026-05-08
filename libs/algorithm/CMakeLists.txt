@@ -1,13 +1,13 @@
 file(GLOB AlgoSrcs CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB AlgoHdrs CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
-add_library(ct_algorithm STATIC ${AlgoSrcs} ${AlgoHdrs})
+add_library(pw_algorithm STATIC ${AlgoSrcs} ${AlgoHdrs})
 
-target_include_directories(ct_algorithm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pw_algorithm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(ct_algorithm
+target_link_libraries(pw_algorithm
     PUBLIC
-        ct_core
+        pw_core
     PRIVATE
         ${PCL_LIBRARIES}
         CSF_Lib

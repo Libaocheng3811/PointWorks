@@ -10,9 +10,9 @@ namespace test_helpers {
 
 // ============ 基础几何体生成 ============
 
-ct::Cloud::Ptr makePlane(int n, float width, float depth, float noise, unsigned seed) {
-    auto cloud = std::make_shared<ct::Cloud>();
-    std::vector<ct::PointXYZ> pts(n);
+pw::Cloud::Ptr makePlane(int n, float width, float depth, float noise, unsigned seed) {
+    auto cloud = std::make_shared<pw::Cloud>();
+    std::vector<pw::PointXYZ> pts(n);
 
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> dx(-width / 2, width / 2);
@@ -28,9 +28,9 @@ ct::Cloud::Ptr makePlane(int n, float width, float depth, float noise, unsigned 
     return cloud;
 }
 
-ct::Cloud::Ptr makeSphere(int n, float radius, float noise, unsigned seed) {
-    auto cloud = std::make_shared<ct::Cloud>();
-    std::vector<ct::PointXYZ> pts(n);
+pw::Cloud::Ptr makeSphere(int n, float radius, float noise, unsigned seed) {
+    auto cloud = std::make_shared<pw::Cloud>();
+    std::vector<pw::PointXYZ> pts(n);
 
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> theta(0.0f, 2.0f * static_cast<float>(M_PI));
@@ -54,9 +54,9 @@ ct::Cloud::Ptr makeSphere(int n, float radius, float noise, unsigned seed) {
     return cloud;
 }
 
-ct::Cloud::Ptr makeCube(int n, float size, float noise, unsigned seed) {
-    auto cloud = std::make_shared<ct::Cloud>();
-    std::vector<ct::PointXYZ> pts(n);
+pw::Cloud::Ptr makeCube(int n, float size, float noise, unsigned seed) {
+    auto cloud = std::make_shared<pw::Cloud>();
+    std::vector<pw::PointXYZ> pts(n);
 
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> pos(-size / 2, size / 2);
@@ -86,9 +86,9 @@ ct::Cloud::Ptr makeCube(int n, float size, float noise, unsigned seed) {
     return cloud;
 }
 
-ct::Cloud::Ptr makeCylinder(int n, float radius, float height, float noise, unsigned seed) {
-    auto cloud = std::make_shared<ct::Cloud>();
-    std::vector<ct::PointXYZ> pts(n);
+pw::Cloud::Ptr makeCylinder(int n, float radius, float height, float noise, unsigned seed) {
+    auto cloud = std::make_shared<pw::Cloud>();
+    std::vector<pw::PointXYZ> pts(n);
 
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> theta(0.0f, 2.0f * static_cast<float>(M_PI));
@@ -117,11 +117,11 @@ OverlappingPair makeOverlappingSpheres(int n, float radius, float overlap,
     std::uniform_real_distribution<float> theta(0.0f, 2.0f * static_cast<float>(M_PI));
     std::uniform_real_distribution<float> phi(0.0f, static_cast<float>(M_PI));
 
-    auto source = std::make_shared<ct::Cloud>();
-    auto target = std::make_shared<ct::Cloud>();
+    auto source = std::make_shared<pw::Cloud>();
+    auto target = std::make_shared<pw::Cloud>();
 
     // source: 完整球体
-    std::vector<ct::PointXYZ> src_pts(n);
+    std::vector<pw::PointXYZ> src_pts(n);
     for (int i = 0; i < n; ++i) {
         float t = theta(rng);
         float p = phi(rng);
@@ -147,7 +147,7 @@ OverlappingPair makeOverlappingSpheres(int n, float radius, float overlap,
     pcl::PointCloud<pcl::PointXYZ> tgt_pcl;
     pcl::transformPointCloud(*src_pcl, tgt_pcl, transform);
 
-    std::vector<ct::PointXYZ> tgt_pts(tgt_pcl.size());
+    std::vector<pw::PointXYZ> tgt_pts(tgt_pcl.size());
     for (size_t i = 0; i < tgt_pcl.size(); ++i) {
         tgt_pts[i] = {tgt_pcl[i].x, tgt_pcl[i].y, tgt_pcl[i].z};
     }
@@ -160,14 +160,14 @@ OverlappingPair makeOverlappingSpheres(int n, float radius, float overlap,
     return pair;
 }
 
-ct::Cloud::Ptr addOutliers(ct::Cloud::Ptr cloud, int n_outliers,
+pw::Cloud::Ptr addOutliers(pw::Cloud::Ptr cloud, int n_outliers,
                            float outlier_range, unsigned seed) {
     auto result = cloud->clone();
 
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> dist(-outlier_range, outlier_range);
 
-    std::vector<ct::PointXYZ> outliers(n_outliers);
+    std::vector<pw::PointXYZ> outliers(n_outliers);
     for (int i = 0; i < n_outliers; ++i) {
         outliers[i] = {dist(rng), dist(rng), dist(rng)};
     }
@@ -179,13 +179,13 @@ ct::Cloud::Ptr addOutliers(ct::Cloud::Ptr cloud, int n_outliers,
 ClusterPair makeTwoClusters(int n1, int n2, float separation,
                             float noise, unsigned seed) {
     ClusterPair pair;
-    pair.cloud = std::make_shared<ct::Cloud>();
+    pair.cloud = std::make_shared<pw::Cloud>();
     pair.labels.resize(n1 + n2);
 
     std::mt19937 rng(seed);
     std::normal_distribution<float> gauss(0.0f, noise);
 
-    std::vector<ct::PointXYZ> pts(n1 + n2);
+    std::vector<pw::PointXYZ> pts(n1 + n2);
 
     // 聚类 0: 中心在 (-separation/2, 0, 0)
     for (int i = 0; i < n1; ++i) {
@@ -212,13 +212,13 @@ ClusterPair makeTwoClusters(int n1, int n2, float separation,
     return pair;
 }
 
-ct::Cloud::Ptr applyTransform(ct::Cloud::Ptr cloud, const Eigen::Matrix4f& transform) {
-    auto result = std::make_shared<ct::Cloud>();
+pw::Cloud::Ptr applyTransform(pw::Cloud::Ptr cloud, const Eigen::Matrix4f& transform) {
+    auto result = std::make_shared<pw::Cloud>();
     auto pcl_cloud = cloud->toPCL_XYZ();
     pcl::PointCloud<pcl::PointXYZ> transformed;
     pcl::transformPointCloud(*pcl_cloud, transformed, transform);
 
-    std::vector<ct::PointXYZ> pts(transformed.size());
+    std::vector<pw::PointXYZ> pts(transformed.size());
     for (size_t i = 0; i < transformed.size(); ++i) {
         pts[i] = {transformed[i].x, transformed[i].y, transformed[i].z};
     }
@@ -230,7 +230,7 @@ ct::Cloud::Ptr applyTransform(ct::Cloud::Ptr cloud, const Eigen::Matrix4f& trans
 
 // ============ 验证辅助 ============
 
-bool isApproximatelyPlanar(ct::Cloud::Ptr cloud, float max_residual) {
+bool isApproximatelyPlanar(pw::Cloud::Ptr cloud, float max_residual) {
     if (cloud->size() < 3) return true;
 
     auto pcl_cloud = cloud->toPCL_XYZ();
@@ -254,7 +254,7 @@ bool isApproximatelyPlanar(ct::Cloud::Ptr cloud, float max_residual) {
     return std::sqrt(min_eigen) < max_residual;
 }
 
-bool isApproximatelySpherical(ct::Cloud::Ptr cloud, float expected_radius,
+bool isApproximatelySpherical(pw::Cloud::Ptr cloud, float expected_radius,
                               float tolerance) {
     auto centroid = computeCentroid(cloud);
     Eigen::Vector3f center(centroid[0], centroid[1], centroid[2]);
@@ -270,7 +270,7 @@ bool isApproximatelySpherical(ct::Cloud::Ptr cloud, float expected_radius,
     return rms < tolerance;
 }
 
-Eigen::Vector4f computeCentroid(ct::Cloud::Ptr cloud) {
+Eigen::Vector4f computeCentroid(pw::Cloud::Ptr cloud) {
     auto pcl_cloud = cloud->toPCL_XYZ();
     Eigen::Vector4f centroid;
     pcl::compute3DCentroid(*pcl_cloud, centroid);

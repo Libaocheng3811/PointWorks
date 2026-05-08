@@ -21,7 +21,7 @@
 // ======================== Constructor ========================
 
 RegionGrowingDialog::RegionGrowingDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false), m_has_seed(false)
+    : pw::CustomDialog(parent), m_canceled(false), m_has_seed(false)
 {
     setupUi();
     this->setWindowTitle("Region Growing");
@@ -295,17 +295,17 @@ void RegionGrowingDialog::onPickSeed()
     // 禁用 VTK 旋转/平移，避免选点时点云跟随鼠标
     m_cloudview->setInteractorEnable(false);
     // 连接鼠标信号
-    connect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &RegionGrowingDialog::mouseLeftPressed);
+    connect(m_cloudview, &pw::CloudView::mouseLeftPressed, this, &RegionGrowingDialog::mouseLeftPressed);
 }
 
-void RegionGrowingDialog::mouseLeftPressed(const ct::PointXY& pt)
+void RegionGrowingDialog::mouseLeftPressed(const pw::PointXY& pt)
 {
     if (!m_picking) return;
 
     // 断开信号，避免重复触发
-    disconnect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &RegionGrowingDialog::mouseLeftPressed);
+    disconnect(m_cloudview, &pw::CloudView::mouseLeftPressed, this, &RegionGrowingDialog::mouseLeftPressed);
 
-    ct::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_cloud->id()));
+    pw::PickResult res = m_cloudview->singlePick(pt, QString::fromStdString(m_cloud->id()));
     // 恢复 VTK 交互和 picking 状态
     m_cloudview->setInteractorEnable(true);
     m_picking = false;
@@ -375,7 +375,7 @@ void RegionGrowingDialog::onApply()
     // ========== Step 4: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    connect(m_progress, &ct::ProgressManager::cancelRequested,
+    connect(m_progress, &pw::ProgressManager::cancelRequested,
             this, [=]() {
                 *cancel = true;
                 m_canceled.store(true);
@@ -395,7 +395,7 @@ void RegionGrowingDialog::onApply()
     m_canceled.store(false);
 
     bool is_manual = manual_seed;
-    ct::PointXYZRGBN seed_pt = m_seed_point;
+    pw::PointXYZRGBN seed_pt = m_seed_point;
     bool has_seed = m_has_seed;
     bool split = check_split_->isChecked();
 
@@ -422,17 +422,17 @@ void RegionGrowingDialog::onApply()
         }
 
         if (is_manual && seed_idx >= 0) {
-            return ct::Segmentation::RegionGrowingFromSeed(cloud, false, seed_idx,
+            return pw::Segmentation::RegionGrowingFromSeed(cloud, false, seed_idx,
                 minClusterSize, maxClusterSize, smoothMode, curvatureTest, residualTest,
                 smoothThreshold, residualThreshold, curvatureThreshold, neighbours,
                 cancel, on_progress);
         } else if (useColor) {
-            return ct::Segmentation::RegionGrowingRGB(cloud, false,
+            return pw::Segmentation::RegionGrowingRGB(cloud, false,
                 minClusterSize, maxClusterSize, smoothMode, curvatureTest, residualTest,
                 smoothThreshold, residualThreshold, curvatureThreshold, neighbours,
                 ptThresh, reThresh, disThresh, nghbrNumber, cancel, on_progress);
         } else {
-            return ct::Segmentation::RegionGrowing(cloud, false,
+            return pw::Segmentation::RegionGrowing(cloud, false,
                 minClusterSize, maxClusterSize, smoothMode, curvatureTest, residualTest,
                 smoothThreshold, residualThreshold, curvatureThreshold, neighbours,
                 cancel, on_progress);
@@ -440,8 +440,8 @@ void RegionGrowingDialog::onApply()
     });
 
     // ========== Step 7: 监听完成信号 ==========
-    auto* watcher = new QFutureWatcher<ct::SegmentationResult>(this);
-    connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::SegmentationResult>(this);
+    connect(watcher, &QFutureWatcher<pw::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();
@@ -463,7 +463,7 @@ void RegionGrowingDialog::onApply()
 
             if (split) {
                 // Split 模式：每个簇作为单独点云
-                std::vector<ct::Cloud::Ptr> results;
+                std::vector<pw::Cloud::Ptr> results;
                 for (size_t i = 0; i < result.clouds.size(); i++) {
                     auto& c = result.clouds[i];
                     c->setId(cloud->id() + "-rg" + std::to_string(i));
@@ -479,7 +479,7 @@ void RegionGrowingDialog::onApply()
                 if (!result.labels.empty())
                     labeled->addScalarField("segment_label", result.labels);
                 labeled->makeAdaptive();
-                std::vector<ct::Cloud::Ptr> results = {labeled};
+                std::vector<pw::Cloud::Ptr> results = {labeled};
                 m_cloudtree->addResultGroup(cloud, results, QString::fromStdString(cloud->id()) + "_RegionGrowing");
             }
 

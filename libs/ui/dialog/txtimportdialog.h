@@ -21,7 +21,7 @@
 #include <QPushButton>
 #include <QTextStream>
 
-namespace ct{
+namespace pw{
     class TxtImportDialog : public QDialog{
         Q_OBJECT
         public:
@@ -189,5 +189,5 @@ namespace ct{
             QRadioButton *m_radioSpace, *m_radioComma, *m_radioSemi, *m_radioTab;
 
     };
-} // namespace ct
+} // namespace pw
 #endif //POINTWORKS_TXTIMPORTDIALOG_H

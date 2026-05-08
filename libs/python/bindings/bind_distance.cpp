@@ -7,7 +7,7 @@
 void registerDistanceBindings(py::module_& m)
 {
     // 辅助：DistanceResult → py::dict
-    auto distResultToDict = [](const ct::DistanceResult& dr) -> py::dict {
+    auto distResultToDict = [](const pw::DistanceResult& dr) -> py::dict {
         py::dict dict;
         if (dr.success && !dr.distances.empty()) {
             auto count = static_cast<py::ssize_t>(dr.distances.size());
@@ -34,12 +34,12 @@ void registerDistanceBindings(py::module_& m)
         auto comp = getRegistry().getCloud(comp_name);
         if (!comp) throw std::runtime_error("Cloud not found: " + comp_name);
 
-        ct::C2CParams params;
-        params.method = static_cast<ct::C2CParams::Method>(method);
+        pw::C2CParams params;
+        params.method = static_cast<pw::C2CParams::Method>(method);
         params.k_knn = k_knn;
         params.radius = radius;
 
-        auto dr = ct::DistanceCalculator::calculateC2C(ref, comp, params);
+        auto dr = pw::DistanceCalculator::calculateC2C(ref, comp, params);
         return distResultToDict(dr);
     }, py::arg("ref_name"), py::arg("comp_name"),
        py::arg("method") = 0,
@@ -80,10 +80,10 @@ void registerDistanceBindings(py::module_& m)
         auto target = getRegistry().getCloud(target_name);
         if (!target) throw std::runtime_error("Cloud not found: " + target_name);
 
-        ct::CPSParams params;
+        pw::CPSParams params;
         params.max_distance = max_distance;
 
-        auto cr = ct::DistanceCalculator::extractClosestPoints(source, target, params);
+        auto cr = pw::DistanceCalculator::extractClosestPoints(source, target, params);
         if (!cr.success) throw std::runtime_error(cr.error_msg);
         if (!cr.projected_cloud) throw std::runtime_error("Closest point set produced no result");
 
@@ -92,7 +92,7 @@ void registerDistanceBindings(py::module_& m)
         getRegistry().registerCloud(cr.projected_cloud);
         getRegistry().holdCloud(cr.projected_cloud);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(cr.projected_cloud);
         }
 
@@ -114,13 +114,13 @@ void registerDistanceBindings(py::module_& m)
         auto comp_cloud = getRegistry().getCloud(comp_name);
         if (!comp_cloud) throw std::runtime_error("Cloud not found: " + comp_name);
 
-        ct::DistanceParams params;
-        params.method = static_cast<ct::DistanceParams::Method>(method);
+        pw::DistanceParams params;
+        params.method = static_cast<pw::DistanceParams::Method>(method);
         params.k_knn = k_knn;
         params.radius = radius;
         params.flip_normals = flip_normals;
 
-        auto result = ct::DistanceCalculator::calculate(ref_cloud, comp_cloud, params);
+        auto result = pw::DistanceCalculator::calculate(ref_cloud, comp_cloud, params);
         return distResultToDict(result);
     }, py::arg("ref_name"), py::arg("comp_name"),
        py::arg("method") = 0, py::arg("k_knn") = 6,

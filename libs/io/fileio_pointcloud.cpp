@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <cfloat>
 
-namespace ct
+namespace pw
 {
 
 class FastLineParser {
@@ -156,9 +156,9 @@ bool FileIO::loadPLY_PCD(const QString &filename, Cloud::Ptr &cloud) {
     if (res == -1) return false;
 
     // 准备字段信息
-    QList<ct::FieldInfo> fields_info;
+    QList<pw::FieldInfo> fields_info;
     for (const auto &f: blob.fields) {
-        ct::FieldInfo fi;
+        pw::FieldInfo fi;
         fi.name = f.name;
         fi.type = getPCLFieldType(f.datatype).toStdString();
         fields_info.append(fi);
@@ -441,7 +441,7 @@ bool FileIO::loadTXT(const QString &filename, Cloud::Ptr &cloud) {
     file.clear();
     file.seekg(0);
 
-    ct::TxtImportParams params;
+    pw::TxtImportParams params;
     // 阻塞调用 UI 获取列映射
     emit requestTxtImportSetup(preview_lines, params);
 
@@ -1203,7 +1203,7 @@ bool FileIO::saveTXT(const Cloud::Ptr &cloud, const QString &filename) {
     }
 
     // 请求 UI 配置 (阻塞式)
-    ct::TxtExportParams params;
+    pw::TxtExportParams params;
     emit requestTxtExportSetup(available_fields, params);
     if (params.selected_fields.empty()) return false; // 用户取消
 
@@ -1570,4 +1570,4 @@ bool FileIO::savePCL(const Cloud::Ptr &cloud, const QString &filename, bool isBi
     return (res == 0);
 }
 
-} // namespace ct
+} // namespace pw

@@ -3,7 +3,7 @@
 #include "test_helpers.h"
 #include "macros.h"
 
-using namespace ct;
+using namespace pw;
 
 // ===== 基础构造与容量 =====
 
@@ -295,7 +295,7 @@ TEST(CloudTest, SetCloudColor_Solid) {
     auto cloud = test_helpers::makePlane(100);
     cloud->enableColors();
 
-    cloud->setCloudColor(ct::ColorRGB{255, 0, 0});
+    cloud->setCloudColor(pw::ColorRGB{255, 0, 0});
     EXPECT_TRUE(cloud->hasColors());
 }
 
@@ -308,7 +308,7 @@ TEST(CloudTest, ColorBackupRestore) {
     cloud->update();
 
     cloud->backupColors();
-    cloud->setCloudColor(ct::ColorRGB{0, 255, 0});
+    cloud->setCloudColor(pw::ColorRGB{0, 255, 0});
     EXPECT_TRUE(cloud->isColorModified());
 
     cloud->restoreColors();

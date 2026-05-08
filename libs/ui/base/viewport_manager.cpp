@@ -5,7 +5,7 @@
 #include <QStyle>
 #include <QResizeEvent>
 
-namespace ct
+namespace pw
 {
 
 namespace {
@@ -284,4 +284,4 @@ void ViewportManager::syncRemoveFromAllViews(const QString& id)
     }
 }
 
-} // namespace ct
+} // namespace pw

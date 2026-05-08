@@ -19,7 +19,7 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE Release)
 endif ()
 
-# Debug 版本库后缀 "d" (例如 ct_cored.lib)
+# Debug 版本库后缀 "d" (例如 pw_cored.lib)
 set(CMAKE_DEBUG_POSTFIX "d")
 
 # 统一输出目录，无论 Debug 还是 Release，都输出到统一的 bin 和 lib 目录

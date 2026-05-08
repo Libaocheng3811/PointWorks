@@ -24,7 +24,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType)
 
 #include <cmath>
 
-namespace ct
+namespace pw
 {
     namespace
     {
@@ -328,7 +328,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::setBackgroundColor(const ct::ColorRGB &rgb)
+    void CloudView::setBackgroundColor(const pw::ColorRGB &rgb)
     {
         m_render->GradientBackgroundOff();
         m_viewer->setBackgroundColor(rgb.rf(), rgb.gf(), rgb.bf());
@@ -811,4 +811,4 @@ namespace ct
         return qimg.save(filePath);
     }
 
-} // namespace ct
+} // namespace pw

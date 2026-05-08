@@ -26,14 +26,14 @@ refactor(render): 优化八叉树渲染性能
 ## 添加新的算法模块
 
 1. 在 `libs/algorithm/` 下创建新的 `.h` 和 `.cpp` 文件
-2. **禁止引入 VTK 头文件**，保持 `ct_algorithm` 零 VTK 依赖
+2. **禁止引入 VTK 头文件**，保持 `pw_algorithm` 零 VTK 依赖
 3. 如需 VTK 渲染预处理，在 `libs/viz/` 中创建 `xxx_viz_helper.h/cpp`
 4. 在 `libs/algorithm/CMakeLists.txt` 中注册源文件（如使用 `file(GLOB)` 则自动收集）
 5. 如需新工具 UI，在 `src/tool/` 下创建对应文件并在 `src/CMakeLists.txt` 中注册
 
 ## 添加新的插件
 
-1. 在 `src/plugins/` 下创建插件文件（继承 `ct::CustomDialog`）
+1. 在 `src/plugins/` 下创建插件文件（继承 `pw::CustomDialog`）
 2. 实现 `init()`, `onApply()`, `onDone()` 方法
 3. **使用 `m_progress->runAsync()` 执行异步任务**，不要手动创建 QThread
 4. 在 `src/CMakeLists.txt` 中注册源文件
@@ -61,7 +61,7 @@ refactor(render): 优化八叉树渲染性能
 4. 在 `fileio.cpp` 的 `saveMeshFile()` 中添加保存分发
 5. 测试网格加载和纹理检测
 
-> ct_io 使用 `file(GLOB *.cpp)`，新增 .cpp 文件无需手动注册。
+> pw_io 使用 `file(GLOB *.cpp)`，新增 .cpp 文件无需手动注册。
 
 ## 扩展 Python API
 
@@ -74,7 +74,7 @@ refactor(render): 优化八叉树渲染性能
 
 ### 依赖隔离
 
-- `libs/ui/` 的公共头文件中**禁止** `#include "io/..."` — ct_io 对 ct_ui_base 是 PRIVATE
+- `libs/ui/` 的公共头文件中**禁止** `#include "io/..."` — pw_io 对 pw_ui_base 是 PRIVATE
 - `libs/algorithm/` 中**禁止** `#include <vtk...>` — 零 VTK 依赖
 - `libs/core/` 中**禁止** `#include <Q...>` — 核心层无 Qt 依赖
 
@@ -90,9 +90,9 @@ refactor(render): 优化八叉树渲染性能
 - `DialogRegistry::unregisterDialog` 在 `destroyed` 信号中自动调用
 - lambda 捕获注意：**必须使用 `[=]` 值捕获局部变量**，禁止 `[&]` 引用捕获（避免悬空引用）
 
-### ct_core 第三方依赖现状
+### pw_core 第三方依赖现状
 
-`ct_core` 中存在以下第三方库依赖（短期内无法移除）：
+`pw_core` 中存在以下第三方库依赖（短期内无法移除）：
 
 | 头文件 | 依赖 | 原因 |
 |--------|------|------|

@@ -3,12 +3,12 @@ file(GLOB Dialog_SOURCES CONFIGURE_DEPENDS "dialog/*.cpp")
 file(GLOB Dialog_HEADERS CONFIGURE_DEPENDS "dialog/*.h")
 file(GLOB Dialog_FORMS CONFIGURE_DEPENDS "dialog/*.ui")
 
-add_library(ct_ui_dialog STATIC ${Dialog_SOURCES} ${Dialog_HEADERS} ${Dialog_FORMS})
+add_library(pw_ui_dialog STATIC ${Dialog_SOURCES} ${Dialog_HEADERS} ${Dialog_FORMS})
 
-target_include_directories(ct_ui_dialog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pw_ui_dialog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(ct_ui_dialog PUBLIC
-    ct_core
+target_link_libraries(pw_ui_dialog PUBLIC
+    pw_core
     Qt${QT_VERSION_MAJOR}::Widgets
 )
 
@@ -42,17 +42,17 @@ set(Base_Hdrs
     widgets/sf_display_panel.h
 )
 
-add_library(ct_ui_base STATIC ${Base_Srcs} ${Base_Hdrs})
+add_library(pw_ui_base STATIC ${Base_Srcs} ${Base_Hdrs})
 
-target_include_directories(ct_ui_base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pw_ui_base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(ct_ui_base
+target_link_libraries(pw_ui_base
     PUBLIC
-        ct_ui_dialog
-        ct_core
-        ct_viz
+        pw_ui_dialog
+        pw_core
+        pw_viz
     PRIVATE
-        ct_io
+        pw_io
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Charts
         Qt${QT_VERSION_MAJOR}::Concurrent

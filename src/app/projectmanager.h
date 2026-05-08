@@ -10,8 +10,8 @@
 
 class QMenu;
 class QWidget;
-namespace ct { class CloudTree; }
-namespace ct { class CloudView; }
+namespace pw { class CloudTree; }
+namespace pw { class CloudView; }
 
 /// 项目管理器：自包含控制器，管理项目保存/打开/新建/最近文件
 class ProjectManager : public QObject
@@ -19,7 +19,7 @@ class ProjectManager : public QObject
     Q_OBJECT
 public:
     /// 构造即完成所有信号连接
-    ProjectManager(ct::CloudTree* tree, ct::CloudView* view,
+    ProjectManager(pw::CloudTree* tree, pw::CloudView* view,
                    QMenu* recentMenu, QWidget* parentWidget);
 
     QString currentProjectPath() const { return m_current_path; }
@@ -55,16 +55,16 @@ private:
     // 项目文件读写
     bool saveProject(const QString& path);
 
-    void collectCloudEntries(const QString& projectDir, ct::ProjectData& data);
-    void collectTreeNodes(QList<ct::TreeNode>& roots);
-    ct::TreeNode treeNodeFromItem(QTreeWidgetItem* item);
-    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node);
+    void collectCloudEntries(const QString& projectDir, pw::ProjectData& data);
+    void collectTreeNodes(QList<pw::TreeNode>& roots);
+    pw::TreeNode treeNodeFromItem(QTreeWidgetItem* item);
+    QTreeWidgetItem* rebuildTreeNode(QTreeWidgetItem* parent, const pw::TreeNode& node);
 
     void updateWindowTitle();
 
     // 外部依赖（构造时注入，不持有所有权）
-    ct::CloudTree* m_tree;
-    ct::CloudView* m_view;
+    pw::CloudTree* m_tree;
+    pw::CloudView* m_view;
     QMenu* m_recent_menu;
     QWidget* m_parent_widget;
 

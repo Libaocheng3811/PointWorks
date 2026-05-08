@@ -17,7 +17,7 @@
 // ======================== Constructor ========================
 
 SupervoxelDialog::SupervoxelDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
     this->setWindowTitle("Supervoxel Clustering");
@@ -152,7 +152,7 @@ void SupervoxelDialog::onApply()
     // ========== Step 4: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    connect(m_progress, &ct::ProgressManager::cancelRequested,
+    connect(m_progress, &pw::ProgressManager::cancelRequested,
             this, [=]() {
                 *cancel = true;
                 m_canceled.store(true);
@@ -176,7 +176,7 @@ void SupervoxelDialog::onApply()
                                      color_importance, spatial_importance,
                                      normal_importance, camera_transform,
                                      cancel, on_progress]() {
-        return ct::Segmentation::SupervoxelClustering(cloud,
+        return pw::Segmentation::SupervoxelClustering(cloud,
             voxel_resolution, seed_resolution,
             color_importance, spatial_importance,
             normal_importance, camera_transform,
@@ -184,8 +184,8 @@ void SupervoxelDialog::onApply()
     });
 
     // ========== Step 7: 监听完成信号 ==========
-    auto* watcher = new QFutureWatcher<ct::SegmentationResult>(this);
-    connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::SegmentationResult>(this);
+    connect(watcher, &QFutureWatcher<pw::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();
@@ -207,7 +207,7 @@ void SupervoxelDialog::onApply()
 
             if (split) {
                 // Split 模式：每个超体素作为单独点云添加到文件树
-                std::vector<ct::Cloud::Ptr> results;
+                std::vector<pw::Cloud::Ptr> results;
                 for (size_t i = 0; i < result.clouds.size(); i++) {
                     auto& c = result.clouds[i];
                     c->setId(cloud->id() + "-supervoxel" + std::to_string(i));
@@ -223,7 +223,7 @@ void SupervoxelDialog::onApply()
                 if (!result.labels.empty())
                     labeled->addScalarField("supervoxel_label", result.labels);
                 labeled->makeAdaptive();
-                std::vector<ct::Cloud::Ptr> results = {labeled};
+                std::vector<pw::Cloud::Ptr> results = {labeled};
                 m_cloudtree->addResultGroup(cloud, results, QString::fromStdString(cloud->id()) + "_Supervoxel");
             }
 

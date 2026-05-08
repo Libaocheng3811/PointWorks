@@ -12,7 +12,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class Measure; }
 QT_END_NAMESPACE
 
-class Measure : public ct::CustomDialog
+class Measure : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -36,10 +36,10 @@ private slots:
     void onMeasurementSelected(int row, int col);
 
     // CloudView mouse events
-    void mouseLeftPressed(const ct::PointXY& pt);
-    void mouseLeftReleased(const ct::PointXY& pt);
-    void mouseRightReleased(const ct::PointXY& pt);
-    void mouseMoved(const ct::PointXY& pt);
+    void mouseLeftPressed(const pw::PointXY& pt);
+    void mouseLeftReleased(const pw::PointXY& pt);
+    void mouseRightReleased(const pw::PointXY& pt);
+    void mouseMoved(const pw::PointXY& pt);
 
 private:
     Ui::Measure *ui;
@@ -50,19 +50,19 @@ private:
     int m_precision = 3;
 
     // Selected cloud
-    ct::Cloud::Ptr m_selected_cloud;
+    pw::Cloud::Ptr m_selected_cloud;
 
     // Temporary marker cloud for current picking endpoints
-    ct::Cloud::Ptr m_marker_cloud;
+    pw::Cloud::Ptr m_marker_cloud;
 
     // First point screen position (to detect drag vs click)
-    ct::PointXY m_first_screen_pos;
+    pw::PointXY m_first_screen_pos;
 
     // Measurement result
     struct Measurement {
         int id;
-        ct::PointXYZRGBN start_pt;
-        ct::PointXYZRGBN end_pt;
+        pw::PointXYZRGBN start_pt;
+        pw::PointXYZRGBN end_pt;
         float distance;
         float dx, dy, dz;
     };
@@ -78,9 +78,9 @@ private:
     static QString previewLabelId()       { return QString("meas_preview_label"); }
 
     // Internal methods
-    void pickFirstPoint(const ct::PointXYZRGBN& pt3d, const ct::PointXY& screenPt);
-    void pickSecondPoint(const ct::PointXYZRGBN& pt3d);
-    void updatePreview(const ct::PointXYZRGBN& hover_pt);
+    void pickFirstPoint(const pw::PointXYZRGBN& pt3d, const pw::PointXY& screenPt);
+    void pickSecondPoint(const pw::PointXYZRGBN& pt3d);
+    void updatePreview(const pw::PointXYZRGBN& hover_pt);
     void cancelCurrentPick();
 
     void addMeasurementToScene(const Measurement& m);
@@ -89,7 +89,7 @@ private:
     void removeMeasurementFromTable(int index);
     void refreshAllSceneDisplay();
 
-    void updateMarkerCloud(const ct::PointXYZRGBN& pt);
+    void updateMarkerCloud(const pw::PointXYZRGBN& pt);
     void clearMarkerCloud();
 
     void updateInfoText();

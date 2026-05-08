@@ -2,11 +2,11 @@
 
 #include <QWidget>
 
-namespace ct {
+namespace pw {
 
 class HelpLauncher {
 public:
     static void showAbout(QWidget* parent);
 };
 
-} // namespace ct
+} // namespace pw

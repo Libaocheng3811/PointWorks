@@ -1,6 +1,6 @@
 # 算法模块与多线程规范
 
-所有算法位于 `libs/algorithm/` 目录，编译为 `ct_algorithm` 静态库。核心原则：**耗时算法严禁在主线程执行**，必须通过 `QThread` 或 `QtConcurrent::run` 放入后台。
+所有算法位于 `libs/algorithm/` 目录，编译为 `pw_algorithm` 静态库。核心原则：**耗时算法严禁在主线程执行**，必须通过 `QThread` 或 `QtConcurrent::run` 放入后台。
 
 ## 重要约束
 

@@ -60,7 +60,7 @@ m_progress->runAsync("CSF 地面分割",
 
 ## CloudIOController (libs/ui/base/cloud_io_controller.h)
 
-文件 I/O 编排，从 CloudTree 提取。头文件仅使用 `ct_core` 类型和前向声明 `class FileIO`，**不依赖 ct_io 头文件**。`ct_io` 仅在 `.cpp` 中链接（PRIVATE）。
+文件 I/O 编排，从 CloudTree 提取。头文件仅使用 `pw_core` 类型和前向声明 `class FileIO`，**不依赖 pw_io 头文件**。`pw_io` 仅在 `.cpp` 中链接（PRIVATE）。
 
 **获取方式**: 通过 `CloudTree::ioController()` 或 `m_cloudtree->ioController()`。
 
@@ -94,11 +94,11 @@ class CloudTree : public CustomTree {
 **使用模式**:
 ```cpp
 // 工具浮窗（无边框、跟随视图）
-ct::createDialog<Filters>(parent, "Filters", cloudview, cloudtree, console,
+pw::createDialog<Filters>(parent, "Filters", cloudview, cloudtree, console,
                            true, false);
 
 // 模态对话框（阻塞、居中）
-ct::createDialog<DisplaySettingsDialog>(parent, "Display Settings",
+pw::createDialog<DisplaySettingsDialog>(parent, "Display Settings",
     cloudview, cloudtree, console, false, true);
 ```
 
@@ -181,7 +181,7 @@ ct::createDialog<DisplaySettingsDialog>(parent, "Display Settings",
 所有插件遵循统一模板：
 
 ```cpp
-class Plugin : public ct::CustomDialog {
+class Plugin : public pw::CustomDialog {
     void init() override;       // 设置 UI 连接
     void onApply();             // 使用 m_progress->runAsync() 执行
     void onDone(Result);        // 完成回调

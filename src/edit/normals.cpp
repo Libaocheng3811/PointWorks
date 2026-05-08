@@ -47,14 +47,14 @@ Normals::~Normals()
     delete ui;
 }
 
-void Normals::runNormals(const std::string& source_id, const ct::Cloud::Ptr& cloud,
+void Normals::runNormals(const std::string& source_id, const pw::Cloud::Ptr& cloud,
                          float vpx, float vpy, float vpz)
 {
     m_progress->showProgress("Normals Estimation...");
 
     m_cancel = false;
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [this]() { m_cancel = true; }, Qt::UniqueConnection);
     }
 
@@ -67,15 +67,15 @@ void Normals::runNormals(const std::string& source_id, const ct::Cloud::Ptr& clo
     double r = ui->dspin_r->value();
     bool reverse = ui->check_reverse->isChecked();
 
-    auto future = QtConcurrent::run([this, cloud, k, r, vpx, vpy, vpz, reverse, progress_cb]() -> ct::NormalsResult {
-        return ct::Normals::estimate(cloud, k, r, vpx, vpy, vpz, reverse, &m_cancel, progress_cb);
+    auto future = QtConcurrent::run([this, cloud, k, r, vpx, vpy, vpz, reverse, progress_cb]() -> pw::NormalsResult {
+        return pw::Normals::estimate(cloud, k, r, vpx, vpy, vpz, reverse, &m_cancel, progress_cb);
     });
 
     if (!m_watcher) {
-        m_watcher = new QFutureWatcher<ct::NormalsResult>(this);
+        m_watcher = new QFutureWatcher<pw::NormalsResult>(this);
     }
 
-    connect(m_watcher, &QFutureWatcher<ct::NormalsResult>::finished, this,
+    connect(m_watcher, &QFutureWatcher<pw::NormalsResult>::finished, this,
         [this, source_id]() {
             m_progress->closeProgress();
             handleNormalsResult(source_id);
@@ -106,7 +106,7 @@ void Normals::handleNormalsResult(const std::string& source_id)
 
 void Normals::preview()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -134,7 +134,7 @@ void Normals::preview()
 
 void Normals::add()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -147,7 +147,7 @@ void Normals::add()
             printW(QString("The cloud[id:%1] has no estimated normals !").arg(QString::fromStdString(cloud->id())));
             continue;
         }
-        ct::Cloud::Ptr new_cloud = m_normals_map[cloud->id()];
+        pw::Cloud::Ptr new_cloud = m_normals_map[cloud->id()];
         m_cloudview->removePointCloud(QString::fromStdString(new_cloud->normalId()));
         m_cloudtree->addSiblingCloud(cloud, new_cloud, NORMALS_ADD_FLAG);
         m_normals_map.erase(cloud->id());
@@ -158,7 +158,7 @@ void Normals::add()
 
 void Normals::apply()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -171,7 +171,7 @@ void Normals::apply()
             printW(QString("The cloud[id:%1] has no estimated normals !").arg(QString::fromStdString(cloud->id())));
             continue;
         }
-        ct::Cloud::Ptr new_cloud = m_normals_map[cloud->id()];
+        pw::Cloud::Ptr new_cloud = m_normals_map[cloud->id()];
         m_cloudview->removePointCloud(QString::fromStdString(new_cloud->normalId()));
         m_cloudtree->updateCloud(cloud, new_cloud);
         m_normals_map.erase(cloud->id());
@@ -190,7 +190,7 @@ void Normals::reset()
 
 void Normals::reverseNormals()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty()) return;
     for (auto& cloud : selected_clouds)
     {
@@ -205,7 +205,7 @@ void Normals::reverseNormals()
             pt.normal_y = -pt.normal_y;
             pt.normal_z = -pt.normal_z;
         }
-        it->second = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud, cloud->getGlobalShift());
+        it->second = pw::Cloud::fromPCL_XYZRGBN(*pcl_cloud, cloud->getGlobalShift());
         it->second->setId(cloud->id());
         it->second->setFilepath(cloud->filepath());
         it->second->setBox(cloud->box());
@@ -216,7 +216,7 @@ void Normals::reverseNormals()
 
 void Normals::updateNormals()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty()) return;
     for (auto& cloud : selected_clouds)
     {

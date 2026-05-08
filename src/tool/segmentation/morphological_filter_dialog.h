@@ -14,7 +14,7 @@
 #include <QPointer>
 #include <atomic>
 
-class MorphologicalFilterDialog : public ct::CustomDialog
+class MorphologicalFilterDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -50,7 +50,7 @@ private:
     QPushButton* btn_cancel_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 #endif // POINTWORKS_MORPHOLOGICAL_FILTER_DIALOG_H

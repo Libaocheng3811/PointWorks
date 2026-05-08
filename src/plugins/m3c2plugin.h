@@ -12,9 +12,9 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class M3C2Plugin; }
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(ct::M3C2Params)
+Q_DECLARE_METATYPE(pw::M3C2Params)
 
-class M3C2Plugin : public ct::CustomDialog {
+class M3C2Plugin : public pw::CustomDialog {
 Q_OBJECT
 
 public:
@@ -30,8 +30,8 @@ private slots:
 
 private:
     Ui::M3C2Plugin *ui;
-    ct::Cloud::Ptr m_refCloud;
-    ct::Cloud::Ptr m_compCloud;
+    pw::Cloud::Ptr m_refCloud;
+    pw::Cloud::Ptr m_compCloud;
 };
 
 #endif // POINTWORKS_M3C2PLUGIN_H

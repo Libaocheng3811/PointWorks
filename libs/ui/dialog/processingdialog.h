@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
-namespace ct{
+namespace pw{
     class ProcessingDialog : public QDialog
     {
         Q_OBJECT
@@ -67,5 +67,5 @@ namespace ct{
         QLabel* m_label;
         QPushButton* m_btnCancel;
     };
-} // namespace ct
+} // namespace pw
 #endif //POINTWORKS_PROCESSINGDIALOG_H

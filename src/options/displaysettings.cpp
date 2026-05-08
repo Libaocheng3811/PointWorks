@@ -3,7 +3,7 @@
 #include "python_settings_page.h"
 
 DisplaySettingsDialog::DisplaySettingsDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setWindowTitle("Display Settings");
     resize(480, 360);

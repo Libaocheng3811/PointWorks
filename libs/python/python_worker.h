@@ -5,7 +5,7 @@
 #include <QString>
 #include <atomic>
 
-namespace ct
+namespace pw
 {
 
 class PythonBridge;
@@ -47,6 +47,6 @@ private:
     bool m_is_file{false};
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PYTHON_WORKER_H

@@ -39,7 +39,7 @@
 #include <pcl/segmentation/impl/seeded_hue_segmentation.hpp>
 #include <pcl/segmentation/impl/segment_differences.hpp>
 
-namespace ct
+namespace pw
 {
 
     static inline bool isCanceled(std::atomic<bool>* cancel) {
@@ -1053,4 +1053,4 @@ namespace ct
         return {segmented_clouds, {}, static_cast<float>(time.toc()), nullptr};
     }
 
-}  // namespace ct
+}  // namespace pw

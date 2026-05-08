@@ -14,7 +14,7 @@
 #include <QFileInfo>
 #include <QMetaType>
 
-namespace ct
+namespace pw
 {
 
 CloudIOController::CloudIOController(QObject* parent)
@@ -40,11 +40,11 @@ void CloudIOController::init(QWidget* parentWidget, ProgressManager* progress)
     qRegisterMetaType<Cloud::Ptr>("Cloud::Ptr");
     qRegisterMetaType<Cloud::Ptr>("Cloud::Ptr &");
     qRegisterMetaType<pcl::PolygonMesh::Ptr>("pcl::PolygonMesh::Ptr");
-    qRegisterMetaType<QList<ct::FieldInfo>>("QList<ct::FieldInfo>");
+    qRegisterMetaType<QList<pw::FieldInfo>>("QList<pw::FieldInfo>");
     qRegisterMetaType<QMap<QString, QString>>("QMap<QString, QString>&");
-    qRegisterMetaType<ct::TxtImportParams>("ct::TxtImportParams");
-    qRegisterMetaType<ct::TxtExportParams>("ct::TxtExportParams");
-    qRegisterMetaType<ct::TexturedMeshPtr>("ct::TexturedMeshPtr");
+    qRegisterMetaType<pw::TxtImportParams>("pw::TxtImportParams");
+    qRegisterMetaType<pw::TxtExportParams>("pw::TxtExportParams");
+    qRegisterMetaType<pw::TexturedMeshPtr>("pw::TexturedMeshPtr");
     qRegisterMetaType<std::vector<int>>("std::vector<int>");
 
     m_fileio = new FileIO;
@@ -199,7 +199,7 @@ void CloudIOController::onLoadTexturedMeshResult(const QString& cloudId, const Q
     emit texturedMeshLoaded(cloudId, objFilePath);
 }
 
-void CloudIOController::onFieldMappingRequested(const QList<ct::FieldInfo>& fields, std::map<std::string, std::string>& result)
+void CloudIOController::onFieldMappingRequested(const QList<pw::FieldInfo>& fields, std::map<std::string, std::string>& result)
 {
     if (m_script_mode) {
         for (const auto& f : fields) {
@@ -232,14 +232,14 @@ void CloudIOController::onFieldMappingRequested(const QList<ct::FieldInfo>& fiel
     }
     FieldMappingDialog dlg(fields, m_parent_widget);
     if (dlg.exec() == QDialog::Accepted) {
-        ct::MappingResult res = dlg.getMapping();
+        pw::MappingResult res = dlg.getMapping();
         result = std::move(res.field_map);
     } else {
         result.clear();
     }
 }
 
-void CloudIOController::onTxtImportRequested(const QStringList& preview_lines, ct::TxtImportParams& params)
+void CloudIOController::onTxtImportRequested(const QStringList& preview_lines, pw::TxtImportParams& params)
 {
     if (m_script_mode) return;
     TxtImportDialog dlg(preview_lines, m_parent_widget);
@@ -250,7 +250,7 @@ void CloudIOController::onTxtImportRequested(const QStringList& preview_lines, c
     }
 }
 
-void CloudIOController::onTxtExportRequested(const QStringList& available_fields, ct::TxtExportParams& params)
+void CloudIOController::onTxtExportRequested(const QStringList& available_fields, pw::TxtExportParams& params)
 {
     if (m_script_mode) return;
     TxtExportDialog dlg(available_fields, m_parent_widget);
@@ -283,4 +283,4 @@ void CloudIOController::onGlobalFilterRequested(const Eigen::Vector3d& min_pt, E
     }
 }
 
-} // namespace ct
+} // namespace pw

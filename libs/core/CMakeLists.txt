@@ -9,19 +9,19 @@ set(LAS_INCLUDE_DIRS
     "${CMAKE_SOURCE_DIR}/3rdparty/LAStools/LASzip/src"
 )
 
-add_library(ct_core SHARED ${LibSrcs} ${LibHdrs})
+add_library(pw_core SHARED ${LibSrcs} ${LibHdrs})
 
-target_include_directories(ct_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pw_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_include_directories(ct_core PUBLIC ${LAS_INCLUDE_DIRS})
+target_include_directories(pw_core PUBLIC ${LAS_INCLUDE_DIRS})
 
-target_link_libraries(ct_core
+target_link_libraries(pw_core
         PUBLIC
         ${PCL_LIBRARIES}
         PRIVATE
         LASlib
         OpenMP::OpenMP_CXX)
 
-target_compile_definitions(ct_core PRIVATE CT_BUILDING_CT_CORE)
+target_compile_definitions(pw_core PRIVATE PW_BUILDING_PW_CORE)
 
-set_target_properties(ct_core PROPERTIES PUBLIC_HEADER "${LibHdrs}")
+set_target_properties(pw_core PROPERTIES PUBLIC_HEADER "${LibHdrs}")

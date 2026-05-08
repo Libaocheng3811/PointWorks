@@ -23,7 +23,7 @@
 // ======================== Constructor ========================
 
 ShapeDetectionDialog::ShapeDetectionDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
     this->setWindowTitle("Shape Detection");
@@ -246,7 +246,7 @@ void ShapeDetectionDialog::onApply()
     // ========== Step 4: 设置取消标志 ==========
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    connect(m_progress, &ct::ProgressManager::cancelRequested,
+    connect(m_progress, &pw::ProgressManager::cancelRequested,
             this, [=]() {
                 *cancel = true;
                 m_canceled.store(true);
@@ -269,18 +269,18 @@ void ShapeDetectionDialog::onApply()
                                      threshold, max_iterations, probability, optimize,
                                      min_radius, max_radius, distance_weight, distance_origin,
                                      splitInOutlier, cancel, on_progress]() {
-        ct::SegmentationResult result;
+        pw::SegmentationResult result;
         result.time_ms = 0;
 
         // 第一次调用：提取 inlier（negative=false）
-        ct::SegmentationResult inlierResult;
+        pw::SegmentationResult inlierResult;
         if (useNormals) {
-            inlierResult = ct::Segmentation::SACSegmentationFromNormals(
+            inlierResult = pw::Segmentation::SACSegmentationFromNormals(
                 cloud, false, model, method, threshold, max_iterations, probability,
                 optimize, min_radius, max_radius, distance_weight, distance_origin,
                 cancel, on_progress);
         } else {
-            inlierResult = ct::Segmentation::SACSegmentation(
+            inlierResult = pw::Segmentation::SACSegmentation(
                 cloud, false, model, method, threshold, max_iterations, probability,
                 optimize, min_radius, max_radius, cancel, on_progress);
         }
@@ -295,14 +295,14 @@ void ShapeDetectionDialog::onApply()
 
         // 第二次调用：提取 outlier（negative=true）
         if (splitInOutlier) {
-            ct::SegmentationResult outlierResult;
+            pw::SegmentationResult outlierResult;
             if (useNormals) {
-                outlierResult = ct::Segmentation::SACSegmentationFromNormals(
+                outlierResult = pw::Segmentation::SACSegmentationFromNormals(
                     cloud, true, model, method, threshold, max_iterations, probability,
                     optimize, min_radius, max_radius, distance_weight, distance_origin,
                     cancel, on_progress);
             } else {
-                outlierResult = ct::Segmentation::SACSegmentation(
+                outlierResult = pw::Segmentation::SACSegmentation(
                     cloud, true, model, method, threshold, max_iterations, probability,
                     optimize, min_radius, max_radius, cancel, on_progress);
             }
@@ -316,8 +316,8 @@ void ShapeDetectionDialog::onApply()
     });
 
     // ========== Step 7: 监听完成信号 ==========
-    auto* watcher = new QFutureWatcher<ct::SegmentationResult>(this);
-    connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::SegmentationResult>(this);
+    connect(watcher, &QFutureWatcher<pw::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();
@@ -338,15 +338,15 @@ void ShapeDetectionDialog::onApply()
                        .arg(result.clouds.size()));
 
             // 添加结果到点云树
-            std::vector<ct::Cloud::Ptr> results;
+            std::vector<pw::Cloud::Ptr> results;
             for (size_t i = 0; i < result.clouds.size(); i++) {
                 auto& c = result.clouds[i];
                 c->setId(m_cloud->id() + (i == 0 ? "-inlier" : "-outlier"));
                 c->makeAdaptive();
                 if (i == 0 && colorizeInliers) {
-                    c->setCloudColor(ct::ColorRGB{0, 255, 0});
+                    c->setCloudColor(pw::ColorRGB{0, 255, 0});
                 } else if (i == 1) {
-                    c->setCloudColor(ct::ColorRGB{255, 0, 0});
+                    c->setCloudColor(pw::ColorRGB{255, 0, 0});
                 }
                 results.push_back(c);
             }

@@ -17,7 +17,7 @@
 // ======================== Constructor ========================
 
 MorphologicalFilterDialog::MorphologicalFilterDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
     this->setWindowTitle("Morphological Filter");
@@ -146,7 +146,7 @@ void MorphologicalFilterDialog::onApply()
 
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
-    connect(m_progress, &ct::ProgressManager::cancelRequested,
+    connect(m_progress, &pw::ProgressManager::cancelRequested,
             this, [=]() {
                 *cancel = true;
                 m_canceled.store(true);
@@ -156,7 +156,7 @@ void MorphologicalFilterDialog::onApply()
                 this->reject();
             });
 
-    QPointer<ct::ProcessingDialog> dialog = m_progress->dialog();
+    QPointer<pw::ProcessingDialog> dialog = m_progress->dialog();
     auto on_progress = [dialog](int pct) {
         if (dialog)
             QMetaObject::invokeMethod(dialog.data(), "setProgress",
@@ -169,13 +169,13 @@ void MorphologicalFilterDialog::onApply()
     auto future = QtConcurrent::run([cloud, negative, max_window_size, slope,
                                      max_distance, initial_distance, cell_size, base,
                                      cancel, on_progress]() {
-        return ct::Segmentation::MorphologicalFilter(cloud, negative,
+        return pw::Segmentation::MorphologicalFilter(cloud, negative,
             max_window_size, slope, max_distance, initial_distance,
             cell_size, base, cancel, on_progress);
     });
 
-    auto* watcher = new QFutureWatcher<ct::SegmentationResult>(this);
-    connect(watcher, &QFutureWatcher<ct::SegmentationResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::SegmentationResult>(this);
+    connect(watcher, &QFutureWatcher<pw::SegmentationResult>::finished, this,
         [=]() {
             if (!progress_closed->load()) {
                 m_progress->closeProgress();

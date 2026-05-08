@@ -1,5 +1,5 @@
-#ifndef CT_MODULES_SEGMENTATION_H
-#define CT_MODULES_SEGMENTATION_H
+#ifndef PW_MODULES_SEGMENTATION_H
+#define PW_MODULES_SEGMENTATION_H
 
 #include "core/cloud.h"
 
@@ -9,7 +9,7 @@
 #include <functional>
 #include <atomic>
 
-namespace ct
+namespace pw
 {
     typedef pcl::PointNormal                                    PointN;
     typedef pcl::PointIndices                                   PointIndices;
@@ -306,6 +306,6 @@ namespace ct
                                                              std::function<void(int)> on_progress = nullptr);
     };
 
-}  // namespace ct
+}  // namespace pw
 
-#endif  // CT_MODULES_SEGMENTATION_H
+#endif  // PW_MODULES_SEGMENTATION_H

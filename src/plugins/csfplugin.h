@@ -15,7 +15,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class CSFPlugin; }
 QT_END_NAMESPACE
 
-class CSFPlugin : public ct::CustomDialog {
+class CSFPlugin : public pw::CustomDialog {
 Q_OBJECT
 
 public:
@@ -31,7 +31,7 @@ private slots:
 
 private:
     Ui::CSFPlugin *ui;
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
 };
 
 

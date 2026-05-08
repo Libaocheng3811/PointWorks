@@ -14,7 +14,7 @@
 #include <atomic>
 #include <QFutureWatcher>
 
-class ClosestPointSetDialog : public ct::CustomDialog {
+class ClosestPointSetDialog : public pw::CustomDialog {
     Q_OBJECT
 public:
     explicit ClosestPointSetDialog(QWidget* parent = nullptr);
@@ -32,10 +32,10 @@ private:
     void updateOutputName();
 
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::CPSResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::CPSResult>* m_watcher = nullptr;
 
-    ct::Cloud::Ptr m_source_cloud;
-    ct::Cloud::Ptr m_target_cloud;
+    pw::Cloud::Ptr m_source_cloud;
+    pw::Cloud::Ptr m_target_cloud;
 
     QComboBox* cbox_source_;
     QComboBox* cbox_target_;

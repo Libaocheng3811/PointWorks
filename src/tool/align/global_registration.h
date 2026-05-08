@@ -19,7 +19,7 @@
 #include <atomic>
 #include <memory>
 
-class GlobalRegistrationDialog : public ct::CustomDialog
+class GlobalRegistrationDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -106,18 +106,18 @@ private:
     void updateCorrespondenceLines();
     void clearCorrespondenceLines();
 
-    ct::Cloud::Ptr m_source;
-    ct::Cloud::Ptr m_target;
+    pw::Cloud::Ptr m_source;
+    pw::Cloud::Ptr m_target;
     QString m_source_id;
     Eigen::Matrix4f m_result_matrix;
-    ct::Cloud::Ptr m_aligned_cloud;
-    ct::Cloud::Ptr m_kp_source;
-    ct::Cloud::Ptr m_kp_target;
-    ct::CorrespondencesPtr m_correspondences;
+    pw::Cloud::Ptr m_aligned_cloud;
+    pw::Cloud::Ptr m_kp_source;
+    pw::Cloud::Ptr m_kp_target;
+    pw::CorrespondencesPtr m_correspondences;
 
-    QFutureWatcher<ct::RegistrationResult> m_watcher;
+    QFutureWatcher<pw::RegistrationResult> m_watcher;
     std::shared_ptr<std::atomic<bool>> m_cancel_flag;
-    ct::ParamSnapshot m_last_compute_snapshot;
+    pw::ParamSnapshot m_last_compute_snapshot;
 
     static constexpr const char* PREVIEW_ID = "gr_preview";
     static constexpr const char* KP_SRC_ID = "gr_kp_src";

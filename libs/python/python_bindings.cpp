@@ -25,7 +25,7 @@
 
 namespace py = pybind11;
 
-PYBIND11_EMBEDDED_MODULE(ct, m)
+PYBIND11_EMBEDDED_MODULE(pw, m)
 {
     registerCoreBindings(m);
     registerViewBindings(m);

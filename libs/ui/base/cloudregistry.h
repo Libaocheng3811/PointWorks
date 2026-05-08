@@ -14,7 +14,7 @@
 
 class QTreeWidgetItem;
 
-namespace ct
+namespace pw
 {
 
 class CloudRegistry : public QObject
@@ -84,6 +84,6 @@ private:
     QSet<QString> m_clouds_in_use;
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_CLOUDREGISTRY_H

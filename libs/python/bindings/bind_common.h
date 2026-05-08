@@ -18,9 +18,9 @@
 namespace py = pybind11;
 
 // Get the global PythonCloudRegistry (Qt-free)
-inline ct::PythonCloudRegistry& getRegistry()
+inline pw::PythonCloudRegistry& getRegistry()
 {
-    return *ct::PythonManager::instance().registry();
+    return *pw::PythonManager::instance().registry();
 }
 
 // Check whether algorithm results should auto-insert into UI

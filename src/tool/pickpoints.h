@@ -22,7 +22,7 @@ enum PickMode{
     PICK_MULTI = 1   // 多点（多边形）
 };
 
-class PickPoints : public ct::CustomDialog
+class PickPoints : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -42,24 +42,24 @@ public:
 
 private:
     void updateInfo(int index);
-    void updatePanelInfo(const ct::PickResult& res);
+    void updatePanelInfo(const pw::PickResult& res);
     void updateButtonStates();
 
 public slots:
-    void mouseLeftPressed(const ct::PointXY& pt);
-    void mouseLeftReleased(const ct::PointXY& pt);
-    void mouseRightReleased(const ct::PointXY& pt);
-    void mouseMoved(const ct::PointXY& pt);
+    void mouseLeftPressed(const pw::PointXY& pt);
+    void mouseLeftReleased(const pw::PointXY& pt);
+    void mouseRightReleased(const pw::PointXY& pt);
+    void mouseMoved(const pw::PointXY& pt);
 
 private:
     Ui::PickPoints *ui;
     bool is_picking;
     bool pick_start;
     // 选中的点云
-    ct::Cloud::Ptr m_selected_cloud;
-    ct::Cloud::Ptr m_pick_cloud; // 临时显示的红色选点
+    pw::Cloud::Ptr m_selected_cloud;
+    pw::Cloud::Ptr m_pick_cloud; // 临时显示的红色选点
     // 拾取的点
-    ct::PointXY m_pick_point;
+    pw::PointXY m_pick_point;
 };
 
 

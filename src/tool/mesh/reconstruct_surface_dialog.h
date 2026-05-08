@@ -19,7 +19,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class ReconstructSurfaceDialog : public ct::CustomDialog
+class ReconstructSurfaceDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -48,7 +48,7 @@ private:
 
     // --- 异步执行 ---
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::SurfaceResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::SurfaceResult>* m_watcher = nullptr;
 
     // --- 控件（_ 后缀） ---
     QComboBox* cbox_algorithm_;
@@ -99,7 +99,7 @@ private:
     QPushButton* btn_close_;
 
     // --- 业务数据（m_ 前缀） ---
-    ct::Cloud::Ptr m_cloud;
+    pw::Cloud::Ptr m_cloud;
     QStringList m_preview_ids;  // preview 添加的 mesh/boundary ID，关闭时清理
 };
 

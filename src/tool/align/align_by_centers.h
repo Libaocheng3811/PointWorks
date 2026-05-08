@@ -12,7 +12,7 @@
 #include <QFutureWatcher>
 #include <atomic>
 
-class AlignByCentersDialog : public ct::CustomDialog
+class AlignByCentersDialog : public pw::CustomDialog
 {
     Q_OBJECT
 
@@ -43,9 +43,9 @@ private:
     Eigen::Matrix4f m_matrix;
     std::atomic<bool> m_canceled;
     QString m_source_id;
-    ct::Cloud::Ptr m_aligned_cloud;
+    pw::Cloud::Ptr m_aligned_cloud;
     bool m_has_preview = false;
-    ct::ParamSnapshot m_last_align_snapshot;
+    pw::ParamSnapshot m_last_align_snapshot;
 
     static constexpr const char* PREVIEW_ID = "abc_preview";
 };

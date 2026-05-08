@@ -12,20 +12,20 @@
 #include <QColorDialog>
 #include <QGridLayout>
 
-namespace ct { class CloudView; class CloudTree; }
+namespace pw { class CloudView; class CloudTree; }
 
 class ColorsPage : public DisplaySettingsPage
 {
     Q_OBJECT
 public:
-    explicit ColorsPage(ct::CloudView* cloudview, ct::CloudTree* cloudtree, QWidget* parent = nullptr);
+    explicit ColorsPage(pw::CloudView* cloudview, pw::CloudTree* cloudtree, QWidget* parent = nullptr);
 
     void apply() override;
     void reset() override;
 
 private:
-    ct::CloudView* m_cloudview;
-    ct::CloudTree* m_cloudtree;
+    pw::CloudView* m_cloudview;
+    pw::CloudTree* m_cloudtree;
 
     // 背景色
     QColor m_bg_color;

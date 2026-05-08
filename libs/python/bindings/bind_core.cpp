@@ -15,23 +15,23 @@ void registerCoreBindings(py::module_& m)
 {
     // --- GUI Console output ---
     m.def("printI", [](const std::string& msg) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->log(0, QString::fromStdString(msg));
     }, "Print info message to GUI Console");
 
     m.def("printW", [](const std::string& msg) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->log(1, QString::fromStdString(msg));
     }, "Print warning message to GUI Console");
 
     m.def("printE", [](const std::string& msg) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->log(2, QString::fromStdString(msg));
     }, "Print error message to GUI Console");
 
     // --- 工厂函数：从 capsule 中提取 Cloud::Ptr 并构造 PyCloud ---
     m.def("_wrap_cloud", [](py::capsule cap) -> py::object {
-        auto* cloud_ptr = static_cast<ct::Cloud::Ptr*>(cap);
+        auto* cloud_ptr = static_cast<pw::Cloud::Ptr*>(cap);
         if (!cloud_ptr || !*cloud_ptr)
             throw std::runtime_error("Invalid cloud capsule");
         return py::cast(PyCloud(*cloud_ptr));
@@ -44,7 +44,7 @@ void registerCoreBindings(py::module_& m)
         if (!cloud) return py::none();
 
         registry.holdCloud(cloud);
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->markCloudInUse(QString::fromStdString(cloud->id()));
 
         return py::cast(PyCloud(cloud));
@@ -63,10 +63,10 @@ void registerCoreBindings(py::module_& m)
 
         const float* data = static_cast<const float*>(buf.ptr);
 
-        auto cloud = std::make_shared<ct::Cloud>();
+        auto cloud = std::make_shared<pw::Cloud>();
         cloud->setId(name);
 
-        auto config = ct::Cloud::calculateAdaptiveConfig(count);
+        auto config = pw::Cloud::calculateAdaptiveConfig(count);
         cloud->setConfig(config);
 
         float min_x = FLT_MAX, min_y = FLT_MAX, min_z = FLT_MAX;
@@ -77,7 +77,7 @@ void registerCoreBindings(py::module_& m)
             if (y < min_y) min_y = y; if (y > max_y) max_y = y;
             if (z < min_z) min_z = z; if (z > max_z) max_z = z;
         }
-        ct::Box globalBox;
+        pw::Box globalBox;
         globalBox.translation = Eigen::Vector3f(
             (min_x + max_x) * 0.5f, (min_y + max_y) * 0.5f, (min_z + max_z) * 0.5f);
         globalBox.width  = max_x - min_x;
@@ -86,7 +86,7 @@ void registerCoreBindings(py::module_& m)
 
         cloud->initOctree(globalBox);
 
-        std::vector<ct::PointXYZ> points(count);
+        std::vector<pw::PointXYZ> points(count);
         for (size_t i = 0; i < count; ++i) {
             points[i].x = data[i*3];
             points[i].y = data[i*3+1];
@@ -94,7 +94,7 @@ void registerCoreBindings(py::module_& m)
         }
 
         bool has_colors = !colors_obj.is_none();
-        std::vector<ct::ColorRGB> colors;
+        std::vector<pw::ColorRGB> colors;
         if (has_colors) {
             auto color_arr = py::cast<py::array_t<uint8_t>>(colors_obj);
             auto cbuf = color_arr.request();
@@ -121,26 +121,26 @@ void registerCoreBindings(py::module_& m)
         cloud->update();
 
         getRegistry().registerCloud(cloud);
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->insertCloud(cloud);
 
         return py::cast(PyCloud(cloud));
     }, py::arg("name"), py::arg("xyz"), py::arg("colors") = py::none(),
        "Create a new cloud from numpy arrays and add to scene");
 
-    m.def("insert_cloud", [](ct::Cloud::Ptr cloud) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+    m.def("insert_cloud", [](pw::Cloud::Ptr cloud) {
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->insertCloud(cloud);
     }, py::arg("cloud"), "Insert a cloud into the tree and view");
 
     m.def("remove_selected_clouds", []() {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->removeSelectedClouds();
     }, "Remove currently selected clouds");
 
     // --- PyCloud class ---
     py::class_<PyCloud>(m, "Cloud")
-        .def(py::init<ct::Cloud::Ptr>())
+        .def(py::init<pw::Cloud::Ptr>())
         // ===== 基础属性 =====
         .def("size", &PyCloud::size, "Total number of points")
         .def("num_blocks", &PyCloud::numBlocks, "Number of data blocks")
@@ -177,54 +177,54 @@ void registerCoreBindings(py::module_& m)
             Eigen::Affine3f trans = Eigen::Affine3f::Identity();
             trans.translation() = Eigen::Vector3f(static_cast<float>(tx), static_cast<float>(ty), static_cast<float>(tz));
             auto pcl_cloud = cloud->toPCL_XYZRGBN();
-            pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<ct::PointXYZRGBN>);
+            pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<pw::PointXYZRGBN>);
             pcl::transformPointCloud(*pcl_cloud, *pcl_result, trans);
-            auto result = ct::Cloud::fromPCL_XYZRGBN(*pcl_result);
+            auto result = pw::Cloud::fromPCL_XYZRGBN(*pcl_result);
             result->setId("translated-" + cloud->id());
             result->setHasColors(cloud->hasColors());
             result->setHasNormals(cloud->hasNormals());
             result->makeAdaptive();
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, py::arg("tx"), py::arg("ty"), py::arg("tz"),
            "Translate cloud by (tx, ty, tz). Returns new ct.Cloud.")
 
         .def("rotate", [](PyCloud& self, double rx, double ry, double rz) -> py::object {
             auto cloud = self.cloudPtr();
-            Eigen::Affine3f trans = ct::getTransformation(0, 0, 0,
+            Eigen::Affine3f trans = pw::getTransformation(0, 0, 0,
                 static_cast<float>(rx), static_cast<float>(ry), static_cast<float>(rz));
             auto pcl_cloud = cloud->toPCL_XYZRGBN();
-            pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<ct::PointXYZRGBN>);
+            pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<pw::PointXYZRGBN>);
             pcl::transformPointCloud(*pcl_cloud, *pcl_result, trans);
-            auto result = ct::Cloud::fromPCL_XYZRGBN(*pcl_result);
+            auto result = pw::Cloud::fromPCL_XYZRGBN(*pcl_result);
             result->setId("rotated-" + cloud->id());
             result->setHasColors(cloud->hasColors());
             result->setHasNormals(cloud->hasNormals());
             result->makeAdaptive();
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, py::arg("rx"), py::arg("ry"), py::arg("rz"),
            "Rotate cloud by Euler angles (degrees). Returns new ct.Cloud.")
 
         .def("rotate_axis", [](PyCloud& self, double angle, double ax, double ay, double az) -> py::object {
             auto cloud = self.cloudPtr();
-            Eigen::Affine3f trans = ct::getTransformation(
+            Eigen::Affine3f trans = pw::getTransformation(
                 static_cast<float>(angle), static_cast<float>(ax), static_cast<float>(ay), static_cast<float>(az), 0, 0, 0);
             auto pcl_cloud = cloud->toPCL_XYZRGBN();
-            pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<ct::PointXYZRGBN>);
+            pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<pw::PointXYZRGBN>);
             pcl::transformPointCloud(*pcl_cloud, *pcl_result, trans);
-            auto result = ct::Cloud::fromPCL_XYZRGBN(*pcl_result);
+            auto result = pw::Cloud::fromPCL_XYZRGBN(*pcl_result);
             result->setId("rotated-" + cloud->id());
             result->setHasColors(cloud->hasColors());
             result->setHasNormals(cloud->hasNormals());
             result->makeAdaptive();
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, py::arg("angle"), py::arg("ax"), py::arg("ay"), py::arg("az"),
            "Rotate cloud by angle (degrees) around axis. Returns new ct.Cloud.")
@@ -236,16 +236,16 @@ void registerCoreBindings(py::module_& m)
             trans(1, 1) = static_cast<float>(sy);
             trans(2, 2) = static_cast<float>(sz);
             auto pcl_cloud = cloud->toPCL_XYZRGBN();
-            pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<ct::PointXYZRGBN>);
+            pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<pw::PointXYZRGBN>);
             pcl::transformPointCloud(*pcl_cloud, *pcl_result, trans);
-            auto result = ct::Cloud::fromPCL_XYZRGBN(*pcl_result);
+            auto result = pw::Cloud::fromPCL_XYZRGBN(*pcl_result);
             result->setId("scaled-" + cloud->id());
             result->setHasColors(cloud->hasColors());
             result->setHasNormals(cloud->hasNormals());
             result->makeAdaptive();
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, py::arg("sx"), py::arg("sy"), py::arg("sz"),
            "Scale cloud by (sx, sy, sz). Returns new ct.Cloud.")
@@ -261,16 +261,16 @@ void registerCoreBindings(py::module_& m)
                     trans(i, j) = row[j].cast<float>();
             }
             auto pcl_cloud = cloud->toPCL_XYZRGBN();
-            pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<ct::PointXYZRGBN>);
+            pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<pw::PointXYZRGBN>);
             pcl::transformPointCloud(*pcl_cloud, *pcl_result, trans);
-            auto result = ct::Cloud::fromPCL_XYZRGBN(*pcl_result);
+            auto result = pw::Cloud::fromPCL_XYZRGBN(*pcl_result);
             result->setId("transformed-" + cloud->id());
             result->setHasColors(cloud->hasColors());
             result->setHasNormals(cloud->hasNormals());
             result->makeAdaptive();
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, py::arg("matrix"),
            "Apply 4x4 transformation matrix. Returns new ct.Cloud.")
@@ -278,26 +278,26 @@ void registerCoreBindings(py::module_& m)
         // ===== 滤波（便捷方法） =====
         .def("voxel_down_sample", [](PyCloud& self, float lx, float ly, float lz) -> py::object {
             auto cloud = self.cloudPtr();
-            auto fr = ct::Filters::VoxelGrid(cloud, lx, ly, lz, false);
+            auto fr = pw::Filters::VoxelGrid(cloud, lx, ly, lz, false);
             if (!fr.result_cloud) throw std::runtime_error("Voxel grid produced no result");
             fr.result_cloud->setId("voxel-" + cloud->id());
             fr.result_cloud->makeAdaptive();
             getRegistry().registerCloud(fr.result_cloud);
             getRegistry().holdCloud(fr.result_cloud);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(fr.result_cloud); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(fr.result_cloud); }
             return py::cast(PyCloud(fr.result_cloud));
         }, py::arg("lx"), py::arg("ly"), py::arg("lz"),
            "Voxel grid downsampling. Returns new ct.Cloud.")
 
         .def("remove_outliers", [](PyCloud& self, int nr_k, double stddev_mult) -> py::object {
             auto cloud = self.cloudPtr();
-            auto fr = ct::Filters::StatisticalOutlierRemoval(cloud, nr_k, stddev_mult, false);
+            auto fr = pw::Filters::StatisticalOutlierRemoval(cloud, nr_k, stddev_mult, false);
             if (!fr.result_cloud) throw std::runtime_error("Outlier removal produced no result");
             fr.result_cloud->setId("sor-" + cloud->id());
             fr.result_cloud->makeAdaptive();
             getRegistry().registerCloud(fr.result_cloud);
             getRegistry().holdCloud(fr.result_cloud);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(fr.result_cloud); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(fr.result_cloud); }
             return py::cast(PyCloud(fr.result_cloud));
         }, py::arg("nr_k") = 30, py::arg("stddev_mult") = 2.0,
            "Statistical outlier removal. Returns new ct.Cloud.")
@@ -306,17 +306,17 @@ void registerCoreBindings(py::module_& m)
                                  double min_x, double min_y, double min_z,
                                  double max_x, double max_y, double max_z) -> py::object {
             auto cloud = self.cloudPtr();
-            auto fr_x = ct::Filters::PassThrough(cloud, "x", static_cast<float>(min_x), static_cast<float>(max_x), false);
+            auto fr_x = pw::Filters::PassThrough(cloud, "x", static_cast<float>(min_x), static_cast<float>(max_x), false);
             if (!fr_x.result_cloud) throw std::runtime_error("Crop produced no result on X axis");
-            auto fr_y = ct::Filters::PassThrough(fr_x.result_cloud, "y", static_cast<float>(min_y), static_cast<float>(max_y), false);
+            auto fr_y = pw::Filters::PassThrough(fr_x.result_cloud, "y", static_cast<float>(min_y), static_cast<float>(max_y), false);
             if (!fr_y.result_cloud) throw std::runtime_error("Crop produced no result on Y axis");
-            auto fr_z = ct::Filters::PassThrough(fr_y.result_cloud, "z", static_cast<float>(min_z), static_cast<float>(max_z), false);
+            auto fr_z = pw::Filters::PassThrough(fr_y.result_cloud, "z", static_cast<float>(min_z), static_cast<float>(max_z), false);
             if (!fr_z.result_cloud) throw std::runtime_error("Crop produced no result on Z axis");
             fr_z.result_cloud->setId("cropped-" + cloud->id());
             fr_z.result_cloud->makeAdaptive();
             getRegistry().registerCloud(fr_z.result_cloud);
             getRegistry().holdCloud(fr_z.result_cloud);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(fr_z.result_cloud); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(fr_z.result_cloud); }
             return py::cast(PyCloud(fr_z.result_cloud));
         }, py::arg("min_x"), py::arg("min_y"), py::arg("min_z"),
            py::arg("max_x"), py::arg("max_y"), py::arg("max_z"),
@@ -325,13 +325,13 @@ void registerCoreBindings(py::module_& m)
         // ===== 法线（便捷方法） =====
         .def("estimate_normals", [](PyCloud& self, int k, double radius) -> py::object {
             auto cloud = self.cloudPtr();
-            auto result = ct::Normals::estimate(cloud, k, radius, 0, 0, 0, false);
+            auto result = pw::Normals::estimate(cloud, k, radius, 0, 0, 0, false);
             if (!result.cloud) throw std::runtime_error(result.error_msg);
             result.cloud->setId("normals-" + cloud->id());
             result.cloud->makeAdaptive();
             getRegistry().registerCloud(result.cloud);
             getRegistry().holdCloud(result.cloud);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result.cloud); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result.cloud); }
             return py::cast(PyCloud(result.cloud));
         }, py::arg("k_search") = 30, py::arg("radius_search") = 0.0,
            "Estimate normals. Returns new ct.Cloud with normals.")
@@ -339,7 +339,7 @@ void registerCoreBindings(py::module_& m)
         // ===== 特征（便捷方法） =====
         .def("fpfh", [](PyCloud& self, int k, double radius) -> py::dict {
             auto cloud = self.cloudPtr();
-            auto fr = ct::Features::FPFHEstimation(cloud, k, radius, nullptr);
+            auto fr = pw::Features::FPFHEstimation(cloud, k, radius, nullptr);
             py::dict dict;
             dict["descriptor"] = extractDescriptorToPy(fr.feature);
             dict["time_ms"] = fr.time_ms;
@@ -349,7 +349,7 @@ void registerCoreBindings(py::module_& m)
 
         .def("shot", [](PyCloud& self, float radius) -> py::dict {
             auto cloud = self.cloudPtr();
-            auto fr = ct::Features::SHOTEstimation(cloud, nullptr, radius, nullptr);
+            auto fr = pw::Features::SHOTEstimation(cloud, nullptr, radius, nullptr);
             py::dict dict;
             dict["descriptor"] = extractDescriptorToPy(fr.feature);
             dict["time_ms"] = fr.time_ms;
@@ -359,13 +359,13 @@ void registerCoreBindings(py::module_& m)
 
         .def("boundary_estimation", [](PyCloud& self, int k, double radius, double angle) -> py::object {
             auto cloud = self.cloudPtr();
-            auto result = ct::Features::BoundaryEstimation(cloud, k, radius, angle);
+            auto result = pw::Features::BoundaryEstimation(cloud, k, radius, angle);
             if (!result) throw std::runtime_error("Boundary estimation produced no result");
             result->setId("boundary-" + cloud->id());
             result->makeAdaptive();
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, py::arg("k") = 30, py::arg("radius") = 0.05, py::arg("angle") = 30.0,
            "Estimate boundary points (requires normals). Returns new ct.Cloud.")
@@ -413,14 +413,14 @@ void registerCoreBindings(py::module_& m)
                                    int min_neighbors, float angle,
                                    int k, double radius) -> py::object {
             auto cloud = self.cloudPtr();
-            auto kr = ct::Keypoints::ISSKeypoint3D(cloud, resolution, gamma_21, gamma_32,
+            auto kr = pw::Keypoints::ISSKeypoint3D(cloud, resolution, gamma_21, gamma_32,
                                                      min_neighbors, angle, k, radius);
             if (!kr.cloud) throw std::runtime_error("ISS keypoint detection produced no result");
             kr.cloud->setId("iss-" + cloud->id());
             kr.cloud->makeAdaptive();
             getRegistry().registerCloud(kr.cloud);
             getRegistry().holdCloud(kr.cloud);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(kr.cloud); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(kr.cloud); }
             return py::cast(PyCloud(kr.cloud));
         }, py::arg("resolution") = 0.1,
            py::arg("gamma_21") = 0.975, py::arg("gamma_32") = 0.975,
@@ -434,7 +434,7 @@ void registerCoreBindings(py::module_& m)
             result->setId("clone-" + cloud->id());
             getRegistry().registerCloud(result);
             getRegistry().holdCloud(result);
-            if (shouldAutoInsert()) { auto* bridge = ct::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
+            if (shouldAutoInsert()) { auto* bridge = pw::PythonManager::instance().bridge(); if (bridge) bridge->insertCloud(result); }
             return py::cast(PyCloud(result));
         }, "Clone this cloud. Returns new ct.Cloud.");
 }

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace ct {
+namespace pw {
 
 // Helper: pack R,G,B (0-255) into a float (bit-reinterpret)
 static float packRGB(uint8_t r, uint8_t g, uint8_t b)
@@ -178,4 +178,4 @@ ColormapLUT buildColormapLUT(ColormapType type)
     return lut;
 }
 
-}  // namespace ct
+}  // namespace pw

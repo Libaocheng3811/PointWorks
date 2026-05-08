@@ -26,7 +26,7 @@
 // ======================== Constructor ========================
 
 PointPairsAlignment::PointPairsAlignment(QWidget* parent)
-    : ct::CustomDialog(parent), m_is_picking(false), m_has_preview(false), m_is_computing(false), m_canceled(false)
+    : pw::CustomDialog(parent), m_is_picking(false), m_has_preview(false), m_is_computing(false), m_canceled(false)
 {
     setupUi();
 
@@ -340,7 +340,7 @@ void PointPairsAlignment::deinit()
 
 void PointPairsAlignment::showEvent(QShowEvent* event)
 {
-    ct::CustomDialog::showEvent(event);
+    pw::CustomDialog::showEvent(event);
     if (m_cloudview) {
         QPoint pos = m_cloudview->mapToGlobal(QPoint(0, 0));
         move(pos.x() + m_cloudview->width() - width() - 9, pos.y() + 9);
@@ -357,7 +357,7 @@ void PointPairsAlignment::closeEvent(QCloseEvent* event)
         printI("Point-pairs alignment reverted (dialog closed without apply).");
     }
 
-    ct::CustomDialog::closeEvent(event);
+    pw::CustomDialog::closeEvent(event);
 }
 
 // ======================== Slots ========================
@@ -381,7 +381,7 @@ void PointPairsAlignment::onStartStop()
 
         hideNonSelectedClouds();
 
-        connect(m_cloudview, &ct::CloudView::mouseLeftPressed,
+        connect(m_cloudview, &pw::CloudView::mouseLeftPressed,
                 this, &PointPairsAlignment::onMouseLeftPressed);
 
         m_cloudview->showInfo("Click on Source or Target cloud to pick points.", 1);
@@ -395,7 +395,7 @@ void PointPairsAlignment::stopPicking()
 {
     if (!m_is_picking) return;
     m_is_picking = false;
-    disconnect(m_cloudview, &ct::CloudView::mouseLeftPressed,
+    disconnect(m_cloudview, &pw::CloudView::mouseLeftPressed,
                this, &PointPairsAlignment::onMouseLeftPressed);
     m_cloudview->clearInfo();
     btn_start_->setText("Start");
@@ -420,7 +420,7 @@ void PointPairsAlignment::onAlign()
 
     // 参数快照对比：非首次且参数一致则跳过
     {
-        ct::ParamSnapshot snap;
+        pw::ParamSnapshot snap;
         snap.set("source_id", cbox_source_->currentText());
         snap.set("target_id", cbox_target_->currentText());
         snap.set("rotation", cbox_rotation_->currentIndex());
@@ -430,8 +430,8 @@ void PointPairsAlignment::onAlign()
         snap.set("adjust_scale", check_adjust_scale_->isChecked());
         snap.set("rms_filter", check_rms_filter_->isChecked());
         snap.set("rms_threshold", spin_rms_threshold_->value());
-        snap.set("source_points", ct::ParamSnapshot::pointsToString(m_source_points));
-        snap.set("target_points", ct::ParamSnapshot::pointsToString(m_target_points));
+        snap.set("source_points", pw::ParamSnapshot::pointsToString(m_source_points));
+        snap.set("target_points", pw::ParamSnapshot::pointsToString(m_target_points));
         if (snap == m_last_align_snapshot && m_has_preview) {
             printI("Parameters unchanged, skipping recomputation.");
             return;
@@ -458,7 +458,7 @@ void PointPairsAlignment::onAlign()
     // 显示模态进度条
     m_progress->showProgress("Computing...");
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [this]() {
                     m_canceled.store(true);
                     if (m_progress->dialog())
@@ -467,14 +467,14 @@ void PointPairsAlignment::onAlign()
     }
 
     auto params = currentConstraintParams();
-    auto result_ptr = std::make_shared<ct::PointPairErrorResult>();
+    auto result_ptr = std::make_shared<pw::PointPairErrorResult>();
 
     // 首次时备份原始源点云并记录 ID
     bool first_time = !m_original_source_cloud;
     if (first_time) {
         auto clouds = m_cloudtree->getAllClouds();
         int si = cbox_source_->currentIndex();
-        ct::Cloud::Ptr source = (si < (int)clouds.size()) ? clouds[si] : nullptr;
+        pw::Cloud::Ptr source = (si < (int)clouds.size()) ? clouds[si] : nullptr;
         if (!source) {
             m_is_computing = false;
             btn_align_->setEnabled(true);
@@ -484,32 +484,32 @@ void PointPairsAlignment::onAlign()
         m_source_id = QString::fromStdString(source->id());
         // 深拷贝原始点云作为备份
         auto pcl_src = source->toPCL_XYZRGBN();
-        m_original_source_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_src, source->getGlobalShift());
+        m_original_source_cloud = pw::Cloud::fromPCL_XYZRGBN(*pcl_src, source->getGlobalShift());
         m_original_source_cloud->setId(source->id());
     }
 
     // 捕获原始备份用于工作线程变换
-    ct::Cloud::Ptr source_snap = m_original_source_cloud;
+    pw::Cloud::Ptr source_snap = m_original_source_cloud;
 
-    auto future = QtConcurrent::run([this, source_snap, result_ptr, params, src_pts, tgt_pts]() -> ct::Cloud::Ptr {
+    auto future = QtConcurrent::run([this, source_snap, result_ptr, params, src_pts, tgt_pts]() -> pw::Cloud::Ptr {
         if (m_canceled.load()) return nullptr;
 
-        *result_ptr = ct::Registration::ConstrainedPointPairsRegistration(src_pts, tgt_pts, params);
+        *result_ptr = pw::Registration::ConstrainedPointPairsRegistration(src_pts, tgt_pts, params);
         if (m_canceled.load()) return nullptr;
 
         // 始终从原始备份变换，不会叠加
         // 注意：toPCL_XYZRGBN() 返回内部缓存 shared_ptr，必须深拷贝后再变换，否则会污染备份
         auto pcl_src = source_snap->toPCL_XYZRGBN();
-        auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+        auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_src);
         pcl::transformPointCloud(*pcl_copy, *pcl_copy, result_ptr->matrix.cast<float>());
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, source_snap->getGlobalShift());
+        auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, source_snap->getGlobalShift());
         transformed->setId(PREVIEW_ID);
         return transformed;
     });
 
-    auto* watcher = new QFutureWatcher<ct::Cloud::Ptr>(this);
+    auto* watcher = new QFutureWatcher<pw::Cloud::Ptr>(this);
     watcher->setFuture(future);
-    connect(watcher, &QFutureWatcher<ct::Cloud::Ptr>::finished, this,
+    connect(watcher, &QFutureWatcher<pw::Cloud::Ptr>::finished, this,
         [this, watcher, result_ptr]() mutable {
         m_progress->closeProgress();
         auto transformed = watcher->result();
@@ -582,9 +582,9 @@ void PointPairsAlignment::onApply()
 
     // 从原始备份变换，写入树中源点云
     auto pcl_src = m_original_source_cloud->toPCL_XYZRGBN();
-    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_last_result.matrix.cast<float>());
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_original_source_cloud->getGlobalShift());
+    auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_original_source_cloud->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     {
@@ -641,12 +641,12 @@ void PointPairsAlignment::onCancel()
     label_status_->setText(QString("Canceled. %1 pairs ready. Click Align to retry.").arg(pair_count));
 }
 
-void PointPairsAlignment::onMouseLeftPressed(const ct::PointXY& pt)
+void PointPairsAlignment::onMouseLeftPressed(const pw::PointXY& pt)
 {
     if (!m_is_picking) return;
 
     // 不指定目标点云，让 singlePick 自动检测点击的是哪个点云
-    ct::PickResult res = doPick(pt);
+    pw::PickResult res = doPick(pt);
     if (!res.valid || !res.cloud) {
         printW("Failed to pick point. Click on source or target cloud.");
         return;
@@ -781,11 +781,11 @@ void PointPairsAlignment::rebuildMarkers()
     m_cloudview->removePointCloud(MARKER_SRC_ID);
     auto src_display = displaySourcePoints();
     if (check_show_source_->isChecked() && !src_display.isEmpty()) {
-        ct::Cloud::Ptr src_markers(new ct::Cloud);
+        pw::Cloud::Ptr src_markers(new pw::Cloud);
         src_markers->setId(MARKER_SRC_ID);
         src_markers->setPointSize(marker_size);
         for (const auto& p : src_display) {
-            ct::PointXYZRGBN pt;
+            pw::PointXYZRGBN pt;
             pt.x = static_cast<float>(p[0]); pt.y = static_cast<float>(p[1]); pt.z = static_cast<float>(p[2]);
             pt.r = 255; pt.g = 60; pt.b = 60;
             src_markers->addPoint(pt);
@@ -796,11 +796,11 @@ void PointPairsAlignment::rebuildMarkers()
     // --- Target markers (blue) ---
     m_cloudview->removePointCloud(MARKER_TGT_ID);
     if (check_show_target_->isChecked() && !m_target_points.isEmpty()) {
-        ct::Cloud::Ptr tgt_markers(new ct::Cloud);
+        pw::Cloud::Ptr tgt_markers(new pw::Cloud);
         tgt_markers->setId(MARKER_TGT_ID);
         tgt_markers->setPointSize(marker_size);
         for (const auto& p : m_target_points) {
-            ct::PointXYZRGBN pt;
+            pw::PointXYZRGBN pt;
             pt.x = static_cast<float>(p[0]); pt.y = static_cast<float>(p[1]); pt.z = static_cast<float>(p[2]);
             pt.r = 60; pt.g = 120; pt.b = 255;
             tgt_markers->addPoint(pt);
@@ -826,7 +826,7 @@ void PointPairsAlignment::rebuildLabels()
     auto src_disp = displaySourcePoints();
     if (check_show_source_->isChecked()) {
         for (int i = 0; i < src_disp.size(); i++) {
-            ct::PointXYZRGBN pos;
+            pw::PointXYZRGBN pos;
             pos.x = static_cast<float>(src_disp[i][0]);
             pos.y = static_cast<float>(src_disp[i][1]);
             pos.z = static_cast<float>(src_disp[i][2]);
@@ -841,7 +841,7 @@ void PointPairsAlignment::rebuildLabels()
     // Target 标签（蓝色号码牌）
     if (check_show_target_->isChecked()) {
         for (int i = 0; i < m_target_points.size(); i++) {
-            ct::PointXYZRGBN pos;
+            pw::PointXYZRGBN pos;
             pos.x = static_cast<float>(m_target_points[i][0]);
             pos.y = static_cast<float>(m_target_points[i][1]);
             pos.z = static_cast<float>(m_target_points[i][2]);
@@ -922,7 +922,7 @@ void PointPairsAlignment::onToggleTargetVisibility(bool visible)
     m_cloudview->refresh();
 }
 
-void PointPairsAlignment::updateTableErrors(const ct::PointPairErrorResult& result)
+void PointPairsAlignment::updateTableErrors(const pw::PointPairErrorResult& result)
 {
     int pair_count = std::min({m_source_points.size(), m_target_points.size(),
                                (int)result.deltas.size(), (int)result.errors.size()});
@@ -951,10 +951,10 @@ void PointPairsAlignment::updateTableErrors(const ct::PointPairErrorResult& resu
     }
 }
 
-ct::ConstrainedTransformParams PointPairsAlignment::currentConstraintParams() const
+pw::ConstrainedTransformParams PointPairsAlignment::currentConstraintParams() const
 {
-    ct::ConstrainedTransformParams params;
-    params.rotation = static_cast<ct::RotationConstraint>(cbox_rotation_->currentIndex());
+    pw::ConstrainedTransformParams params;
+    params.rotation = static_cast<pw::RotationConstraint>(cbox_rotation_->currentIndex());
     params.tx_enabled = check_tx_->isChecked();
     params.ty_enabled = check_ty_->isChecked();
     params.tz_enabled = check_tz_->isChecked();
@@ -972,11 +972,11 @@ void PointPairsAlignment::updateAllLines()
 
     auto src_disp = displaySourcePoints();
 
-    ct::Cloud::Ptr src_cloud(new ct::Cloud);
-    ct::Cloud::Ptr tgt_cloud(new ct::Cloud);
+    pw::Cloud::Ptr src_cloud(new pw::Cloud);
+    pw::Cloud::Ptr tgt_cloud(new pw::Cloud);
 
     for (int i = 0; i < pair_count; i++) {
-        ct::PointXYZRGBN sp, tp;
+        pw::PointXYZRGBN sp, tp;
         sp.x = static_cast<float>(src_disp[i][0]); sp.y = static_cast<float>(src_disp[i][1]); sp.z = static_cast<float>(src_disp[i][2]);
         tp.x = static_cast<float>(m_target_points[i][0]); tp.y = static_cast<float>(m_target_points[i][1]); tp.z = static_cast<float>(m_target_points[i][2]);
         src_cloud->addPoint(sp);
@@ -1108,7 +1108,7 @@ void PointPairsAlignment::refreshCloudList()
     }
 }
 
-ct::PickResult PointPairsAlignment::doPick(const ct::PointXY& pt)
+pw::PickResult PointPairsAlignment::doPick(const pw::PointXY& pt)
 {
     return m_cloudview->singlePick(pt, "");
 }

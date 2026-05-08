@@ -16,7 +16,7 @@
 #include <pcl/surface/impl/marching_cubes_rbf.hpp>
 #include <pcl/surface/impl/marching_cubes_hoppe.hpp>
 
-namespace ct
+namespace pw
 {
     static bool isCanceled(std::atomic<bool>* cancel)
     {
@@ -318,4 +318,4 @@ namespace ct
         return result;
     }
 
-}  // namespace ct
+}  // namespace pw

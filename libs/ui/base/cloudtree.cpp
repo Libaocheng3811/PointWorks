@@ -35,7 +35,7 @@
 #include <QDateTime>
 #include <QSizePolicy>
 
-namespace ct
+namespace pw
 {
     QList<int> CloudTree::getItemViewports(QTreeWidgetItem* item) const
     {
@@ -315,7 +315,7 @@ namespace ct
             if (cloud->pointSize() > 1) {
                 targetView->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
                 if (QString::fromStdString(cloud->id()).contains("picked-"))
-                    targetView->setPointCloudColor(cloud, ct::Color::Red);
+                    targetView->setPointCloudColor(cloud, pw::Color::Red);
             }
         }
 
@@ -873,7 +873,7 @@ namespace ct
         // 如果是地理合并，继承 Master Shift 以保持精度
         merge_cloud->setGlobalShift(master_shift);
 
-        ct::Box box;
+        pw::Box box;
         box.width = target_max.x() - target_min.x();
         box.height = target_max.y() - target_min.y();
         box.depth = target_max.z() - target_min.z();
@@ -919,7 +919,7 @@ namespace ct
                 if (block->empty()) continue;
 
                 // 拷贝数据
-                std::vector<ct::PointXYZ> pts = block->m_points;
+                std::vector<pw::PointXYZ> pts = block->m_points;
 
                 // 应用偏移
                 if (need_shift) {
@@ -930,8 +930,8 @@ namespace ct
                     }
                 }
 
-                const std::vector<ct::ColorRGB>* colors = (has_color && block->m_colors) ? block->m_colors.get() : nullptr;
-                const std::vector<ct::CompressedNormal>* normals = (has_normal && block->m_normals) ? block->m_normals.get() : nullptr;
+                const std::vector<pw::ColorRGB>* colors = (has_color && block->m_colors) ? block->m_colors.get() : nullptr;
+                const std::vector<pw::CompressedNormal>* normals = (has_normal && block->m_normals) ? block->m_normals.get() : nullptr;
                 const std::unordered_map<std::string, std::vector<float>>* scalars = (!block->m_scalar_fields.empty()) ? &block->m_scalar_fields : nullptr;
 
                 merge_cloud->addPoints(pts, colors, normals, scalars);
@@ -1141,7 +1141,7 @@ namespace ct
                         if (cloud->pointSize() > 1){
                             cv->setPointCloudSize(QString::fromStdString(cloud->id()), cloud->pointSize());
                             if (QString::fromStdString(cloud->id()).contains("picked-"))
-                                cv->setPointCloudColor(cloud, ct::Color::Red);
+                                cv->setPointCloudColor(cloud, pw::Color::Red);
                         }
                     }
                     if (it->isSelected() && cloud->size() > 100)
@@ -1340,9 +1340,9 @@ namespace ct
 
         // BBox
         {
-            ct::Box box = cloud->box();
-            ct::PointXYZ cmin = cloud->min();
-            ct::PointXYZ cmax = cloud->max();
+            pw::Box box = cloud->box();
+            pw::PointXYZ cmin = cloud->min();
+            pw::PointXYZ cmax = cloud->max();
             QString bboxText = QString("X: %1 (%2 : %3)\nY: %4 (%5 : %6)\nZ: %7 (%8 : %9)")
                 .arg(box.width, 0, 'f', 3).arg(cmin.x, 0, 'f', 3).arg(cmax.x, 0, 'f', 3)
                 .arg(box.height, 0, 'f', 3).arg(cmin.y, 0, 'f', 3).arg(cmax.y, 0, 'f', 3)

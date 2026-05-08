@@ -36,7 +36,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_rx1, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_EULERANGLE) return;
-                m_affine = ct::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
+                m_affine = pw::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
                                                  ui->dspin_rx1->value(), ui->dspin_ry1->value(), ui->dspin_rz1->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -44,7 +44,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_ry1, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_EULERANGLE) return;
-                m_affine = ct::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
+                m_affine = pw::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
                                                  ui->dspin_rx1->value(), ui->dspin_ry1->value(), ui->dspin_rz1->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -52,7 +52,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_rz1, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_EULERANGLE) return;
-                m_affine = ct::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
+                m_affine = pw::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
                                                  ui->dspin_rx1->value(), ui->dspin_ry1->value(), ui->dspin_rz1->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -60,7 +60,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_tx1, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_EULERANGLE) return;
-                m_affine = ct::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
+                m_affine = pw::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
                                                  ui->dspin_rx1->value(), ui->dspin_ry1->value(), ui->dspin_rz1->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -68,7 +68,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_ty1, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_EULERANGLE) return;
-                m_affine = ct::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
+                m_affine = pw::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
                                                  ui->dspin_rx1->value(), ui->dspin_ry1->value(), ui->dspin_rz1->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -76,7 +76,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_tz1, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_EULERANGLE) return;
-                m_affine = ct::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
+                m_affine = pw::getTransformation(ui->dspin_tx1->value(), ui->dspin_ty1->value(), ui->dspin_tz1->value(),
                                                  ui->dspin_rx1->value(), ui->dspin_ry1->value(), ui->dspin_rz1->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -97,7 +97,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_angle, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -105,7 +105,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_ax, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -113,7 +113,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_ay, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -121,7 +121,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_az, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -129,7 +129,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_tx2, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -137,7 +137,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_ty2, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -145,7 +145,7 @@ Transformation::Transformation(QWidget* parent)
     connect(ui->dspin_tz2, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), [=](double)
             {
                 if (ui->tabWidget->currentIndex() != TRANS_TYPE_ANGLEAXIS) return;
-                m_affine = ct::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
+                m_affine = pw::getTransformation(ui->dspin_angle->value(), ui->dspin_ax->value(), ui->dspin_ay->value(), ui->dspin_az->value(),
                                                  ui->dspin_tx2->value(), ui->dspin_ty2->value(), ui->dspin_tz2->value());
                 syncUI(m_affine);
                 preview(m_affine);
@@ -157,12 +157,12 @@ Transformation::~Transformation() { delete ui; }
 void Transformation::syncUI(const Eigen::Affine3f& affine3f)
 {
     float x, y, z, rx, ry, rz;
-    ct::getTranslationAndEulerAngles(affine3f, x, y, z, rx, ry, rz);
+    pw::getTranslationAndEulerAngles(affine3f, x, y, z, rx, ry, rz);
     float alpha, axisX, axisY, axisZ;
-    ct::getAngleAxis(affine3f, alpha, axisX, axisY, axisZ);
+    pw::getAngleAxis(affine3f, alpha, axisX, axisY, axisZ);
     int index = ui->tabWidget->currentIndex();
     if (index != TRANS_TYPE_MATRIX)
-        ui->txt_matrix->setText(QString::fromStdString(ct::getTransformationString(affine3f.matrix(), 3)));
+        ui->txt_matrix->setText(QString::fromStdString(pw::getTransformationString(affine3f.matrix(), 3)));
     if (index != TRANS_TYPE_EULERANGLE)
     {
         ui->dspin_rx1->setValue(rx);
@@ -218,13 +218,13 @@ bool Transformation::parseEulerText(const QString& text, Eigen::Affine3f& t)
     float ry = vals[4].toFloat(&ok); if (!ok) return false;
     float rz = vals[5].toFloat(&ok); if (!ok) return false;
 
-    t = ct::getTransformation(x, y, z, rx, ry, rz);
+    t = pw::getTransformation(x, y, z, rx, ry, rz);
     return true;
 }
 
 void Transformation::add()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -243,12 +243,12 @@ void Transformation::add()
         QString sid = QString::fromStdString(cloud->id()) + TRANS_PRE_FLAG;
         m_cloudview->removePointCloud(sid);
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_transformed(new pcl::PointCloud<ct::PointXYZRGBN>);
+        pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_transformed(new pcl::PointCloud<pw::PointXYZRGBN>);
         pcl::transformPointCloud(*pcl_cloud, *pcl_transformed, it->second);
-        ct::Cloud::Ptr new_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_transformed, cloud->getGlobalShift());
+        pw::Cloud::Ptr new_cloud = pw::Cloud::fromPCL_XYZRGBN(*pcl_transformed, cloud->getGlobalShift());
         new_cloud->setId(TRANS_ADD_FLAG + cloud->id());
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
+        m_cloudtree->insertCloud(new_cloud, item, true, pw::MountStrategy::Sibling);
         m_trans_map.erase(cloud->id());
         printI(QString("Add transformed cloud[id:%1] done.").arg(QString::fromStdString(new_cloud->id())));
     }
@@ -257,7 +257,7 @@ void Transformation::add()
 
 void Transformation::apply()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -277,7 +277,7 @@ void Transformation::apply()
         m_cloudview->removePointCloud(sid);
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
         pcl::transformPointCloud(*pcl_cloud, *pcl_cloud, it->second);
-        auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_cloud, cloud->getGlobalShift());
+        auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_cloud, cloud->getGlobalShift());
         transformed->setId(cloud->id());
         m_cloudtree->updateCloud(cloud, transformed);
         m_trans_map.erase(cloud->id());
@@ -298,7 +298,7 @@ void Transformation::preview(const Eigen::Affine3f& affine3f)
 {
     m_affine = affine3f;
     if (!ui->check_refresh->isChecked()) return;
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -315,9 +315,9 @@ void Transformation::preview(const Eigen::Affine3f& affine3f)
         m_cloudview->removePointCloud(tid);
 
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_transformed(new pcl::PointCloud<ct::PointXYZRGBN>);
+        pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_transformed(new pcl::PointCloud<pw::PointXYZRGBN>);
         pcl::transformPointCloud(*pcl_cloud, *pcl_transformed, trans);
-        ct::Cloud::Ptr trans_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_transformed, cloud->getGlobalShift());
+        pw::Cloud::Ptr trans_cloud = pw::Cloud::fromPCL_XYZRGBN(*pcl_transformed, cloud->getGlobalShift());
         trans_cloud->setId(tid.toStdString());
 
         m_cloudview->addPointCloud(trans_cloud);

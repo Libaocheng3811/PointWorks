@@ -8,7 +8,7 @@
 #include "core/cloud.h"
 #include <vector>
 
-namespace ct{
+namespace pw{
     inline void syncAllScalarFields(const Cloud::Ptr& source, Cloud::Ptr& target, const std::vector<int>& indices){
         target->setHasColors(source->hasColors());
 
@@ -33,5 +33,5 @@ namespace ct{
         }
         // 不自动 backupColors — 仅在用户主动修改颜色时才备份
     }
-} // namespace ct
+} // namespace pw
 #endif //POINTWORKS_UTILS_H

@@ -5,12 +5,12 @@
 void registerRegistrationBindings(py::module_& m)
 {
     auto makeRegContext = [](const std::string& src_name, const std::string& tgt_name,
-                             int max_iter, double corr_dist) -> ct::RegistrationContext {
+                             int max_iter, double corr_dist) -> pw::RegistrationContext {
         auto src = getRegistry().getCloud(src_name);
         if (!src) throw std::runtime_error("Source cloud not found: " + src_name);
         auto tgt = getRegistry().getCloud(tgt_name);
         if (!tgt) throw std::runtime_error("Target cloud not found: " + tgt_name);
-        ct::RegistrationContext ctx;
+        pw::RegistrationContext ctx;
         ctx.source_cloud = src;
         ctx.target_cloud = tgt;
         ctx.params.max_iterations = max_iter;
@@ -18,13 +18,13 @@ void registerRegistrationBindings(py::module_& m)
         return ctx;
     };
 
-    auto regResultToDict = [](const ct::RegistrationResult& result) -> py::object {
+    auto regResultToDict = [](const pw::RegistrationResult& result) -> py::object {
         if (!result.success) return py::none();
         result.aligned_cloud->makeAdaptive();
         getRegistry().registerCloud(result.aligned_cloud);
         getRegistry().holdCloud(result.aligned_cloud);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(result.aligned_cloud);
         }
 
@@ -47,7 +47,7 @@ void registerRegistrationBindings(py::module_& m)
                                                       int max_iter, double corr_dist,
                                                       bool use_reciprocal) -> py::object {
         auto ctx = makeRegContext(src, tgt, max_iter, corr_dist);
-        auto result = ct::Registration::IterativeClosestPoint(ctx, use_reciprocal);
+        auto result = pw::Registration::IterativeClosestPoint(ctx, use_reciprocal);
         return regResultToDict(result);
     }, py::arg("source"), py::arg("target"),
        py::arg("max_iterations") = 50, py::arg("correspondence_distance") = 1.0,
@@ -60,7 +60,7 @@ void registerRegistrationBindings(py::module_& m)
                                                                     bool use_symmetric,
                                                                     bool enforce_same_direction) -> py::object {
         auto ctx = makeRegContext(src, tgt, max_iter, corr_dist);
-        auto result = ct::Registration::IterativeClosestPointWithNormals(
+        auto result = pw::Registration::IterativeClosestPointWithNormals(
             ctx, use_reciprocal, use_symmetric, enforce_same_direction);
         return regResultToDict(result);
     }, py::arg("source"), py::arg("target"),
@@ -73,7 +73,7 @@ void registerRegistrationBindings(py::module_& m)
                                                                 int max_iter, double corr_dist,
                                                                 bool use_reciprocal) -> py::object {
         auto ctx = makeRegContext(src, tgt, max_iter, corr_dist);
-        auto result = ct::Registration::IterativeClosestPointNonLinear(ctx, use_reciprocal);
+        auto result = pw::Registration::IterativeClosestPointNonLinear(ctx, use_reciprocal);
         return regResultToDict(result);
     }, py::arg("source"), py::arg("target"),
        py::arg("max_iterations") = 50, py::arg("correspondence_distance") = 1.0,
@@ -84,7 +84,7 @@ void registerRegistrationBindings(py::module_& m)
                                                        int max_iter, int k, double tra_tol,
                                                        double rol_tol, bool use_reciprocal) -> py::object {
         auto ctx = makeRegContext(src, tgt, max_iter, std::sqrt(std::numeric_limits<double>::max()));
-        auto result = ct::Registration::GeneralizedIterativeClosestPoint(
+        auto result = pw::Registration::GeneralizedIterativeClosestPoint(
             ctx, k, max_iter, tra_tol, rol_tol, use_reciprocal);
         return regResultToDict(result);
     }, py::arg("source"), py::arg("target"),
@@ -97,7 +97,7 @@ void registerRegistrationBindings(py::module_& m)
                                                       float resolution, double step_size,
                                                       double outlier_ratio) -> py::object {
         auto ctx = makeRegContext(src, tgt, 35, std::sqrt(std::numeric_limits<double>::max()));
-        auto result = ct::Registration::NormalDistributionsTransform(ctx, resolution, step_size, outlier_ratio);
+        auto result = pw::Registration::NormalDistributionsTransform(ctx, resolution, step_size, outlier_ratio);
         return regResultToDict(result);
     }, py::arg("source"), py::arg("target"),
        py::arg("resolution") = 1.0, py::arg("step_size") = 0.1, py::arg("outlier_ratio") = 0.05,
@@ -108,7 +108,7 @@ void registerRegistrationBindings(py::module_& m)
                                                        float score_threshold, int nr_samples,
                                                        float max_norm_diff, int max_runtime) -> py::object {
         auto ctx = makeRegContext(src, tgt, 0, std::sqrt(std::numeric_limits<double>::max()));
-        auto result = ct::Registration::FPCSInitialAlignment(
+        auto result = pw::Registration::FPCSInitialAlignment(
             ctx, delta, true, approx_overlap, score_threshold, nr_samples, max_norm_diff, max_runtime);
         return regResultToDict(result);
     }, py::arg("source"), py::arg("target"),
@@ -124,7 +124,7 @@ void registerRegistrationBindings(py::module_& m)
                                                         float upper_trl, float lower_trl,
                                                         float lambda) -> py::object {
         auto ctx = makeRegContext(src, tgt, 0, std::sqrt(std::numeric_limits<double>::max()));
-        auto result = ct::Registration::KFPCSInitialAlignment(
+        auto result = pw::Registration::KFPCSInitialAlignment(
             ctx, delta, true, approx_overlap, score_threshold, nr_samples,
             max_norm_diff, max_runtime, upper_trl, lower_trl, lambda);
         return regResultToDict(result);

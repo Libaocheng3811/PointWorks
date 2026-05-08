@@ -11,7 +11,7 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
-using namespace ct;
+using namespace pw;
 
 // ===== 测试辅助：处理 FileIO 的阻塞信号 =====
 
@@ -28,7 +28,7 @@ static std::unique_ptr<FileIO> createTestFileIO() {
 
     // 连接 requestFieldMapping：对标准字段提供默认映射
     QObject::connect(fileio.get(), &FileIO::requestFieldMapping,
-        [](const QList<ct::FieldInfo>& fields,
+        [](const QList<pw::FieldInfo>& fields,
            std::map<std::string, std::string>& result)
     {
         for (const auto& f : fields) {
@@ -71,7 +71,7 @@ static std::unique_ptr<FileIO> createTestFileIO() {
 
     // 连接 requestTxtImportSetup：使用默认空格分隔
     QObject::connect(fileio.get(), &FileIO::requestTxtImportSetup,
-        [](const QStringList&, ct::TxtImportParams& params) {
+        [](const QStringList&, pw::TxtImportParams& params) {
             params.separator = ' ';
             params.col_map[0] = "X";
             params.col_map[1] = "Y";

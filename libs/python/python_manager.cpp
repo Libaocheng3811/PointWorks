@@ -14,7 +14,7 @@
 
 namespace py = pybind11;
 
-namespace ct
+namespace pw
 {
 
 // Python version constants (change only when upgrading Python)
@@ -285,4 +285,4 @@ void PythonManager::addSearchPaths()
     }
 }
 
-} // namespace ct
+} // namespace pw

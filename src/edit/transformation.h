@@ -1,5 +1,5 @@
-#ifndef CT_EDIT_TRANSFORMATION_H
-#define CT_EDIT_TRANSFORMATION_H
+#ifndef PW_EDIT_TRANSFORMATION_H
+#define PW_EDIT_TRANSFORMATION_H
 
 #include "ui/base/customdialog.h"
 #include "core/common.h"
@@ -13,7 +13,7 @@ QT_END_NAMESPACE
 #define TRANS_PRE_FLAG          "-trans"
 #define TRANS_ADD_FLAG          "transed-"
 
-class Transformation : public ct::CustomDialog {
+class Transformation : public pw::CustomDialog {
     Q_OBJECT
 
 public:
@@ -36,4 +36,4 @@ private:
     std::map<std::string, Eigen::Affine3f> m_trans_map;
 };
 
-#endif // CT_EDIT_TRANSFORMATION_H
+#endif // PW_EDIT_TRANSFORMATION_H

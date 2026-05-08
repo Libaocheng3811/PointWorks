@@ -18,7 +18,7 @@
 #include <string>
 #include <cfloat>
 
-namespace ct
+namespace pw
 {
 
 // ================================================================
@@ -228,4 +228,4 @@ QString FileIO::parseOBJMaterialTexture(const QString &objPath)
     return {};
 }
 
-} // namespace ct
+} // namespace pw

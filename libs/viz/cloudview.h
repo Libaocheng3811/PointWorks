@@ -29,7 +29,7 @@ class vtkBillboardTextActor3D;
 #include <vector>
 #include "scalar_bar_widget.h"
 
-namespace ct {
+namespace pw {
 
     struct PointXY
     {
@@ -45,14 +45,14 @@ namespace ct {
 
     struct PickResult {
         bool valid = false;          // 是否拾取成功
-        ct::PointXYZRGBN point;      // 拾取点的坐标、颜色、法线
-        ct::Cloud::Ptr cloud;        // 所属的点云对象
+        pw::PointXYZRGBN point;      // 拾取点的坐标、颜色、法线
+        pw::Cloud::Ptr cloud;        // 所属的点云对象
 
         // 标量场数据 (Key: 字段名, Value: 数值)
         QMap<QString, float> scalars;
     };
 
-    class CT_VIZ_EXPORT CloudView : public QVTKOpenGLNativeWidget{
+    class PW_VIZ_EXPORT CloudView : public QVTKOpenGLNativeWidget{
         Q_OBJECT
     public:
         explicit CloudView(QWidget* parent = nullptr);
@@ -677,6 +677,6 @@ namespace ct {
         QMap<QString, Rect2DActor> m_rect2d_actors;
 
     };
-} // namespace ct
+} // namespace pw
 
 #endif //POINTWORKS_CLOUDVIEW_H

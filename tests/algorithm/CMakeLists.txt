@@ -4,8 +4,8 @@ add_executable(test_algorithm ${TEST_ALGO_SRCS})
 
 target_link_libraries(test_algorithm
     PRIVATE
-        ct_algorithm
-        ct_core
+        pw_algorithm
+        pw_core
         test_common
         GTest::gtest
         GTest::gtest_main

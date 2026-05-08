@@ -14,22 +14,22 @@ int main(int argc, char* argv[]) {
     QSettings settings("PointWorks", "PointWorks");
     QString customPy = settings.value("python_home").toString();
     if (!customPy.isEmpty()) {
-        ct::PythonManager::instance().setCustomPythonHome(customPy.toStdString());
+        pw::PythonManager::instance().setCustomPythonHome(customPy.toStdString());
     }
 
-    ct::PythonManager::instance().initialize();
+    pw::PythonManager::instance().initialize();
 
     // Restore saved language preference, default to English
     int langVal = settings.value("language", 0).toInt();
-    auto lang = static_cast<ct::LanguageManager::Language>(langVal);
-    ct::LanguageManager::instance().switchLanguage(lang);
+    auto lang = static_cast<pw::LanguageManager::Language>(langVal);
+    pw::LanguageManager::instance().switchLanguage(lang);
 
     MainWindow w;
     w.showMaximized();
 
     int ret = a.exec();
 
-    ct::PythonManager::instance().finalize();
+    pw::PythonManager::instance().finalize();
 
     return ret;
 }

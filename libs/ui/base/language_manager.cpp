@@ -1,7 +1,7 @@
 #include "language_manager.h"
 #include <QCoreApplication>
 
-namespace ct
+namespace pw
 {
 
 LanguageManager& LanguageManager::instance()
@@ -31,4 +31,4 @@ LanguageManager::Language LanguageManager::currentLanguage() const
     return m_current;
 }
 
-} // namespace ct
+} // namespace pw

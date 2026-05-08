@@ -7,7 +7,7 @@ void registerSegmentationBindings(py::module_& m)
     // ---------------------------------------------------------------------------
     // Helper: insert SegmentationResult clouds into scene, return py::list of PyCloud
     // ---------------------------------------------------------------------------
-    auto insertSegResult = [](const ct::SegmentationResult& result,
+    auto insertSegResult = [](const pw::SegmentationResult& result,
                                const std::string& base_name) -> py::list {
         py::list cloud_list;
         int i = 0;
@@ -17,7 +17,7 @@ void registerSegmentationBindings(py::module_& m)
             getRegistry().registerCloud(c);
             getRegistry().holdCloud(c);
             if (shouldAutoInsert()) {
-                auto* bridge = ct::PythonManager::instance().bridge();
+                auto* bridge = pw::PythonManager::instance().bridge();
                 if (bridge) bridge->insertCloud(c);
             }
             cloud_list.append(py::cast(PyCloud(c)));
@@ -39,7 +39,7 @@ void registerSegmentationBindings(py::module_& m)
 
     // Helper: wrap a multi-cloud result into a dict with clouds, time_ms, coefficients
     auto segResultToDict = [insertSegResult, coeffToDict](
-        const ct::SegmentationResult& result,
+        const pw::SegmentationResult& result,
         const std::string& base_name) -> py::dict {
         py::dict d;
         d["clouds"] = insertSegResult(result, base_name);
@@ -58,7 +58,7 @@ void registerSegmentationBindings(py::module_& m)
             bool optimize, double min_radius, double max_radius) -> py::dict {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::SACSegmentation(
+        auto result = pw::Segmentation::SACSegmentation(
             cloud, negative, model, method, threshold,
             max_iterations, probability, optimize, min_radius, max_radius);
         return segResultToDict(result, "sac-" + name);
@@ -85,7 +85,7 @@ void registerSegmentationBindings(py::module_& m)
             double distance_weight, double d) -> py::dict {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::SACSegmentationFromNormals(
+        auto result = pw::Segmentation::SACSegmentationFromNormals(
             cloud, negative, model, method, threshold,
             max_iterations, probability, optimize, min_radius, max_radius,
             distance_weight, d);
@@ -112,7 +112,7 @@ void registerSegmentationBindings(py::module_& m)
             double tolerance, int min_cluster_size, int max_cluster_size) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::EuclideanClusterExtraction(
+        auto result = pw::Segmentation::EuclideanClusterExtraction(
             cloud, negative, tolerance, min_cluster_size, max_cluster_size);
         return insertSegResult(result, "euc-" + name);
     }, py::arg("name"),
@@ -131,7 +131,7 @@ void registerSegmentationBindings(py::module_& m)
             double normal_weight, double color_weight) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::DBSCANClusterExtraction(
+        auto result = pw::Segmentation::DBSCANClusterExtraction(
             cloud, negative, eps, min_pts, min_cluster_size, max_cluster_size,
             normal_weight, color_weight);
         return insertSegResult(result, "dbscan-" + name);
@@ -153,7 +153,7 @@ void registerSegmentationBindings(py::module_& m)
             double normal_weight, double color_weight) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::KMeansClusterExtraction(
+        auto result = pw::Segmentation::KMeansClusterExtraction(
             cloud, k, max_iterations, normal_weight, color_weight);
         return insertSegResult(result, "kmeans-" + name);
     }, py::arg("name"),
@@ -174,7 +174,7 @@ void registerSegmentationBindings(py::module_& m)
             float curvature_threshold, int neighbours) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::RegionGrowing(
+        auto result = pw::Segmentation::RegionGrowing(
             cloud, negative, min_cluster_size, max_cluster_size,
             smooth_mode, curvature_test, residual_test,
             smoothness_threshold, residual_threshold,
@@ -205,7 +205,7 @@ void registerSegmentationBindings(py::module_& m)
             float curvature_threshold, int neighbours) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::RegionGrowingFromSeed(
+        auto result = pw::Segmentation::RegionGrowingFromSeed(
             cloud, negative, seed_index,
             min_cluster_size, max_cluster_size,
             smooth_mode, curvature_test, residual_test,
@@ -239,7 +239,7 @@ void registerSegmentationBindings(py::module_& m)
             float dis_thresh, int nghbr_number) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::RegionGrowingRGB(
+        auto result = pw::Segmentation::RegionGrowingRGB(
             cloud, negative, min_cluster_size, max_cluster_size,
             smooth_mode, curvature_test, residual_test,
             smoothness_threshold, residual_threshold,
@@ -273,7 +273,7 @@ void registerSegmentationBindings(py::module_& m)
             float normal_importance, bool camera_transform) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::SupervoxelClustering(
+        auto result = pw::Segmentation::SupervoxelClustering(
             cloud, voxel_resolution, seed_resolution,
             color_importance, spatial_importance,
             normal_importance, camera_transform);
@@ -297,7 +297,7 @@ void registerSegmentationBindings(py::module_& m)
             int minClusterSize, int maxClusterSize) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::DonSegmentation(
+        auto result = pw::Segmentation::DonSegmentation(
             cloud, negative, mean_radius, scale1, scale2,
             threshold, segradius, minClusterSize, maxClusterSize);
         return insertSegResult(result, "don-" + name);
@@ -321,7 +321,7 @@ void registerSegmentationBindings(py::module_& m)
             int neighbour_number) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::MinCutSegmentation(
+        auto result = pw::Segmentation::MinCutSegmentation(
             cloud, sigma, radius, weight, neighbour_number);
         return insertSegResult(result, "mincut-" + name);
     }, py::arg("name"),
@@ -341,7 +341,7 @@ void registerSegmentationBindings(py::module_& m)
             float cell_size, float base) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::MorphologicalFilter(
+        auto result = pw::Segmentation::MorphologicalFilter(
             cloud, negative, max_window_size, slope,
             max_distance, initial_distance, cell_size, base);
         return insertSegResult(result, "morph-" + name);
@@ -363,7 +363,7 @@ void registerSegmentationBindings(py::module_& m)
             double tolerance, float delta_hue) -> py::list {
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
-        auto result = ct::Segmentation::SeededHueSegmentation(
+        auto result = pw::Segmentation::SeededHueSegmentation(
             cloud, negative, tolerance, delta_hue);
         return insertSegResult(result, "hue-" + name);
     }, py::arg("name"),
@@ -382,7 +382,7 @@ void registerSegmentationBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         auto tar_cloud = getRegistry().getCloud(tar_name);
         if (!tar_cloud) throw std::runtime_error("Target cloud not found: " + tar_name);
-        auto result = ct::Segmentation::SegmentDifferences(
+        auto result = pw::Segmentation::SegmentDifferences(
             cloud, tar_cloud, sqr_threshold);
         return insertSegResult(result, "diff-" + name);
     }, py::arg("name"),
@@ -401,7 +401,7 @@ void registerSegmentationBindings(py::module_& m)
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
         auto hull = getRegistry().getCloud(hull_name);
         if (!hull) throw std::runtime_error("Hull cloud not found: " + hull_name);
-        auto result = ct::Segmentation::ExtractPolygonalPrismData(
+        auto result = pw::Segmentation::ExtractPolygonalPrismData(
             cloud, negative, hull, height_min, height_max, vpx, vpy, vpz);
         return insertSegResult(result, "prism-" + name);
     }, py::arg("name"),

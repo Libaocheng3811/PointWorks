@@ -21,7 +21,7 @@
 // ======================== Constructor ========================
 
 GlobalRegistrationDialog::GlobalRegistrationDialog(QWidget* parent)
-    : ct::CustomDialog(parent)
+    : pw::CustomDialog(parent)
 {
     setupUi();
 
@@ -422,7 +422,7 @@ void GlobalRegistrationDialog::onCompute()
 
     // 参数快照对比：非首次且参数一致则跳过
     {
-        ct::ParamSnapshot snap;
+        pw::ParamSnapshot snap;
         snap.set("source_id", cbox_source_->currentText());
         snap.set("target_id", cbox_target_->currentText());
         snap.set("keypoint", cbox_keypoint_->currentIndex());
@@ -469,7 +469,7 @@ void GlobalRegistrationDialog::onCompute()
     btn_cancel_->setEnabled(false);
 
     // 3. 计算点云分辨率
-    auto calcResolution = [](const ct::Cloud::Ptr& cloud) -> double {
+    auto calcResolution = [](const pw::Cloud::Ptr& cloud) -> double {
         auto box = cloud->box();
         float diag = std::sqrt(
             (box.width) * (box.width) +
@@ -524,7 +524,7 @@ void GlobalRegistrationDialog::onCompute()
     // 显示模态进度条
     m_progress->showProgress("Global Registration...");
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [this]() {
                     if (m_cancel_flag) m_cancel_flag->store(true);
                     if (m_progress->dialog())
@@ -545,9 +545,9 @@ void GlobalRegistrationDialog::onCompute()
 
     // 结果结构体：同时携带配准结果和关键点
     struct PipelineResult {
-        ct::RegistrationResult reg;
-        ct::Cloud::Ptr kp_source;
-        ct::Cloud::Ptr kp_target;
+        pw::RegistrationResult reg;
+        pw::Cloud::Ptr kp_source;
+        pw::Cloud::Ptr kp_target;
         QString error_msg;  // 失败原因
     };
 
@@ -557,27 +557,27 @@ void GlobalRegistrationDialog::onCompute()
         out.reg = {false, nullptr, 0, Eigen::Matrix4f::Identity(), 0};
 
         // --- a. 提取关键点 ---
-        auto extractKp = [&](const ct::Cloud::Ptr& cloud, double res,
-                              std::function<void(int)> on_prog) -> ct::Cloud::Ptr {
-            ct::Cloud::Ptr kp;
+        auto extractKp = [&](const pw::Cloud::Ptr& cloud, double res,
+                              std::function<void(int)> on_prog) -> pw::Cloud::Ptr {
+            pw::Cloud::Ptr kp;
             switch (kp_type) {
             case 0:
-                kp = ct::Keypoints::ISSKeypoint3D(cloud, res,
+                kp = pw::Keypoints::ISSKeypoint3D(cloud, res,
                     iss_gamma21, iss_gamma32, iss_min_neighbors, iss_angle,
                     desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             case 1:
-                kp = ct::Keypoints::HarrisKeypoint3D(cloud,
+                kp = pw::Keypoints::HarrisKeypoint3D(cloud,
                     harris_method, harris_threshold, true, false,
                     desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             case 2:
-                kp = ct::Keypoints::SIFTKeypoint(cloud,
+                kp = pw::Keypoints::SIFTKeypoint(cloud,
                     sift_min_scale, sift_octaves, sift_scales, sift_contrast,
                     desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
             case 3:
-                kp = ct::Keypoints::TrajkovicKeypoint3D(cloud,
+                kp = pw::Keypoints::TrajkovicKeypoint3D(cloud,
                     traj_method, traj_window, traj_thr1, traj_thr2,
                     desc_k, desc_radius, cancel, on_prog).cloud;
                 break;
@@ -606,11 +606,11 @@ void GlobalRegistrationDialog::onCompute()
         }
 
         // --- b. 计算描述子 ---
-        auto computeDesc = [&](const ct::Cloud::Ptr& cloud,
-                                std::function<void(int)> on_prog) -> ct::FeatureType::Ptr {
-            ct::FeatureType::Ptr feat(new ct::FeatureType);
-            ct::FeatureResult fr;
-            fr = ct::Features::FPFHEstimation(cloud, desc_k, desc_radius,
+        auto computeDesc = [&](const pw::Cloud::Ptr& cloud,
+                                std::function<void(int)> on_prog) -> pw::FeatureType::Ptr {
+            pw::FeatureType::Ptr feat(new pw::FeatureType);
+            pw::FeatureResult fr;
+            fr = pw::Features::FPFHEstimation(cloud, desc_k, desc_radius,
                 nullptr, cancel, on_prog);
             if (fr.feature) feat->fpfh = fr.feature->fpfh;
             return feat;
@@ -633,7 +633,7 @@ void GlobalRegistrationDialog::onCompute()
 
         // SAC-IA/SAC-Prerejective 要求 setInputSource 的点数与特征点数一一对应，
         // 因此必须传入关键点云而非原始点云
-        ct::RegistrationContext ctx;
+        pw::RegistrationContext ctx;
         ctx.source_cloud = out.kp_source;
         ctx.target_cloud = out.kp_target;
         ctx.params.max_iterations = 10;
@@ -641,7 +641,7 @@ void GlobalRegistrationDialog::onCompute()
         switch (align_type) {
         case 0: // SAC-IA
             if (src_feat->fpfh && tgt_feat->fpfh) {
-                out.reg = ct::Registration::SampleConsensusInitialAlignment<pcl::FPFHSignature33>(
+                out.reg = pw::Registration::SampleConsensusInitialAlignment<pcl::FPFHSignature33>(
                     ctx, src_feat->fpfh, tgt_feat->fpfh,
                     sacia_min_dist, sacia_samples, sacia_k);
             } else {
@@ -650,7 +650,7 @@ void GlobalRegistrationDialog::onCompute()
             break;
         case 1: // SAC-Prerejective
             if (src_feat->fpfh && tgt_feat->fpfh) {
-                out.reg = ct::Registration::SampleConsensusPrerejective<pcl::FPFHSignature33>(
+                out.reg = pw::Registration::SampleConsensusPrerejective<pcl::FPFHSignature33>(
                     ctx, src_feat->fpfh, tgt_feat->fpfh,
                     sacp_samples, sacp_k, sacp_similarity, sacp_inlier);
             } else {
@@ -700,18 +700,18 @@ void GlobalRegistrationDialog::onCompute()
         // 将源关键点也做变换，用于连线显示（源点云已隐藏，连线应连到变换后的关键点）
         if (m_kp_source) {
             auto kp_pcl = m_kp_source->toPCL_XYZRGBN();
-            auto kp_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*kp_pcl);
+            auto kp_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*kp_pcl);
             pcl::transformPointCloud(*kp_copy, *kp_copy, m_result_matrix);
-            m_kp_source = ct::Cloud::fromPCL_XYZRGBN(*kp_copy, m_kp_source->getGlobalShift());
+            m_kp_source = pw::Cloud::fromPCL_XYZRGBN(*kp_copy, m_kp_source->getGlobalShift());
         }
 
         // 用变换矩阵对原始源点云做变换，生成完整预览点云
         // （算法返回的 aligned_cloud 只是变换后的关键点，不能直接用于预览）
         {
             auto pcl_src = m_source->toPCL_XYZRGBN();
-            auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+            auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_src);
             pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
-            m_aligned_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
+            m_aligned_cloud = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
             m_aligned_cloud->setId(PREVIEW_ID);
         }
 
@@ -777,9 +777,9 @@ void GlobalRegistrationDialog::onApply()
 
     // 用变换矩阵直接变换原始源点云（避免 toPCL 缓存被污染，需深拷贝）
     auto pcl_src = m_source->toPCL_XYZRGBN();
-    auto pcl_copy = std::make_shared<pcl::PointCloud<ct::PointXYZRGBN>>(*pcl_src);
+    auto pcl_copy = std::make_shared<pcl::PointCloud<pw::PointXYZRGBN>>(*pcl_src);
     pcl::transformPointCloud(*pcl_copy, *pcl_copy, m_result_matrix);
-    auto transformed = ct::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
+    auto transformed = pw::Cloud::fromPCL_XYZRGBN(*pcl_copy, m_source->getGlobalShift());
     transformed->setId(m_source_id.toStdString());
 
     m_cloudtree->updateCloud(m_source, transformed);

@@ -13,7 +13,7 @@
 #include <pcl/search/kdtree.h>
 
 M3C2Plugin::M3C2Plugin(QWidget *parent) :
-        ct::CustomDialog(parent), ui(new Ui::M3C2Plugin) {
+        pw::CustomDialog(parent), ui(new Ui::M3C2Plugin) {
     ui->setupUi(this);
 
     connect(ui->btn_ok, &QPushButton::clicked, this, &M3C2Plugin::onApply);
@@ -49,7 +49,7 @@ void M3C2Plugin::init() {
     ui->combo_ref->clear();
     ui->combo_comp->clear();
 
-    std::vector<ct::Cloud::Ptr> allClouds = m_cloudtree->getAllClouds();
+    std::vector<pw::Cloud::Ptr> allClouds = m_cloudtree->getAllClouds();
     if (allClouds.empty()) {
         printW(QString("No clouds available"));
         ui->btn_ok->setEnabled(false);
@@ -62,7 +62,7 @@ void M3C2Plugin::init() {
         ui->combo_comp->addItem(cloudId, QVariant::fromValue(cloud));
     }
 
-    std::vector<ct::Cloud::Ptr> selectedClouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selectedClouds = m_cloudtree->getSelectedClouds();
     if (selectedClouds.size() >= 2) {
         int idx1 = ui->combo_ref->findText(QString::fromStdString(selectedClouds[0]->id()));
         int idx2 = ui->combo_comp->findText(QString::fromStdString(selectedClouds[1]->id()));
@@ -83,8 +83,8 @@ void M3C2Plugin::init() {
 }
 
 void M3C2Plugin::onGuessParams() {
-    auto ref = ui->combo_ref->currentData().value<ct::Cloud::Ptr>();
-    auto comp = ui->combo_comp->currentData().value<ct::Cloud::Ptr>();
+    auto ref = ui->combo_ref->currentData().value<pw::Cloud::Ptr>();
+    auto comp = ui->combo_comp->currentData().value<pw::Cloud::Ptr>();
     if (!ref || !comp) {
         printW(QString("Select both clouds first"));
         return;
@@ -137,8 +137,8 @@ void M3C2Plugin::onGuessParams() {
 }
 
 void M3C2Plugin::onApply() {
-    m_refCloud = ui->combo_ref->currentData().value<ct::Cloud::Ptr>();
-    m_compCloud = ui->combo_comp->currentData().value<ct::Cloud::Ptr>();
+    m_refCloud = ui->combo_ref->currentData().value<pw::Cloud::Ptr>();
+    m_compCloud = ui->combo_comp->currentData().value<pw::Cloud::Ptr>();
 
     if (!m_refCloud || !m_compCloud) {
         printE(QString("Invalid clouds selected"));
@@ -150,7 +150,7 @@ void M3C2Plugin::onApply() {
         return;
     }
 
-    ct::M3C2Params params;
+    pw::M3C2Params params;
     params.use_existing_normals = ui->radio_useExistingNormals->isChecked();
     params.normal_diameter = ui->dsb_normalDiameter->value();
     params.proj_diameter = ui->dsb_projScale->value();
@@ -159,12 +159,12 @@ void M3C2Plugin::onApply() {
 
     // Core points mode
     if (ui->radio_useRefCloud->isChecked()) {
-        params.core_points_mode = ct::M3C2Params::CorePointsMode::USE_REF_CLOUD;
+        params.core_points_mode = pw::M3C2Params::CorePointsMode::USE_REF_CLOUD;
     } else if (ui->radio_subsampleRef->isChecked()) {
-        params.core_points_mode = ct::M3C2Params::CorePointsMode::SUBSAMPLE_REF;
+        params.core_points_mode = pw::M3C2Params::CorePointsMode::SUBSAMPLE_REF;
         params.subsample_factor = ui->dsb_subsampleFactor->value();
     } else {
-        params.core_points_mode = ct::M3C2Params::CorePointsMode::USE_COMP_CLOUD;
+        params.core_points_mode = pw::M3C2Params::CorePointsMode::USE_COMP_CLOUD;
     }
 
     // Registration error
@@ -208,13 +208,13 @@ void M3C2Plugin::onApply() {
     auto* cloudview = m_cloudview;
     auto* cloudtree = m_cloudtree;
 
-    m_progress->runAsync<ct::M3C2Result>(
+    m_progress->runAsync<pw::M3C2Result>(
         "M3C2: Computing distances...",
-        [=](std::atomic<bool>& cancel, ct::ProgressCallback progress) {
-            return ct::DistanceCalculator::calculateM3C2(refPCL, compPCL, existingNormals,
+        [=](std::atomic<bool>& cancel, pw::ProgressCallback progress) {
+            return pw::DistanceCalculator::calculateM3C2(refPCL, compPCL, existingNormals,
                                                          params_copy, &cancel, progress);
         },
-        [=](const ct::M3C2Result& result) {
+        [=](const pw::M3C2Result& result) {
         if (!result.success) {
             printE(QString("M3C2 failed: %1").arg(QString::fromStdString(result.error_msg)));
             return;
@@ -224,7 +224,7 @@ void M3C2Plugin::onApply() {
 
         // Map core point results back to full reference cloud
         size_t ref_size = static_cast<size_t>(ref->size());
-        bool is_use_comp = params_copy.core_points_mode == ct::M3C2Params::CorePointsMode::USE_COMP_CLOUD;
+        bool is_use_comp = params_copy.core_points_mode == pw::M3C2Params::CorePointsMode::USE_COMP_CLOUD;
 
         if (is_use_comp) {
             // USE_COMP_CLOUD: apply results to comp cloud instead

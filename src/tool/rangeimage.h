@@ -11,7 +11,7 @@
 #include <QTimer>
 #include <QScrollArea>
 
-class RangeImage : public ct::CustomDialog {
+class RangeImage : public pw::CustomDialog {
     Q_OBJECT
 
 public:
@@ -53,8 +53,8 @@ private:
     QCheckBox* check_show_cloud_;
 
     // --- Data ---
-    ct::RangeImage::Ptr m_range_image;
-    ct::Cloud::Ptr m_cloud;
+    pw::RangeImage::Ptr m_range_image;
+    pw::Cloud::Ptr m_cloud;
     Eigen::Affine3f m_viewer_pose;
     QTimer* m_debounce_timer_;
 

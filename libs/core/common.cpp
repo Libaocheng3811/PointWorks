@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <cmath>
 
-namespace ct {
+namespace pw {
     void HSVtoRGB(float h, float s, float v, float &r, float &g, float &b) {
         // 如果饱和度为0，表示颜色为灰色，所有的RGB值等于明度v，然后直接返回
         if (s == 0.0f) {

@@ -9,7 +9,7 @@
 
 class vtkPolyData;
 
-namespace ct
+namespace pw
 {
 
 /// 曲面重建结果的可视化数据（含预构建的 VTK polydata）
@@ -19,9 +19,9 @@ struct SurfaceResultViz {
 };
 
 /// 将 SurfaceResult 转换为可渲染数据（在工作线程中调用）
-CT_VIZ_EXPORT void prepareSurfaceForRendering(const pcl::PolygonMesh::Ptr& mesh,
+PW_VIZ_EXPORT void prepareSurfaceForRendering(const pcl::PolygonMesh::Ptr& mesh,
                                                 SurfaceResultViz& viz);
 
-}  // namespace ct
+}  // namespace pw
 
 #endif  // POINTWORKS_SURFACE_VIZ_HELPER_H

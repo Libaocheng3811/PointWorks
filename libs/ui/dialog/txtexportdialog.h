@@ -20,7 +20,7 @@
 #include <QPushButton>
 #include <QGroupBox>
 
-namespace ct{
+namespace pw{
     class TxtExportDialog : public QDialog {
         Q_OBJECT
     public:

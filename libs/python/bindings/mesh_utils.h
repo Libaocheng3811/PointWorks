@@ -7,7 +7,7 @@
 #include <cstddef>
 
 namespace pcl { struct PolygonMesh; }
-namespace ct { class Cloud; }
+namespace pw { class Cloud; }
 
 // ========== Data Extraction ==========
 
@@ -19,7 +19,7 @@ size_t meshNumFaces(const pcl::PolygonMesh& mesh);
 // ========== Surface Reconstruction Algorithms ==========
 
 std::shared_ptr<pcl::PolygonMesh> surfacePoisson(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     int depth, int min_depth, float point_weight,
     float scale, int solver_divide, int iso_divide,
     float samples_per_node, bool confidence,
@@ -27,35 +27,35 @@ std::shared_ptr<pcl::PolygonMesh> surfacePoisson(
     std::string& error_msg);
 
 std::shared_ptr<pcl::PolygonMesh> surfaceGreedyTriangulation(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     double mu, int nnn, double radius,
     double min_angle, double max_angle, double ep,
     bool consistent, bool consistent_ordering,
     std::string& error_msg);
 
 std::shared_ptr<pcl::PolygonMesh> surfaceMarchingCubesHoppe(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     float iso_level, int res_x, int res_y, int res_z,
     float percentage, float dist_ignore,
     std::string& error_msg);
 
 std::shared_ptr<pcl::PolygonMesh> surfaceConvexHull(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     bool compute_area_volume, int dimension,
     std::string& error_msg);
 
 std::shared_ptr<pcl::PolygonMesh> surfaceConcaveHull(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     double alpha, bool keep_information, int dimension,
     std::string& error_msg);
 
 std::shared_ptr<pcl::PolygonMesh> surfaceMarchingCubesRBF(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     float iso_level, int res_x, int res_y, int res_z,
     float percentage, float epsilon,
     std::string& error_msg);
 
 std::shared_ptr<pcl::PolygonMesh> surfaceGridProjection(
-    const std::shared_ptr<ct::Cloud>& cloud,
+    const std::shared_ptr<pw::Cloud>& cloud,
     double resolution, int padding_size, int k, int max_binary_search_level,
     std::string& error_msg);

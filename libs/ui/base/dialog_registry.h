@@ -5,7 +5,7 @@
 #include <set>
 #include <QString>
 
-namespace ct
+namespace pw
 {
     class CustomDialog;
     class CustomDock;

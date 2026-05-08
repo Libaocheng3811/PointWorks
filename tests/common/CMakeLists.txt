@@ -12,7 +12,7 @@ target_include_directories(test_common PUBLIC
 
 target_link_libraries(test_common
     PUBLIC
-        ct_core
+        pw_core
     PRIVATE
         GTest::gtest
 )

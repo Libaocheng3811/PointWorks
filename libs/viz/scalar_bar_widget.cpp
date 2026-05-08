@@ -7,7 +7,7 @@
 #include <cstring>
 #include <cmath>
 
-namespace ct {
+namespace pw {
 
 ScalarBarWidget::ScalarBarWidget(QWidget* parent)
     : QWidget(parent)
@@ -395,4 +395,4 @@ void ScalarBarWidget::setShowCurve(bool show)
     }
 }
 
-}  // namespace ct
+}  // namespace pw

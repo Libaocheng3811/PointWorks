@@ -1,7 +1,7 @@
 #include "cloud_registry.h"
 #include <algorithm>
 
-namespace ct
+namespace pw
 {
 
 void PythonCloudRegistry::registerCloud(Cloud::Ptr cloud)
@@ -128,4 +128,4 @@ bool PythonCloudRegistry::isScriptMode() const
     return m_script_mode.load(std::memory_order_relaxed);
 }
 
-} // namespace ct
+} // namespace pw

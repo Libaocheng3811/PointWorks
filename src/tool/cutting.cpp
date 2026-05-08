@@ -41,7 +41,7 @@ void Cutting::init()
     this->updateInfo(ui->cbox_type->currentIndex());
 
     // 打开弹窗即进入裁剪模式
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -62,10 +62,10 @@ void Cutting::init()
     }
     m_cloudview->removeShape(POLYGONAL_ID);
 
-    connect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &Cutting::mouseLeftPressed);
-    connect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &Cutting::mouseLeftReleased);
-    connect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &Cutting::mouseRightReleased);
-    connect(m_cloudview, &ct::CloudView::mouseMoved, this, &Cutting::mouseMoved);
+    connect(m_cloudview, &pw::CloudView::mouseLeftPressed, this, &Cutting::mouseLeftPressed);
+    connect(m_cloudview, &pw::CloudView::mouseLeftReleased, this, &Cutting::mouseLeftReleased);
+    connect(m_cloudview, &pw::CloudView::mouseRightReleased, this, &Cutting::mouseRightReleased);
+    connect(m_cloudview, &pw::CloudView::mouseMoved, this, &Cutting::mouseMoved);
     this->updateInfo(ui->cbox_type->currentIndex());
     updateButtonStates();
 }
@@ -98,10 +98,10 @@ void Cutting::stopPicking()
     is_picking = false;
 
     m_cloudtree->setEnabled(true);
-    disconnect(m_cloudview, &ct::CloudView::mouseLeftPressed, this, &Cutting::mouseLeftPressed);
-    disconnect(m_cloudview, &ct::CloudView::mouseLeftReleased, this, &Cutting::mouseLeftReleased);
-    disconnect(m_cloudview, &ct::CloudView::mouseRightReleased, this, &Cutting::mouseRightReleased);
-    disconnect(m_cloudview, &ct::CloudView::mouseMoved, this, &Cutting::mouseMoved);
+    disconnect(m_cloudview, &pw::CloudView::mouseLeftPressed, this, &Cutting::mouseLeftPressed);
+    disconnect(m_cloudview, &pw::CloudView::mouseLeftReleased, this, &Cutting::mouseLeftReleased);
+    disconnect(m_cloudview, &pw::CloudView::mouseRightReleased, this, &Cutting::mouseRightReleased);
+    disconnect(m_cloudview, &pw::CloudView::mouseMoved, this, &Cutting::mouseMoved);
     m_cloudview->unsetCursor();
 
     m_cloudview->removeShape(POLYGONAL_ID);
@@ -111,7 +111,7 @@ void Cutting::stopPicking()
 
 void Cutting::confirm()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -125,7 +125,7 @@ void Cutting::confirm()
             printW(QString("The Cloud[id:%1] has no preview cloud!").arg(QString::fromStdString(cloud->id())));
             continue;
         }
-        ct::Cloud::Ptr preview_cloud = it->second;
+        pw::Cloud::Ptr preview_cloud = it->second;
 
         // 一次遍历同时得到区域内外两个点云
         auto [seg_cloud, remain_cloud] = m_cloudview->areaPickSplit(m_pick_points, cloud, m_last_select_in);
@@ -137,7 +137,7 @@ void Cutting::confirm()
         seg_cloud->setId(cloud->id() + "-segmented");
         QString orig_id = QString::fromStdString(cloud->id());
         QTreeWidgetItem* item = m_cloudtree->getItemById(orig_id);
-        m_cloudtree->insertCloud(seg_cloud, item, true, ct::MountStrategy::Sibling, ct::SceneNodeType::NodeCloud, false);
+        m_cloudtree->insertCloud(seg_cloud, item, true, pw::MountStrategy::Sibling, pw::SceneNodeType::NodeCloud, false);
 
         // 用剩余部分替换原点云（swap 原地替换，释放原数据）
         if (remain_cloud && !remain_cloud->empty())
@@ -201,7 +201,7 @@ void Cutting::previewCutting(bool select_in)
 {
     m_last_select_in = select_in;
 
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud!");
@@ -226,7 +226,7 @@ void Cutting::previewCutting(bool select_in)
 
     for (auto& cloud : selected_clouds)
     {
-        ct::Cloud::Ptr cut_cloud = m_cloudview->areaPick(m_pick_points, cloud, select_in);
+        pw::Cloud::Ptr cut_cloud = m_cloudview->areaPick(m_pick_points, cloud, select_in);
 
         if (!cut_cloud || cut_cloud->empty()) {
             printW("No points selected.");
@@ -249,7 +249,7 @@ void Cutting::previewCutting(bool select_in)
     updateButtonStates();
 }
 
-void Cutting::mouseLeftPressed(const ct::PointXY &pt)
+void Cutting::mouseLeftPressed(const pw::PointXY &pt)
 {
     if (!pick_start)
     {
@@ -261,7 +261,7 @@ void Cutting::mouseLeftPressed(const ct::PointXY &pt)
     }
 }
 
-void Cutting::mouseLeftReleased(const ct::PointXY &pt)
+void Cutting::mouseLeftReleased(const pw::PointXY &pt)
 {
     if (pick_start)
     {
@@ -275,13 +275,13 @@ void Cutting::mouseLeftReleased(const ct::PointXY &pt)
 
         if (ui->cbox_type->currentIndex() == CUT_TYPE_RECTANGULAR)
         {
-            ct::PointXY p1(m_pick_points.front().x, pt.y);
-            ct::PointXY p2(pt.x, m_pick_points.front().y);
+            pw::PointXY p1(m_pick_points.front().x, pt.y);
+            pw::PointXY p2(pt.x, m_pick_points.front().y);
             m_pick_points.push_back(p1);
             m_pick_points.push_back(pt);
             m_pick_points.push_back(p2);
             m_cloudview->removeRect2D(POLYGONAL_ID);
-            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, ct::Color::Green);
+            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, pw::Color::Green);
             pick_start = false;
             updateButtonStates();
         }
@@ -292,33 +292,33 @@ void Cutting::mouseLeftReleased(const ct::PointXY &pt)
     }
 }
 
-void Cutting::mouseRightReleased(const ct::PointXY &pt)
+void Cutting::mouseRightReleased(const pw::PointXY &pt)
 {
     if (pick_start)
     {
         if (ui->cbox_type->currentIndex() == CUT_TYPE_RECTANGULAR)
         {
-            ct::PointXY p1(m_pick_points.front().x, pt.y);
-            ct::PointXY p2(pt.x, m_pick_points.front().y);
+            pw::PointXY p1(m_pick_points.front().x, pt.y);
+            pw::PointXY p2(pt.x, m_pick_points.front().y);
             m_pick_points.push_back(p1);
             m_pick_points.push_back(pt);
             m_pick_points.push_back(p2);
             m_cloudview->removeRect2D(POLYGONAL_ID);
-            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, ct::Color::Green);
+            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, pw::Color::Green);
             pick_start = false;
             updateButtonStates();
         }
         else
         {
             if (m_pick_points.size() == 2) m_pick_points.push_back(pt);
-            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, ct::Color::Green);
+            m_cloudview->addPolygon2D(m_pick_points, POLYGONAL_ID, pw::Color::Green);
             pick_start = false;
             updateButtonStates();
         }
     }
 }
 
-void Cutting::mouseMoved(const ct::PointXY &pt)
+void Cutting::mouseMoved(const pw::PointXY &pt)
 {
     if (pick_start)
     {
@@ -332,9 +332,9 @@ void Cutting::mouseMoved(const ct::PointXY &pt)
         }
         else
         {
-            std::vector<ct::PointXY> pre_points = m_pick_points;
+            std::vector<pw::PointXY> pre_points = m_pick_points;
             pre_points.push_back(pt);
-            m_cloudview->addPolygon2D(pre_points, POLYGONAL_ID, ct::Color::Green);
+            m_cloudview->addPolygon2D(pre_points, POLYGONAL_ID, pw::Color::Green);
         }
     }
 }

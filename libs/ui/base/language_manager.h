@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QTranslator>
 
-namespace ct
+namespace pw
 {
 
 class LanguageManager : public QObject
@@ -26,4 +26,4 @@ private:
     Language m_current = English;
 };
 
-} // namespace ct
+} // namespace pw

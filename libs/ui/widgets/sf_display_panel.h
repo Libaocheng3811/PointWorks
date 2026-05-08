@@ -20,7 +20,7 @@
 #include <QFormLayout>
 #include <QSpacerItem>
 
-namespace ct {
+namespace pw {
 
 class SFHistogramChart;
 
@@ -92,6 +92,6 @@ private:
     QCheckBox* m_check_show_curve;
 };
 
-}  // namespace ct
+}  // namespace pw
 
 #endif  // POINTWORKS_SF_DISPLAY_PANEL_H

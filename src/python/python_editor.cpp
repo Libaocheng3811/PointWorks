@@ -20,7 +20,7 @@
 #include <QPaintEvent>
 #include <QPainter>
 
-namespace ct
+namespace pw
 {
 
 // ================================================================
@@ -293,7 +293,7 @@ PythonEditor::PythonEditor(QWidget* parent)
     });
 
     // === Worker 信号 ===
-    auto* worker = ct::PythonManager::instance().worker();
+    auto* worker = pw::PythonManager::instance().worker();
     if (worker) {
         connect(worker, &PythonWorker::scriptStarted,
                 this, &PythonEditor::onScriptStarted);
@@ -388,7 +388,7 @@ void PythonEditor::onRun()
     QString code = tab.editor->toPlainText();
     if (code.trimmed().isEmpty()) return;
 
-    auto* worker = ct::PythonManager::instance().worker();
+    auto* worker = pw::PythonManager::instance().worker();
     if (!worker || worker->isBusy()) return;
 
     // 如果有文件路径，先自动保存再用 eval_file 执行（避免编码/不可见字符问题）
@@ -411,7 +411,7 @@ void PythonEditor::onRun()
 
 void PythonEditor::onStop()
 {
-    auto* worker = ct::PythonManager::instance().worker();
+    auto* worker = pw::PythonManager::instance().worker();
     if (worker && worker->isBusy()) {
         worker->cancel();
     }
@@ -542,4 +542,4 @@ void PythonEditor::closeEvent(QCloseEvent* event)
     event->accept();
 }
 
-} // namespace ct
+} // namespace pw

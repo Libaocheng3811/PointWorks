@@ -18,7 +18,7 @@
 
 #include <pcl/PolygonMesh.h>
 
-class CloudMeshDistDialog : public ct::CustomDialog {
+class CloudMeshDistDialog : public pw::CustomDialog {
     Q_OBJECT
 public:
     explicit CloudMeshDistDialog(QWidget* parent = nullptr);
@@ -35,9 +35,9 @@ private:
     void populateComboBoxes();
 
     std::atomic<bool> m_canceled{false};
-    QFutureWatcher<ct::DistanceResult>* m_watcher = nullptr;
+    QFutureWatcher<pw::DistanceResult>* m_watcher = nullptr;
 
-    ct::Cloud::Ptr m_source_cloud;
+    pw::Cloud::Ptr m_source_cloud;
     pcl::PolygonMesh::Ptr m_target_mesh;
 
     QComboBox* cbox_source_;

@@ -11,7 +11,7 @@ namespace Ui
 }
 QT_END_NAMESPACE
 
-class Color : public ct::CustomDialog
+class Color : public pw::CustomDialog
 {
     Q_OBJECT
 

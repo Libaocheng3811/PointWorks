@@ -63,7 +63,7 @@ void Coordinate::deinit()
 
 void Coordinate::add()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty()) {
         printW("Please select a cloud!");
         return;
@@ -71,7 +71,7 @@ void Coordinate::add()
     for (auto& cloud : selected_clouds) {
         std::string sid = cloud->id() + COORDINATE_ADD_FLAG;
         if (!m_cloudview->contains(QString::fromStdString(sid))) {
-            ct::Coord cloud_coord(sid, ui->dspin_scale->value(), cloud->box().pose);
+            pw::Coord cloud_coord(sid, ui->dspin_scale->value(), cloud->box().pose);
             m_cloudview->addCoordinateSystem(cloud_coord);
             m_coord_map[cloud->id()] = cloud_coord;
         }
@@ -104,7 +104,7 @@ void Coordinate::addCoord()
         printW("The transformation matrix format is wrong (need 4x4 matrix)");
         return;
     }
-    ct::Coord add_coord(id.toStdString(), ui->dspin_scale->value(), affine);
+    pw::Coord add_coord(id.toStdString(), ui->dspin_scale->value(), affine);
     m_cloudview->addCoordinateSystem(add_coord);
     m_cloudview->resetCamera();
 

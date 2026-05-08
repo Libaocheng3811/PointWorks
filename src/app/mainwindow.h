@@ -23,7 +23,7 @@ namespace Ui
 }
 QT_END_NAMESPACE
 
-namespace ct { class PythonConsole; }
+namespace pw { class PythonConsole; }
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -36,19 +36,19 @@ public:
     template <class T>
     void createDialog(const QString& label)
     {
-        ct::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
+        pw::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
     }
 
     template <class T>
     void createModalDialog(const QString& label)
     {
-        ct::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console, false, true);
+        pw::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console, false, true);
     }
 
     template <class T>
     void createToolDialog(const QString& label)
     {
-        ct::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console, false, false);
+        pw::createDialog<T>(this, label, m_viewport_mgr->activeView(), ui->cloudtree, ui->console, false, false);
     }
 
 protected:
@@ -63,18 +63,18 @@ protected:
 private:
     Ui::MainWindow *ui;
     ProjectManager* m_project_manager = nullptr;
-    ct::ViewportManager* m_viewport_mgr = nullptr;
+    pw::ViewportManager* m_viewport_mgr = nullptr;
 
     bool isSupportedFile(const QString& suffix) const;
     void handleDroppedFiles(const QList<QUrl>& urls);
     void installDragFilterOnViews();
 
-    void setupInitialLayout(ct::PythonConsole* python_console);
+    void setupInitialLayout(pw::PythonConsole* python_console);
     void setupFileMenu();
     void setupEditMenu();
     void setupViewMenu();
     void setupTools();
-    void setupPythonConsole(ct::PythonConsole* python_console);
+    void setupPythonConsole(pw::PythonConsole* python_console);
     void setupThemes();
     void setupHelp();
     void setupProjectManager();
@@ -82,7 +82,7 @@ private:
 
 private slots:
     void onTreeSelectionChanged();
-    void updateActionEnableState(const ct::SelectionInfo& info);
+    void updateActionEnableState(const pw::SelectionInfo& info);
 };
 
 

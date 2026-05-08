@@ -18,7 +18,7 @@
 class vtkRenderer;
 class vtkActor;
 
-namespace ct{
+namespace pw{
     /**
     * @brief 高性能八叉树 LOD 渲染器
     * @details 策略：
@@ -42,7 +42,7 @@ namespace ct{
 
         std::vector<vtkActor*> getActiveActors() const;
         CloudBlock::Ptr getBlockFromActor(vtkActor* actor);
-        ct::Cloud::Ptr getCloud() const {return m_cloud; }
+        pw::Cloud::Ptr getCloud() const {return m_cloud; }
 
     private:
         // 遍历上下文
@@ -114,6 +114,6 @@ namespace ct{
         static constexpr int EVICTION_FRAMES = 5;            // 连续隐藏多少帧后可驱逐
     };
 
-}// namespace ct
+}// namespace pw
 
 #endif //POINTWORKS_OCTREERENDERER_H

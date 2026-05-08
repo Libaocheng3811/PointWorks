@@ -33,7 +33,7 @@ void Sampling::init()
     // 获取当前选中的点云
     if (!m_cloudtree) return;
 
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty())
     {
         printW("Please select a cloud first!");
@@ -64,7 +64,7 @@ void Sampling::onOkClicked()
     auto* cancel = new std::atomic<bool>(false);
     m_cancel = false;
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [cancel]() { *cancel = true; }, Qt::UniqueConnection);
     }
 
@@ -79,48 +79,48 @@ void Sampling::onOkClicked()
     auto cloud = m_current_cloud;
 
     // 根据选择的方法执行采样
-    QFuture<ct::FilterResult> future;
+    QFuture<pw::FilterResult> future;
     switch (ui->cbox_method->currentIndex())
     {
         case METHOD_DOWNSAMPLING:
             future = QtConcurrent::run([cloud, cancel, on_progress, radius = ui->dspin_radius1->value()]() {
-                return ct::Filters::DownSampling(cloud, radius, false, cancel, on_progress);
+                return pw::Filters::DownSampling(cloud, radius, false, cancel, on_progress);
             });
             break;
 
         case METHOD_UNIFORMSAMPLING:
             future = QtConcurrent::run([cloud, cancel, on_progress, radius = ui->dspin_radius2->value()]() {
-                return ct::Filters::UniformSampling(cloud, radius, false, cancel, on_progress);
+                return pw::Filters::UniformSampling(cloud, radius, false, cancel, on_progress);
             });
             break;
 
         case METHOD_RANDOMSAMPLING:
             future = QtConcurrent::run([cloud, cancel, on_progress, sample = ui->spin_sample1->value(), seed = ui->spin_seed1->value()]() {
-                return ct::Filters::RandomSampling(cloud, sample, seed, false, cancel, on_progress);
+                return pw::Filters::RandomSampling(cloud, sample, seed, false, cancel, on_progress);
             });
             break;
 
         case METHOD_RESAMPLING:
             future = QtConcurrent::run([cloud, cancel, on_progress, radius = ui->dspin_radius3->value(), order = ui->spin_order->value()]() {
-                return ct::Filters::ReSampling(cloud, radius, order, false, cancel, on_progress);
+                return pw::Filters::ReSampling(cloud, radius, order, false, cancel, on_progress);
             });
             break;
 
         case METHOD_SAMPLINGSURFACENORMAL:
             future = QtConcurrent::run([cloud, cancel, on_progress, sample = ui->spin_sample2->value(), seed = ui->spin_seed2->value(), ratio = ui->dspin_ratio->value()]() {
-                return ct::Filters::SamplingSurfaceNormal(cloud, sample, seed, ratio, false, cancel, on_progress);
+                return pw::Filters::SamplingSurfaceNormal(cloud, sample, seed, ratio, false, cancel, on_progress);
             });
             break;
 
         case METHOD_NORMALSPACESAMPLING:
             future = QtConcurrent::run([cloud, cancel, on_progress, sample = ui->spin_sample3->value(), seed = ui->spin_seed3->value(), bin = ui->spin_bin->value()]() {
-                return ct::Filters::NormalSpaceSampling(cloud, sample, seed, bin, false, cancel, on_progress);
+                return pw::Filters::NormalSpaceSampling(cloud, sample, seed, bin, false, cancel, on_progress);
             });
             break;
     }
 
-    auto* watcher = new QFutureWatcher<ct::FilterResult>(this);
-    connect(watcher, &QFutureWatcher<ct::FilterResult>::finished, this, [=]() {
+    auto* watcher = new QFutureWatcher<pw::FilterResult>(this);
+    connect(watcher, &QFutureWatcher<pw::FilterResult>::finished, this, [=]() {
         auto result = watcher->result();
         m_progress->closeProgress();
         delete cancel;
@@ -135,7 +135,7 @@ void Sampling::onCancelClicked()
     reject();
 }
 
-void Sampling::handleSamplingResult(const ct::FilterResult& result)
+void Sampling::handleSamplingResult(const pw::FilterResult& result)
 {
     auto cloud = result.result_cloud;
 

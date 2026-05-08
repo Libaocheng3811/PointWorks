@@ -50,7 +50,7 @@ Name: "startmenu"; Description: "Create Start Menu shortcut"; GroupDescription: 
 ; 主程序
 Source: "{#SourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 ; 项目 DLL
-Source: "{#SourceDir}\ct_*.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\pw_*.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; Python 运行时（exe 同级）
 Source: "{#SourceDir}\python3*.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; Qt DLL

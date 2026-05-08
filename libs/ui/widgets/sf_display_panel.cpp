@@ -3,7 +3,7 @@
 
 #include <QSignalBlocker>
 
-namespace ct {
+namespace pw {
 
 SFDisplayPanel::SFDisplayPanel(QWidget* parent)
     : QWidget(parent)
@@ -335,4 +335,4 @@ void SFDisplayPanel::onShowCurveToggled(bool checked)
     emit scalarBarShowCurve(checked);
 }
 
-}  // namespace ct
+}  // namespace pw

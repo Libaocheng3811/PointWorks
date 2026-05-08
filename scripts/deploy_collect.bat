@@ -51,7 +51,7 @@ mkdir "%~dp0..\cmake-build-release-visual-studio\dist\pointworks\python"
 
 echo [2/8] Copying exe and project DLLs...
 copy "%~dp0..\cmake-build-release-visual-studio\bin\pointworks.exe" "%~dp0..\cmake-build-release-visual-studio\dist\pointworks\" >nul
-for %%f in ("%~dp0..\cmake-build-release-visual-studio\bin\ct_*.dll") do copy "%%f" "%~dp0..\cmake-build-release-visual-studio\dist\pointworks\" >nul 2>&1
+for %%f in ("%~dp0..\cmake-build-release-visual-studio\bin\pw_*.dll") do copy "%%f" "%~dp0..\cmake-build-release-visual-studio\dist\pointworks\" >nul 2>&1
 
 echo [3/8] Running windeployqt...
 "%QT_BIN%\windeployqt.exe" --release --no-translations --no-opengl-sw "%~dp0..\cmake-build-release-visual-studio\dist\pointworks\pointworks.exe"

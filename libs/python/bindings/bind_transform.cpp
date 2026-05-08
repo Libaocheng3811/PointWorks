@@ -5,14 +5,14 @@
 #include "core/common.h"
 #include "algorithm/filters.h"
 
-static ct::Cloud::Ptr transformCloud(const ct::Cloud::Ptr& cloud,
+static pw::Cloud::Ptr transformCloud(const pw::Cloud::Ptr& cloud,
                                       const Eigen::Affine3f& trans,
                                       const std::string& output_name)
 {
     auto pcl_cloud = cloud->toPCL_XYZRGBN();
-    pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<ct::PointXYZRGBN>);
+    pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_result(new pcl::PointCloud<pw::PointXYZRGBN>);
     pcl::transformPointCloud(*pcl_cloud, *pcl_result, trans);
-    auto result = ct::Cloud::fromPCL_XYZRGBN(*pcl_result);
+    auto result = pw::Cloud::fromPCL_XYZRGBN(*pcl_result);
     result->setId(output_name);
     result->setHasColors(cloud->hasColors());
     result->setHasNormals(cloud->hasNormals());
@@ -20,13 +20,13 @@ static ct::Cloud::Ptr transformCloud(const ct::Cloud::Ptr& cloud,
     return result;
 }
 
-static py::object insertTransformedCloud(const ct::Cloud::Ptr& result,
+static py::object insertTransformedCloud(const pw::Cloud::Ptr& result,
                                           const std::string& output_name)
 {
     getRegistry().registerCloud(result);
     getRegistry().holdCloud(result);
     if (shouldAutoInsert()) {
-        auto* bridge = ct::PythonManager::instance().bridge();
+        auto* bridge = pw::PythonManager::instance().bridge();
         if (bridge) bridge->insertCloud(result);
     }
     return py::cast(PyCloud(result));
@@ -59,7 +59,7 @@ void registerTransformBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        Eigen::Affine3f trans = ct::getTransformation(0, 0, 0,
+        Eigen::Affine3f trans = pw::getTransformation(0, 0, 0,
             static_cast<float>(rx), static_cast<float>(ry), static_cast<float>(rz));
 
         auto result = transformCloud(cloud, trans, "rotated-" + name);
@@ -76,7 +76,7 @@ void registerTransformBindings(py::module_& m)
         auto cloud = getRegistry().getCloud(name);
         if (!cloud) throw std::runtime_error("Cloud not found: " + name);
 
-        Eigen::Affine3f trans = ct::getTransformation(
+        Eigen::Affine3f trans = pw::getTransformation(
             static_cast<float>(angle),
             static_cast<float>(ax), static_cast<float>(ay), static_cast<float>(az),
             static_cast<float>(tx), static_cast<float>(ty), static_cast<float>(tz));
@@ -153,15 +153,15 @@ void registerTransformBindings(py::module_& m)
 
         // 使用 PassThrough 滤波器实现三轴裁剪
         // 先裁剪 X，再裁剪 Y，再裁剪 Z
-        ct::FilterResult fr_x = ct::Filters::PassThrough(cloud, "x",
+        pw::FilterResult fr_x = pw::Filters::PassThrough(cloud, "x",
             static_cast<float>(min_x), static_cast<float>(max_x), negative);
         if (!fr_x.result_cloud) throw std::runtime_error("Crop produced no result on X axis");
 
-        ct::FilterResult fr_y = ct::Filters::PassThrough(fr_x.result_cloud, "y",
+        pw::FilterResult fr_y = pw::Filters::PassThrough(fr_x.result_cloud, "y",
             static_cast<float>(min_y), static_cast<float>(max_y), negative);
         if (!fr_y.result_cloud) throw std::runtime_error("Crop produced no result on Y axis");
 
-        ct::FilterResult fr_z = ct::Filters::PassThrough(fr_y.result_cloud, "z",
+        pw::FilterResult fr_z = pw::Filters::PassThrough(fr_y.result_cloud, "z",
             static_cast<float>(min_z), static_cast<float>(max_z), negative);
         if (!fr_z.result_cloud) throw std::runtime_error("Crop produced no result on Z axis");
 
@@ -170,7 +170,7 @@ void registerTransformBindings(py::module_& m)
         getRegistry().registerCloud(fr_z.result_cloud);
         getRegistry().holdCloud(fr_z.result_cloud);
         if (shouldAutoInsert()) {
-            auto* bridge = ct::PythonManager::instance().bridge();
+            auto* bridge = pw::PythonManager::instance().bridge();
             if (bridge) bridge->insertCloud(fr_z.result_cloud);
         }
 

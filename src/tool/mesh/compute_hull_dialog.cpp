@@ -17,7 +17,7 @@
 // ======================== Constructor ========================
 
 ComputeHullDialog::ComputeHullDialog(QWidget* parent)
-    : ct::CustomDialog(parent), m_canceled(false)
+    : pw::CustomDialog(parent), m_canceled(false)
 {
     setupUi();
     this->setWindowTitle("Compute Hull");
@@ -168,7 +168,7 @@ void ComputeHullDialog::onCompute()
     auto* cancel = new std::atomic<bool>(false);
     auto* progress_closed = new std::atomic<bool>(false);
     if (m_progress->dialog()) {
-        connect(m_progress, &ct::ProgressManager::cancelRequested,
+        connect(m_progress, &pw::ProgressManager::cancelRequested,
                 this, [=]() {
                     *cancel = true;
                     m_canceled.store(true);
@@ -187,25 +187,25 @@ void ComputeHullDialog::onCompute()
     // ========== Step 6: 提交算法到工作线程 ==========
     auto cloud = m_cloud;
     m_canceled.store(false);
-    auto viz = std::make_shared<ct::SurfaceResultViz>();
+    auto viz = std::make_shared<pw::SurfaceResultViz>();
 
     auto future = QtConcurrent::run([cloud, is_convex, alpha, keep_info, dimension,
-                                     cancel, on_progress, viz]() -> ct::SurfaceResult {
-        ct::SurfaceResult result;
+                                     cancel, on_progress, viz]() -> pw::SurfaceResult {
+        pw::SurfaceResult result;
         if (is_convex) {
-            result = ct::Surface::ConvexHull(cloud, keep_info, dimension, cancel, on_progress);
+            result = pw::Surface::ConvexHull(cloud, keep_info, dimension, cancel, on_progress);
         } else {
-            result = ct::Surface::ConcaveHull(cloud, alpha, keep_info, dimension, cancel, on_progress);
+            result = pw::Surface::ConcaveHull(cloud, alpha, keep_info, dimension, cancel, on_progress);
         }
 
         // 在工作线程中完成所有耗时的数据准备，主线程只做轻量渲染
-        ct::prepareSurfaceForRendering(result.mesh, *viz);
+        pw::prepareSurfaceForRendering(result.mesh, *viz);
         return result;
     });
 
     // ========== Step 7: 监听完成信号 ==========
-    auto* watcher = new QFutureWatcher<ct::SurfaceResult>(this);
-    connect(watcher, &QFutureWatcher<ct::SurfaceResult>::finished, this,
+    auto* watcher = new QFutureWatcher<pw::SurfaceResult>(this);
+    connect(watcher, &QFutureWatcher<pw::SurfaceResult>::finished, this,
         [=]() {
             auto result = watcher->result();
             watcher->deleteLater();
@@ -239,8 +239,8 @@ void ComputeHullDialog::onCompute()
                 QTreeWidgetItem* origin_item = m_cloudtree->getItemById(
                     QString::fromStdString(cloud->id()));
                 m_cloudtree->insertCloud(viz->prepared_cloud, origin_item, true,
-                                         ct::MountStrategy::Sibling,
-                                         ct::NodeMesh);
+                                         pw::MountStrategy::Sibling,
+                                         pw::NodeMesh);
 
                 // 使用预构建的 polydata，跳过主线程的 VTK 重计算
                 if (viz->prepared_polydata) {

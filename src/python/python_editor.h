@@ -10,7 +10,7 @@
 #include <QList>
 #include <QAction>
 
-namespace ct
+namespace pw
 {
 
 // ================================================================
@@ -134,6 +134,6 @@ private:
     void closeEvent(QCloseEvent* event) override;
 };
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_PYTHON_EDITOR_H

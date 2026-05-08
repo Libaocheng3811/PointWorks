@@ -11,7 +11,7 @@
 #include <QFrame>
 #include <QMap>
 
-namespace ct
+namespace pw
 {
 
 class ViewportManager : public QObject
@@ -74,4 +74,4 @@ private:
     QMap<CloudView*, QFrame*> m_view_frames;
 };
 
-} // namespace ct
+} // namespace pw

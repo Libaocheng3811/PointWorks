@@ -5,7 +5,7 @@
 
 #include <QTextbrowser>
 
-namespace ct
+namespace pw
 {
     enum log_level
     {
@@ -15,7 +15,7 @@ namespace ct
     };
 
     // QTextBrowser继承自QTextEdit,
-    class CT_VIZ_EXPORT Console : public QTextBrowser
+    class PW_VIZ_EXPORT Console : public QTextBrowser
     {
         Q_OBJECT
     public:

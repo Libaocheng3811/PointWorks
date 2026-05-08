@@ -32,7 +32,7 @@
 #include <pcl/filters/impl/local_maximum.hpp>
 #include <pcl/filters/impl/project_inliers.hpp>
 
-namespace ct
+namespace pw
 {
     // helper: early-return if cancel is requested
     static inline bool isCanceled(std::atomic<bool>* cancel) {

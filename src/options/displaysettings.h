@@ -11,7 +11,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-class DisplaySettingsDialog : public ct::CustomDialog
+class DisplaySettingsDialog : public pw::CustomDialog
 {
     Q_OBJECT
 public:

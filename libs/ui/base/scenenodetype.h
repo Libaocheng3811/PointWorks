@@ -5,7 +5,7 @@
 
 #include <QtCore/qnamespace.h>
 
-namespace ct
+namespace pw
 {
 
 /// 场景节点类型
@@ -58,6 +58,6 @@ constexpr int NodeViewportIndexRole = Qt::UserRole + 6;
 /// 特殊值：点云绑定到所有视窗
 constexpr int VIEWPORT_ALL = -1;
 
-} // namespace ct
+} // namespace pw
 
 #endif // POINTWORKS_SCENENODETYPE_H

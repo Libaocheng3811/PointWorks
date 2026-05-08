@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <unordered_map>
 
-namespace ct
+namespace pw
 {
 
     ///////////////////////////////////////////////////////////////////
@@ -66,7 +66,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addPointCloudFromRangeImage(const pcl::RangeImage::Ptr &image, const QString &id, const ct::ColorRGB &rgb)
+    void CloudView::addPointCloudFromRangeImage(const pcl::RangeImage::Ptr &image, const QString &id, const pw::ColorRGB &rgb)
     {
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointWithRange> range_image_color(image, rgb.r, rgb.g, rgb.b);
         if (!m_viewer->contains(id.toStdString()))
@@ -227,7 +227,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addPolygon(const Cloud::Ptr &cloud, const QString &id, const ct::ColorRGB &rgb)
+    void CloudView::addPolygon(const Cloud::Ptr &cloud, const QString &id, const pw::ColorRGB &rgb)
     {
         std::string std_id = id.toStdString();
         auto pclCloud = cloud->toPCL_XYZRGB();
@@ -694,8 +694,8 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addArrow(const ct::PointXYZRGBN &pt1, const ct::PointXYZRGBN &pt2, const QString &id,
-                             bool display_length, const ct::ColorRGB &rgb)
+    void CloudView::addArrow(const pw::PointXYZRGBN &pt1, const pw::PointXYZRGBN &pt2, const QString &id,
+                             bool display_length, const pw::ColorRGB &rgb)
     {
         if (!m_viewer->contains(id.toStdString()))
             m_viewer->addArrow(pt1, pt2, rgb.rf(), rgb.gf(), rgb.bf(), display_length, id.toStdString());
@@ -720,7 +720,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addCube(const ct::PointXYZRGBN &min, ct::PointXYZRGBN &max, const QString &id, const ct::ColorRGB &rgb)
+    void CloudView::addCube(const pw::PointXYZRGBN &min, pw::PointXYZRGBN &max, const QString &id, const pw::ColorRGB &rgb)
     {
         std::string std_id = id.toStdString();
         if (!m_viewer->contains(std_id))
@@ -733,7 +733,7 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-    void CloudView::addCube(const ct::Box &box, const QString &id)
+    void CloudView::addCube(const pw::Box &box, const QString &id)
     {
         std::string std_id = id.toStdString();
         if (!m_viewer->contains(std_id))
@@ -845,7 +845,7 @@ namespace ct
         return PointXYZRGBN(point[0], point[1], point[2], 0, 0, 0);
     }
 
-    void CloudView::addPolygon2D(const std::vector<PointXY> &points, const QString &id, const ct::ColorRGB &rgb)
+    void CloudView::addPolygon2D(const std::vector<PointXY> &points, const QString &id, const pw::ColorRGB &rgb)
     {
         Cloud::Ptr cloud(new Cloud);
 
@@ -947,7 +947,7 @@ namespace ct
     }
 
     // point pick
-    PickResult CloudView::singlePick(const ct::PointXY &pos, const QString& target_cloud_id)
+    PickResult CloudView::singlePick(const pw::PointXY &pos, const QString& target_cloud_id)
     {
         PickResult result;
         result.valid = false;
@@ -1112,7 +1112,7 @@ namespace ct
         return result_cloud;
     }
 
-    std::pair<ct::Cloud::Ptr, ct::Cloud::Ptr>
+    std::pair<pw::Cloud::Ptr, pw::Cloud::Ptr>
     CloudView::areaPickSplit(const std::vector<PointXY>& poly_points,
                               const Cloud::Ptr& cloud, bool in_out)
     {
@@ -1327,7 +1327,7 @@ namespace ct
         double ox = m(0,3), oy = m(1,3), oz = m(2,3);
 
         // 三根坐标轴用 PCL addArrow 绘制（红X 绿Y 蓝Z），绕过 vtkDataSetSurfaceFilter
-        ct::PointXYZRGBN origin, xEnd, yEnd, zEnd;
+        pw::PointXYZRGBN origin, xEnd, yEnd, zEnd;
         origin.x = ox; origin.y = oy; origin.z = oz;
         xEnd.x = ox + m(0,0)*s; xEnd.y = oy + m(1,0)*s; xEnd.z = oz + m(2,0)*s;
         yEnd.x = ox + m(0,1)*s; yEnd.y = oy + m(1,1)*s; yEnd.z = oz + m(2,1)*s;
@@ -1363,4 +1363,4 @@ namespace ct
         if (m_auto_render) m_viewer->getRenderWindow()->Render();
     }
 
-} // namespace ct
+} // namespace pw

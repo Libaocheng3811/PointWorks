@@ -10,7 +10,7 @@
 #include <pcl/keypoints/narf_keypoint.h>
 #include <pcl/features/range_image_border_extractor.h>
 
-namespace ct
+namespace pw
 {
     static inline bool isCanceled(std::atomic<bool>* cancel) {
         return cancel && cancel->load();
@@ -277,4 +277,4 @@ namespace ct
         return {result, static_cast<float>(time.toc())};
     }
 
-}  // namespace ct
+}  // namespace pw

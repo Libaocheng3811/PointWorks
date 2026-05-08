@@ -7,7 +7,7 @@
 #include <vector>
 #include <map>
 
-namespace ct
+namespace pw
 {
     // 字段映射信息结构
     struct FieldInfo {
@@ -164,6 +164,6 @@ namespace ct
         std::string error_msg;
     };
 
-} // namespace ct
+} // namespace pw
 
 #endif //POINTWORKS_FIELD_TYPES_H

@@ -54,7 +54,7 @@ Scale::~Scale() { delete ui; }
 
 void Scale::preview(double x, double y, double z)
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty()) {
         printW("Please select a cloud!");
         return;
@@ -87,10 +87,10 @@ void Scale::preview(double x, double y, double z)
 
         // PCL transform
         auto pcl_cloud = cloud->toPCL_XYZRGBN();
-        pcl::PointCloud<ct::PointXYZRGBN>::Ptr pcl_scaled(new pcl::PointCloud<ct::PointXYZRGBN>);
+        pcl::PointCloud<pw::PointXYZRGBN>::Ptr pcl_scaled(new pcl::PointCloud<pw::PointXYZRGBN>);
         pcl::transformPointCloud(*pcl_cloud, *pcl_scaled, trans);
 
-        ct::Cloud::Ptr scaled_cloud = ct::Cloud::fromPCL_XYZRGBN(*pcl_scaled, cloud->getGlobalShift());
+        pw::Cloud::Ptr scaled_cloud = pw::Cloud::fromPCL_XYZRGBN(*pcl_scaled, cloud->getGlobalShift());
         scaled_cloud->setId(sid);
 
         if (ui->check_keepentity->isChecked())
@@ -103,7 +103,7 @@ void Scale::preview(double x, double y, double z)
 
 void Scale::add()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty()) {
         printW("Please select a cloud!");
         return;
@@ -118,10 +118,10 @@ void Scale::add()
         std::string sid = cloud->id() + SCALE_PRE_FLAG;
         m_cloudview->removePointCloud(QString::fromStdString(sid));
 
-        ct::Cloud::Ptr new_cloud = it->second;
+        pw::Cloud::Ptr new_cloud = it->second;
         new_cloud->setId(SCALE_ADD_FLAG + cloud->id());
         QTreeWidgetItem* item = m_cloudtree->getItemById(QString::fromStdString(cloud->id()));
-        m_cloudtree->insertCloud(new_cloud, item, true, ct::MountStrategy::Sibling);
+        m_cloudtree->insertCloud(new_cloud, item, true, pw::MountStrategy::Sibling);
         m_scale_map.erase(cloud->id());
         printI(QString("Add scaled cloud[id:%1] done.")
                    .arg(QString::fromStdString(new_cloud->id())));
@@ -131,7 +131,7 @@ void Scale::add()
 
 void Scale::apply()
 {
-    std::vector<ct::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
+    std::vector<pw::Cloud::Ptr> selected_clouds = m_cloudtree->getSelectedClouds();
     if (selected_clouds.empty()) {
         printW("Please select a cloud!");
         return;
@@ -146,7 +146,7 @@ void Scale::apply()
         std::string sid = cloud->id() + SCALE_PRE_FLAG;
         m_cloudview->removePointCloud(QString::fromStdString(sid));
 
-        ct::Cloud::Ptr new_cloud = it->second;
+        pw::Cloud::Ptr new_cloud = it->second;
         new_cloud->setId(cloud->id());
         m_cloudtree->updateCloud(cloud, new_cloud);
         m_scale_map.erase(cloud->id());

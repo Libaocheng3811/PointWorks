@@ -106,7 +106,7 @@ libs/io/
 ```
 
 > `textured_mesh.h` 已从 `libs/io/` 移至 `libs/core/`，因为 TexturedMesh 是核心数据类型。
-> 注意：`textured_mesh.h` 仍依赖 `pcl/PolygonMesh.h`，这是 `ct_core` 中唯一的 PCL
+> 注意：`textured_mesh.h` 仍依赖 `pcl/PolygonMesh.h`，这是 `pw_core` 中唯一的 PCL
 > 类型依赖。短期内保持现状，长期可通过 `shared_ptr<void>` 类型擦除移除。
 
 **支持格式**:
@@ -126,7 +126,7 @@ bool FileIO::loadLAS(const QString& filename, Cloud::Ptr& cloud) {
 
 ## CloudView (libs/viz/cloudview.h)
 
-基于 VTK 的三维可视化控件。通过 `view_params.h`（ct_core）获取相机参数，不再直接依赖 `projectfile.h`。
+基于 VTK 的三维可视化控件。通过 `view_params.h`（pw_core）获取相机参数，不再直接依赖 `projectfile.h`。
 
 **功能**:
 - 交互式点拾取（单点和多边形区域选择）
@@ -182,11 +182,11 @@ struct TexturedMesh {
 };
 ```
 
-> `textured_mesh.h` 仍依赖 `pcl/PolygonMesh.h`，这是 `ct_core` 中唯一的 PCL 类型依赖。长期可通过 `shared_ptr<void>` 类型擦除移除。
+> `textured_mesh.h` 仍依赖 `pcl/PolygonMesh.h`，这是 `pw_core` 中唯一的 PCL 类型依赖。长期可通过 `shared_ptr<void>` 类型擦除移除。
 
 ## ViewParams (libs/core/view_params.h)
 
-相机参数和视图选项，从 `projectfile.h` 移出，使 `ct_viz` 不再依赖 `ct_io`。
+相机参数和视图选项，从 `projectfile.h` 移出，使 `pw_viz` 不再依赖 `pw_io`。
 
 ## SurfaceVizHelper (libs/viz/surface_viz_helper.h/cpp)
 

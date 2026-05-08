@@ -16,7 +16,7 @@
 // 构造与信号连接
 // ================================================================
 
-ProjectManager::ProjectManager(ct::CloudTree* tree, ct::CloudView* view,
+ProjectManager::ProjectManager(pw::CloudTree* tree, pw::CloudView* view,
                                QMenu* recentMenu, QWidget* parentWidget)
     : QObject(parentWidget), m_tree(tree), m_view(view),
       m_recent_menu(recentMenu), m_parent_widget(parentWidget)
@@ -29,12 +29,12 @@ ProjectManager::ProjectManager(ct::CloudTree* tree, ct::CloudView* view,
 void ProjectManager::connectSignals()
 {
     // 点云增删 → 标记已修改
-    connect(m_tree, &ct::CloudTree::cloudInserted, this, [this](ct::Cloud::Ptr cloud) {
+    connect(m_tree, &pw::CloudTree::cloudInserted, this, [this](pw::Cloud::Ptr cloud) {
         markModified();
         if (!cloud->filepath().empty())
             m_recent_projects.addProject(QString::fromStdString(cloud->filepath()));
     });
-    connect(m_tree, &ct::CloudTree::removedCloudId, this, [this](const QString&) {
+    connect(m_tree, &pw::CloudTree::removedCloudId, this, [this](const QString&) {
         markModified();
     });
 
@@ -123,7 +123,7 @@ void ProjectManager::onOpenProject()
     }
 
     QString path = QFileDialog::getOpenFileName(m_parent_widget, "Open Project", QString(),
-        ct::ProjectFile::fileFilter());
+        pw::ProjectFile::fileFilter());
     if (path.isEmpty()) return;
     openProject(path);
 }
@@ -140,7 +140,7 @@ void ProjectManager::onSaveProject()
 void ProjectManager::onSaveProjectAs()
 {
     QString path = QFileDialog::getSaveFileName(m_parent_widget, "Save Project As", QString(),
-        ct::ProjectFile::fileFilter());
+        pw::ProjectFile::fileFilter());
     if (path.isEmpty()) return;
     saveProject(path);
 }
@@ -193,7 +193,7 @@ bool ProjectManager::saveProject(const QString& path)
 {
     if (!m_tree || !m_view) return false;
 
-    ct::ProjectData data;
+    pw::ProjectData data;
     data.created_at = QDateTime::currentDateTime();
     data.modified_at = data.created_at;
 
@@ -204,7 +204,7 @@ bool ProjectManager::saveProject(const QString& path)
     data.camera = m_view->getCameraParams();
     data.view_options = m_view->getViewOptions();
 
-    if (!ct::ProjectFile::save(path, data)) {
+    if (!pw::ProjectFile::save(path, data)) {
         emit loadError("Failed to save project file: " + path);
         return false;
     }
@@ -224,8 +224,8 @@ bool ProjectManager::openProject(const QString& path)
 {
     if (!m_tree || !m_view) return false;
 
-    ct::ProjectData data;
-    if (!ct::ProjectFile::load(path, data)) {
+    pw::ProjectData data;
+    if (!pw::ProjectFile::load(path, data)) {
         emit loadError("Failed to load project file: " + path);
         return false;
     }
@@ -242,10 +242,10 @@ bool ProjectManager::openProject(const QString& path)
         if (item) m_tree->addTopLevelItem(item);
 
         // 递归收集所有 FileNode
-        std::function<void(QTreeWidgetItem*, const ct::TreeNode&)> collectFiles;
-        collectFiles = [&](QTreeWidgetItem* treeItem, const ct::TreeNode& node) {
+        std::function<void(QTreeWidgetItem*, const pw::TreeNode&)> collectFiles;
+        collectFiles = [&](QTreeWidgetItem* treeItem, const pw::TreeNode& node) {
             if ((node.type == "file" || node.type == "folder") && !node.filepath.isEmpty()) {
-                QString resolved = ct::ProjectFile::resolveFilePath(projectDir, node.filepath);
+                QString resolved = pw::ProjectFile::resolveFilePath(projectDir, node.filepath);
                 if (!resolved.isEmpty()) {
                     pendingFiles.append({resolved, treeItem});
                 }
@@ -291,8 +291,8 @@ bool ProjectManager::openProject(const QString& path)
 
     // 信号驱动：每插入一个点云计数，全部完成时恢复视图
     auto* conn = new QMetaObject::Connection;
-    *conn = connect(m_tree, &ct::CloudTree::cloudInserted, this,
-        [this, data, conn](ct::Cloud::Ptr) {
+    *conn = connect(m_tree, &pw::CloudTree::cloudInserted, this,
+        [this, data, conn](pw::Cloud::Ptr) {
             ++m_pending_loads;
             if (m_pending_loads >= m_total_loads) {
                 disconnect(*conn);
@@ -321,11 +321,11 @@ bool ProjectManager::openProject(const QString& path)
 // 辅助：收集点云条目
 // ================================================================
 
-void ProjectManager::collectCloudEntries(const QString& projectDir, ct::ProjectData& data)
+void ProjectManager::collectCloudEntries(const QString& projectDir, pw::ProjectData& data)
 {
     auto allClouds = m_tree->getAllClouds();
     for (const auto& cloud : allClouds) {
-        ct::CloudEntry entry;
+        pw::CloudEntry entry;
         entry.uuid = QString::fromStdString(cloud->id());
         entry.file_path = QString::fromStdString(cloud->filepath());
         entry.display_name = entry.uuid;
@@ -333,7 +333,7 @@ void ProjectManager::collectCloudEntries(const QString& projectDir, ct::ProjectD
         if (!entry.file_path.isEmpty()) {
             QFileInfo fi(entry.file_path);
             entry.display_name = fi.fileName();
-            entry.file_path = ct::ProjectFile::toRelativePath(projectDir, entry.file_path);
+            entry.file_path = pw::ProjectFile::toRelativePath(projectDir, entry.file_path);
         }
 
         entry.global_shift = cloud->getGlobalShift();
@@ -362,30 +362,30 @@ void ProjectManager::collectCloudEntries(const QString& projectDir, ct::ProjectD
 // 辅助：收集树结构
 // ================================================================
 
-void ProjectManager::collectTreeNodes(QList<ct::TreeNode>& roots)
+void ProjectManager::collectTreeNodes(QList<pw::TreeNode>& roots)
 {
     for (int i = 0; i < m_tree->topLevelItemCount(); ++i) {
         roots.append(treeNodeFromItem(m_tree->topLevelItem(i)));
     }
 }
 
-ct::TreeNode ProjectManager::treeNodeFromItem(QTreeWidgetItem* item)
+pw::TreeNode ProjectManager::treeNodeFromItem(QTreeWidgetItem* item)
 {
-    ct::TreeNode node;
-    ct::SceneNodeType type = ct::CustomTree::getNodeType(item);
+    pw::TreeNode node;
+    pw::SceneNodeType type = pw::CustomTree::getNodeType(item);
 
-    node.type = (type == ct::NodeFile)  ? "file" :
-                (type == ct::NodeGroup) ? "group" : "cloud";
+    node.type = (type == pw::NodeFile)  ? "file" :
+                (type == pw::NodeGroup) ? "group" : "cloud";
     node.text = item->text(0);
     node.expanded = item->isExpanded();
     node.is_visible = (item->checkState(0) != Qt::Unchecked);
 
-    if (type == ct::NodeCloud) {
-        ct::Cloud::Ptr cloud = m_tree->getCloud(item);
+    if (type == pw::NodeCloud) {
+        pw::Cloud::Ptr cloud = m_tree->getCloud(item);
         if (cloud) node.uuid = QString::fromStdString(cloud->id());
     }
-    if (type == ct::NodeFile) {
-        node.filepath = item->data(0, ct::NodeFilePathRole).toString();
+    if (type == pw::NodeFile) {
+        node.filepath = item->data(0, pw::NodeFilePathRole).toString();
     }
 
     for (int i = 0; i < item->childCount(); ++i) {
@@ -399,14 +399,14 @@ ct::TreeNode ProjectManager::treeNodeFromItem(QTreeWidgetItem* item)
 // 从 TreeNode 重建 QTreeWidgetItem 树骨架
 // ================================================================
 
-QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const ct::TreeNode& node)
+QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const pw::TreeNode& node)
 {
     // cloud 类型节点由 loadCloudResult → insertCloud 动态创建，不在此处重建骨架
     if (node.type == "cloud") return nullptr;
 
-    ct::SceneNodeType type = (node.type == "file" || node.type == "folder") ? ct::NodeFile :
-                             (node.type == "group") ? ct::NodeGroup :
-                                                       ct::NodeCloud;
+    pw::SceneNodeType type = (node.type == "file" || node.type == "folder") ? pw::NodeFile :
+                             (node.type == "group") ? pw::NodeGroup :
+                                                       pw::NodeCloud;
 
     QTreeWidgetItem* item;
     if (parent) {
@@ -416,13 +416,13 @@ QTreeWidgetItem* ProjectManager::rebuildTreeNode(QTreeWidgetItem* parent, const 
     }
 
     item->setText(0, node.text);
-    item->setData(0, ct::NodeTypeRole, static_cast<int>(type));
+    item->setData(0, pw::NodeTypeRole, static_cast<int>(type));
     item->setIcon(0, m_tree->iconForType(type));
     item->setExpanded(node.expanded);
     item->setCheckState(0, node.is_visible ? Qt::Checked : Qt::Unchecked);
 
-    if (type == ct::NodeFile) {
-        item->setData(0, ct::NodeFilePathRole, node.filepath);
+    if (type == pw::NodeFile) {
+        item->setData(0, pw::NodeFilePathRole, node.filepath);
     }
 
     // 递归子节点

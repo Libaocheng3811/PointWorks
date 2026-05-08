@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
-    auto* python_console = new ct::PythonConsole(nullptr);
+    auto* python_console = new pw::PythonConsole(nullptr);
 
     setupInitialLayout(python_console);
     setupFileMenu();
@@ -92,7 +92,7 @@ MainWindow::MainWindow(QWidget *parent) :
     setupSelectionHandling();
 }
 
-void MainWindow::setupInitialLayout(ct::PythonConsole* python_console)
+void MainWindow::setupInitialLayout(pw::PythonConsole* python_console)
 {
     this->setBaseSize(1320, 845);
     QList<QDockWidget*> docks;
@@ -105,7 +105,7 @@ void MainWindow::setupInitialLayout(ct::PythonConsole* python_console)
     size.push_back(140);
     resizeDocks(docks, size, Qt::Orientation::Vertical);
 
-    m_viewport_mgr = new ct::ViewportManager(ui->viewport_container);
+    m_viewport_mgr = new pw::ViewportManager(ui->viewport_container);
 
     connect(ui->consoleTabWidget, &QTabWidget::tabCloseRequested, this, [this, python_console](int index) {
         QString tabText = ui->consoleTabWidget->tabText(index);
@@ -134,12 +134,12 @@ void MainWindow::setupInitialLayout(ct::PythonConsole* python_console)
 
 void MainWindow::setupFileMenu()
 {
-    connect(ui->actionOpen, &QAction::triggered, ui->cloudtree, &ct::CloudTree::addCloud);
-    connect(ui->actionSave, &QAction::triggered, ui->cloudtree, &ct::CloudTree::smartSave);
-    connect(ui->actionClose, &QAction::triggered, ui->cloudtree, &ct::CloudTree::removeSelectedClouds);
-    connect(ui->actionClose_All, &QAction::triggered, ui->cloudtree, &ct::CloudTree::removeAllClouds);
-    connect(ui->actionMerge, &QAction::triggered, ui->cloudtree, &ct::CloudTree::mergeSelectedClouds);
-    connect(ui->actionClone, &QAction::triggered, ui->cloudtree, &ct::CloudTree::cloneSelectedClouds);
+    connect(ui->actionOpen, &QAction::triggered, ui->cloudtree, &pw::CloudTree::addCloud);
+    connect(ui->actionSave, &QAction::triggered, ui->cloudtree, &pw::CloudTree::smartSave);
+    connect(ui->actionClose, &QAction::triggered, ui->cloudtree, &pw::CloudTree::removeSelectedClouds);
+    connect(ui->actionClose_All, &QAction::triggered, ui->cloudtree, &pw::CloudTree::removeAllClouds);
+    connect(ui->actionMerge, &QAction::triggered, ui->cloudtree, &pw::CloudTree::mergeSelectedClouds);
+    connect(ui->actionClone, &QAction::triggered, ui->cloudtree, &pw::CloudTree::cloneSelectedClouds);
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
 }
 
@@ -158,7 +158,7 @@ void MainWindow::setupViewMenu()
 {
     auto activeView = [this]() { return m_viewport_mgr->activeView(); };
 
-    connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &ct::CloudTree::zoomToSelected);
+    connect(ui->actionResetcamera, &QAction::triggered, ui->cloudtree, &pw::CloudTree::zoomToSelected);
     connect(ui->actionTopView, &QAction::triggered, this, [=]{ activeView()->setTopView(); });
     connect(ui->actionFrontView, &QAction::triggered, this, [=]{ activeView()->setFrontView(); });
     connect(ui->actionLeftSideView, &QAction::triggered, this, [=]{ activeView()->setLeftSideView(); });
@@ -197,26 +197,26 @@ void MainWindow::setupViewMenu()
     layoutGroup->setExclusive(true);
 
     connect(ui->actionViewportSingle, &QAction::triggered, this, [=]{
-        m_viewport_mgr->setLayout(ct::ViewportManager::Single);
+        m_viewport_mgr->setLayout(pw::ViewportManager::Single);
     });
     connect(ui->actionViewportHSplit, &QAction::triggered, this, [=]{
-        m_viewport_mgr->setLayout(ct::ViewportManager::HorizontalSplit);
+        m_viewport_mgr->setLayout(pw::ViewportManager::HorizontalSplit);
     });
     connect(ui->actionViewportVSplit, &QAction::triggered, this, [=]{
-        m_viewport_mgr->setLayout(ct::ViewportManager::VerticalSplit);
+        m_viewport_mgr->setLayout(pw::ViewportManager::VerticalSplit);
     });
     connect(ui->actionViewportTriple, &QAction::triggered, this, [=]{
-        m_viewport_mgr->setLayout(ct::ViewportManager::TripleSplit);
+        m_viewport_mgr->setLayout(pw::ViewportManager::TripleSplit);
     });
     connect(ui->actionViewportQuad, &QAction::triggered, this, [=]{
-        m_viewport_mgr->setLayout(ct::ViewportManager::QuadSplit);
+        m_viewport_mgr->setLayout(pw::ViewportManager::QuadSplit);
     });
 
-    connect(m_viewport_mgr, &ct::ViewportManager::activeViewChanged, this, [this](ct::CloudView* view) {
+    connect(m_viewport_mgr, &pw::ViewportManager::activeViewChanged, this, [this](pw::CloudView* view) {
         ui->cloudtree->setCloudView(view);
     });
 
-    connect(m_viewport_mgr, &ct::ViewportManager::viewsRecreated, this, [this]() {
+    connect(m_viewport_mgr, &pw::ViewportManager::viewsRecreated, this, [this]() {
         ui->cloudtree->setCloudView(m_viewport_mgr->activeView());
         ui->cloudtree->repopulateAllViews();
         emit ui->cloudtree->itemSelectionChanged();
@@ -291,7 +291,7 @@ void MainWindow::setupTools()
         this->createModalDialog<AlignByCentersDialog>("AlignByCenters");
     });
     connect(ui->actionPointPairsAlignment, &QAction::triggered, [=] {
-        auto* dlg = ct::createDialog<PointPairsAlignment>(
+        auto* dlg = pw::createDialog<PointPairsAlignment>(
             this, "PointPairsAlignment", m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
         if (dlg) {
             menuBar()->setEnabled(false);
@@ -342,7 +342,7 @@ void MainWindow::setupTools()
     });
 }
 
-void MainWindow::setupPythonConsole(ct::PythonConsole* python_console)
+void MainWindow::setupPythonConsole(pw::PythonConsole* python_console)
 {
     connect(ui->actionPythonConsole, &QAction::toggled, this, [this, python_console](bool checked) {
         if (checked) {
@@ -362,12 +362,12 @@ void MainWindow::setupPythonConsole(ct::PythonConsole* python_console)
     });
 
     connect(ui->actionPythonEditor, &QAction::toggled, this, [this](bool checked) {
-        static ct::PythonEditor* editor = nullptr;
+        static pw::PythonEditor* editor = nullptr;
         if (!editor) {
-            editor = new ct::PythonEditor(this);
+            editor = new pw::PythonEditor(this);
         }
         if (checked) {
-            ct::CloudView* view = m_viewport_mgr->activeView();
+            pw::CloudView* view = m_viewport_mgr->activeView();
             QPoint tl = view->mapToGlobal(QPoint(0, 0));
             QSize cvSize = view->size();
             editor->setGeometry(tl.x() + cvSize.width() / 2, tl.y(),
@@ -379,9 +379,9 @@ void MainWindow::setupPythonConsole(ct::PythonConsole* python_console)
         }
     });
 
-    auto* bridge = ct::PythonManager::instance().bridge();
+    auto* bridge = pw::PythonManager::instance().bridge();
     if (bridge) {
-        ct::connectPythonSignals(bridge, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
+        pw::connectPythonSignals(bridge, m_viewport_mgr->activeView(), ui->cloudtree, ui->console);
     }
 }
 
@@ -410,23 +410,23 @@ void MainWindow::setupThemes()
     });
 
     connect(ui->actionEnglish, &QAction::triggered, this, [=] {
-        ct::LanguageManager::instance().switchLanguage(ct::LanguageManager::English);
+        pw::LanguageManager::instance().switchLanguage(pw::LanguageManager::English);
         ui->actionEnglish->setChecked(true);
         ui->actionChinese->setChecked(false);
         QSettings settings("PointWorks", "PointWorks");
-        settings.setValue("language", static_cast<int>(ct::LanguageManager::English));
+        settings.setValue("language", static_cast<int>(pw::LanguageManager::English));
     });
     connect(ui->actionChinese, &QAction::triggered, this, [=] {
-        ct::LanguageManager::instance().switchLanguage(ct::LanguageManager::Chinese);
+        pw::LanguageManager::instance().switchLanguage(pw::LanguageManager::Chinese);
         ui->actionChinese->setChecked(true);
         ui->actionEnglish->setChecked(false);
         QSettings settings("PointWorks", "PointWorks");
-        settings.setValue("language", static_cast<int>(ct::LanguageManager::Chinese));
+        settings.setValue("language", static_cast<int>(pw::LanguageManager::Chinese));
     });
 
-    auto& langMgr = ct::LanguageManager::instance();
-    ui->actionEnglish->setChecked(langMgr.currentLanguage() == ct::LanguageManager::English);
-    ui->actionChinese->setChecked(langMgr.currentLanguage() == ct::LanguageManager::Chinese);
+    auto& langMgr = pw::LanguageManager::instance();
+    ui->actionEnglish->setChecked(langMgr.currentLanguage() == pw::LanguageManager::English);
+    ui->actionChinese->setChecked(langMgr.currentLanguage() == pw::LanguageManager::Chinese);
 }
 
 void MainWindow::setupHelp()
@@ -435,7 +435,7 @@ void MainWindow::setupHelp()
         QDesktopServices::openUrl(QUrl(OFFICIAL_WEBSITE));
     });
 
-    connect(ui->actionAbout, &QAction::triggered, this, [this] { ct::HelpLauncher::showAbout(this); });
+    connect(ui->actionAbout, &QAction::triggered, this, [this] { pw::HelpLauncher::showAbout(this); });
 }
 
 void MainWindow::setupProjectManager()
@@ -445,7 +445,7 @@ void MainWindow::setupProjectManager()
     setWindowTitle(m_project_manager->windowTitle());
     connect(ui->actionNewProject, &QAction::triggered, m_project_manager, &ProjectManager::onNewProject);
     connect(ui->actionOpenProject, &QAction::triggered, m_project_manager, &ProjectManager::onOpenProject);
-    connect(ui->cloudtree, &ct::CloudTree::requestSaveProject, this, [this](){
+    connect(ui->cloudtree, &pw::CloudTree::requestSaveProject, this, [this](){
         if (m_project_manager->currentProjectPath().isEmpty())
             m_project_manager->onSaveProjectAs();
         else
@@ -459,7 +459,7 @@ void MainWindow::setupSelectionHandling()
     connect(ui->cloudtree, &QTreeWidget::itemSelectionChanged,
             this, &MainWindow::onTreeSelectionChanged);
 
-    updateActionEnableState(ct::SelectionInfo{});
+    updateActionEnableState(pw::SelectionInfo{});
     installDragFilterOnViews();
 }
 
@@ -478,7 +478,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::moveEvent(QMoveEvent *event)
 {
-    ct::CloudView* view = m_viewport_mgr->activeView();
+    pw::CloudView* view = m_viewport_mgr->activeView();
     if (view) {
         QPoint pos = view->mapToGlobal(QPoint(0, 0));
         emit view->posChanged(pos);
@@ -495,11 +495,11 @@ void MainWindow::changeEvent(QEvent* event)
 
 void MainWindow::onTreeSelectionChanged()
 {
-    ct::SelectionInfo info = ui->cloudtree->getSelectionInfo();
+    pw::SelectionInfo info = ui->cloudtree->getSelectionInfo();
     updateActionEnableState(info);
 }
 
-void MainWindow::updateActionEnableState(const ct::SelectionInfo& info)
+void MainWindow::updateActionEnableState(const pw::SelectionInfo& info)
 {
     const bool any      = info.hasAny();
     const bool hasData  = info.hasAnySelection();

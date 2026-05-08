@@ -1,5 +1,5 @@
-#ifndef CT_EDIT_SCALE_H
-#define CT_EDIT_SCALE_H
+#ifndef PW_EDIT_SCALE_H
+#define PW_EDIT_SCALE_H
 
 #include "ui/base/customdialog.h"
 
@@ -12,7 +12,7 @@ QT_END_NAMESPACE
 #define SCALE_PRE_FLAG  "-scale"
 #define SCALE_ADD_FLAG  "scaled-"
 
-class Scale : public ct::CustomDialog {
+class Scale : public pw::CustomDialog {
     Q_OBJECT
 
 public:
@@ -31,7 +31,7 @@ private slots:
 
 private:
     Ui::Scale* ui;
-    std::map<std::string, ct::Cloud::Ptr> m_scale_map;
+    std::map<std::string, pw::Cloud::Ptr> m_scale_map;
 };
 
-#endif // CT_EDIT_SCALE_H
+#endif // PW_EDIT_SCALE_H
