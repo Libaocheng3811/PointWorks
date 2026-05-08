@@ -216,13 +216,13 @@ namespace pw
                               std::abs(focal[1] - m_last_render_focal[1]) > 0.01 ||
                               std::abs(focal[2] - m_last_render_focal[2]) > 0.01);
 
-        if (!cameraChanged) return;
-
-        m_last_render_cam = cam;
-        m_last_render_pos = Eigen::Vector3f(pos[0], pos[1], pos[2]);
-        m_last_render_focal[0] = focal[0];
-        m_last_render_focal[1] = focal[1];
-        m_last_render_focal[2] = focal[2];
+        if (cameraChanged) {
+            m_last_render_cam = cam;
+            m_last_render_pos = Eigen::Vector3f(pos[0], pos[1], pos[2]);
+            m_last_render_focal[0] = focal[0];
+            m_last_render_focal[1] = focal[1];
+            m_last_render_focal[2] = focal[2];
+        }
 
         for (auto& renderer : m_OctreeRenders) {
             renderer->update();

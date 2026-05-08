@@ -159,6 +159,10 @@ namespace pw {
         static constexpr size_t MIN_LOD_SIZE = 10000;      // 太稀疏看不清
         static constexpr size_t MAX_LOD_SIZE = 100000;     // 太密影响渲染性能
 
+        // 深度感知 LOD 容量：根节点和浅层节点需要更多点以避免缩小时的空洞
+        static constexpr size_t ROOT_MIN_LOD_SIZE = 100000;           // 根节点最少 LOD 点数
+        static constexpr size_t ABSOLUTE_MIN_LOD_PER_NODE = 5000;     // 任何非叶节点最少 LOD 点数
+
         // 默认最大深度
         static constexpr int    DEFAULT_MAX_DEPTH = 8;
     }

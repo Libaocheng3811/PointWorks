@@ -214,13 +214,13 @@ namespace pw {
         size_t effective_budget;
 
         if (m_is_interacting) {
-            // 交互模式：阈值大，预算低
+            // 交互模式：阈值适中（保证缩小时不出现空洞），预算充足
+            effective_threshold = 120.0f;
+            effective_budget = 10000000;
+        } else if (m_first_update) {
+            // 首次加载：适当降低阈值，避免大面积空洞
             effective_threshold = 300.0f;
             effective_budget = 5000000;
-        } else if (m_first_update) {
-            // 首次加载：使用高阈值只显示粗 LOD，避免一次性创建数百个 Actor 导致 UI 卡死
-            effective_threshold = 500.0f;
-            effective_budget = 3000000;
         } else {
             // 静止模式：阈值小，预算高
             effective_threshold = m_base_threshold; // e.g. 80.0f
@@ -258,6 +258,16 @@ namespace pw {
             // 2. 有子节点 (可以分裂)
             // 3. 还有预算
             bool should_split = (size > effective_threshold) && node->hasChildren() && budget_allows_split;
+
+            // 空洞回退：如果 LOD 点极少，即使屏幕投影不够大也要尝试分裂
+            // 避免渲染一个几乎为空的节点导致视觉空洞
+            // 阈值与 ABSOLUTE_MIN_LOD_PER_NODE 耦合，取其 1/10 作为触发线
+            constexpr size_t LOD_SPARSE_THRESHOLD = 500;
+            bool lod_too_sparse = !node->isLeaf()
+                                  && node->m_lod_points.size() < LOD_SPARSE_THRESHOLD
+                                  && node->hasChildren()
+                                  && budget_allows_split;
+            if (lod_too_sparse) should_split = true;
 
             if (should_split) {
                 // 分裂：将子节点加入队列，争取更好的画质

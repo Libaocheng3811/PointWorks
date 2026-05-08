@@ -1782,16 +1782,23 @@ namespace pw
         // 我们需要从 8 个子节点中汇聚点，然后选出代表当前节点的 LOD
 
         // 如果当前节点已有足够的 LOD 数据（来自加载时蓄水池采样），跳过重建
-        size_t target_lod_size = m_config.maxLODPoints;
-        if (target_lod_size == 0) return;
+        if (m_config.maxLODPoints == 0) return;
 
-        if (!node->m_lod_points.empty() &&
-            node->m_lod_points.size() >= target_lod_size * 0.8) {
-            for (int i = 0; i < 8; ++i) {
-                if (node->m_children[i]) generateLODRecursive(node->m_children[i].get());
-            }
-            return;
+        // 深度感知 LOD 容量：浅层节点覆盖更大面积，需要更多点
+        size_t target_lod_size;
+        if (node->m_depth == 0) {
+            target_lod_size = std::max(m_config.maxLODPoints * 4,
+                                       AutoOctreeConfig::ROOT_MIN_LOD_SIZE);
+        } else if (node->m_depth <= 2) {
+            float depthFactor = 1.0f + (3.0f - node->m_depth) * 0.5f;
+            target_lod_size = static_cast<size_t>(m_config.maxLODPoints * depthFactor);
+            target_lod_size = std::max(target_lod_size,
+                                       AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE);
+        } else {
+            target_lod_size = m_config.maxLODPoints;
         }
+        // 硬上限防止内存爆炸
+        target_lod_size = std::min(target_lod_size, AutoOctreeConfig::MAX_LOD_SIZE * 2);
 
         std::vector<LODPoint> candidates;
 
@@ -1847,12 +1854,48 @@ namespace pw
         // 对候选点进行最终降采样 (Downsampling)
         // 如果收集到的点总数超过了当前节点的预算，随机打乱并截断
         if (candidates.size() > target_lod_size) {
-            // 使用随机洗牌来实现均匀采样，避免只保留了前几个子节点的点
-            static std::random_device rd;
-            static std::mt19937 g(rd());
-            std::shuffle(candidates.begin(), candidates.end(), g);
+            // 使用实例级 RNG（线程安全），避免 static 共享
+            std::shuffle(candidates.begin(), candidates.end(), m_rng);
 
             candidates.resize(target_lod_size);
+        }
+
+        // 最小点数保障：如果候选点不足，确保至少有 ABSOLUTE_MIN_LOD_PER_NODE
+        // 避免缩放时某些节点 LOD 极少导致视觉空洞
+        // 注意：如果所有子节点都为空（稀疏八叉树分支），此保障无法满足
+        if (candidates.size() < AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE
+            && node->hasChildren()) {
+            // 使用 step/2 偏移量采样，避免与前一循环产生完全相同的索引
+            for (int i = 0; i < 8 && candidates.size() < AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE; ++i) {
+                OctreeNode* child = node->m_children[i].get();
+                if (!child) continue;
+                if (child->isLeaf() && child->m_block && !child->m_block->empty()) {
+                    size_t need = AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE - candidates.size();
+                    size_t block_size = child->m_block->size();
+                    size_t step = std::max((size_t)1, block_size / need);
+                    size_t offset = step / 2; // 偏移半个步长，减少与前一轮采样的重复
+                    for (size_t k = offset; k < block_size && candidates.size() < AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE; k += step) {
+                        LODPoint p;
+                        const auto& src_pt = child->m_block->m_points[k];
+                        p.x = src_pt.x; p.y = src_pt.y; p.z = src_pt.z; p._pad = 0;
+                        if (child->m_block->m_colors) {
+                            const auto& c = (*child->m_block->m_colors)[k];
+                            p.r = c.r; p.g = c.g; p.b = c.b;
+                        } else {
+                            p.r = 255; p.g = 255; p.b = 255;
+                        }
+                        candidates.push_back(p);
+                    }
+                } else if (!child->isLeaf() && !child->m_lod_points.empty()) {
+                    size_t need = AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE - candidates.size();
+                    size_t child_lod_size = child->m_lod_points.size();
+                    size_t step = std::max((size_t)1, child_lod_size / need);
+                    size_t offset = step / 2;
+                    for (size_t k = offset; k < child_lod_size && candidates.size() < AutoOctreeConfig::ABSOLUTE_MIN_LOD_PER_NODE; k += step) {
+                        candidates.push_back(child->m_lod_points[k]);
+                    }
+                }
+            }
         }
 
         // 存入当前节点
