@@ -139,10 +139,18 @@ namespace pw {
     }
 
     CloudBlock::Ptr OctreeRenderer::getBlockFromActor(vtkActor* actor) {
-        // 反查 (性能较低，仅用于拾取，平时不调用)
         for (auto& pair : m_actor_cache) {
             if (pair.second == actor) {
-                return pair.first->m_block; // 注意：如果是 LOD 节点，这里 m_block 可能为空或是父节点
+                return pair.first->m_block;
+            }
+        }
+        return nullptr;
+    }
+
+    OctreeNode* OctreeRenderer::getNodeFromActor(vtkActor* actor) {
+        for (auto& pair : m_actor_cache) {
+            if (pair.second == actor) {
+                return pair.first;
             }
         }
         return nullptr;

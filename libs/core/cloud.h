@@ -66,6 +66,11 @@ namespace pw
         OctreeNode* getOctreeRoot() const { return m_octree_root.get(); }
 
         /**
+         * @brief 查找包含指定坐标的叶子 block（用于拾取时获取标量场数据）
+         */
+        CloudBlock* findBlockForPoint(float x, float y, float z) const;
+
+        /**
          * @brief 获取第一个点坐标（安全访问，无需了解 block 布局）
          * @return true 成功获取，false 点云为空
          */

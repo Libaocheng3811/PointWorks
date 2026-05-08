@@ -42,6 +42,7 @@ namespace pw{
 
         std::vector<vtkActor*> getActiveActors() const;
         CloudBlock::Ptr getBlockFromActor(vtkActor* actor);
+        OctreeNode* getNodeFromActor(vtkActor* actor);
         pw::Cloud::Ptr getCloud() const {return m_cloud; }
 
     private:

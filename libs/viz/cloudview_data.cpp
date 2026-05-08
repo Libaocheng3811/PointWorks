@@ -973,6 +973,7 @@ namespace pw
             for (auto it = m_OctreeRenders.begin(); it != m_OctreeRenders.end(); ++it) {
                 auto block = it.value()->getBlockFromActor(actor);
                 if (block) {
+                    // 叶子节点：直接从 block 读取
                     result.valid = true;
                     result.cloud = it.value()->getCloud();
 
@@ -1000,6 +1001,46 @@ namespace pw
                     }
 
                     return result;
+                }
+                else {
+                    // LOD 节点：从 LOD 点和最近叶节点获取数据
+                    auto* node = it.value()->getNodeFromActor(actor);
+                    if (node && !node->isLeaf() && pointId < (vtkIdType)node->m_lod_points.size()) {
+                        result.valid = true;
+                        result.cloud = it.value()->getCloud();
+
+                        const auto& lp = node->m_lod_points[pointId];
+                        result.point.x = lp.x; result.point.y = lp.y; result.point.z = lp.z;
+                        result.point.r = lp.r; result.point.g = lp.g; result.point.b = lp.b;
+                        result.point.normal_x = 0; result.point.normal_y = 0; result.point.normal_z = 0;
+
+                        // 通过坐标查找最近的叶 block 来获取标量场
+                        auto cloud = it.value()->getCloud();
+                        auto leafBlock = cloud->findBlockForPoint(lp.x, lp.y, lp.z);
+                        if (leafBlock && !leafBlock->empty()) {
+                            // 找最近点获取标量值
+                            float best_dist = std::numeric_limits<float>::max();
+                            size_t best_idx = 0;
+                            for (size_t k = 0; k < leafBlock->size(); ++k) {
+                                float dx = leafBlock->m_points[k].x - lp.x;
+                                float dy = leafBlock->m_points[k].y - lp.y;
+                                float dz = leafBlock->m_points[k].z - lp.z;
+                                float d = dx*dx + dy*dy + dz*dz;
+                                if (d < best_dist) { best_dist = d; best_idx = k; }
+                            }
+                            if (!leafBlock->m_scalar_fields.empty()) {
+                                for (auto& sf : leafBlock->m_scalar_fields) {
+                                    result.scalars.insert(QString::fromStdString(sf.first), sf.second[best_idx]);
+                                }
+                            }
+                            if (leafBlock->m_normals) {
+                                Eigen::Vector3f n = (*leafBlock->m_normals)[best_idx].get();
+                                result.point.normal_x = n.x(); result.point.normal_y = n.y(); result.point.normal_z = n.z();
+                            }
+                        }
+
+                        return result;
+                    }
                 }
             }
         }

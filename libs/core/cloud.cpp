@@ -1371,7 +1371,12 @@ namespace pw
 
             for (size_t i = 0; i < count; ++i) {
                 float v = data[i];
-                if (std::isnan(v)) continue;
+                if (std::isnan(v)) {
+                    (*block->m_colors)[i].r = 180;
+                    (*block->m_colors)[i].g = 180;
+                    (*block->m_colors)[i].b = 180;
+                    continue;
+                }
 
                 float norm = (v - min_v) / range;
                 if (norm < 0.0f) norm = 0.0f;
@@ -1918,7 +1923,16 @@ namespace pw
         if (y >= node->m_box.translation.y()) index |= 2;
         if (z >= node->m_box.translation.z()) index |= 4;
 
+        if (!node->m_children[index]) return nullptr;
         return findLeafBlockForPoint(node->m_children[index].get(), x, y, z);
+    }
+
+    CloudBlock* Cloud::findBlockForPoint(float x, float y, float z) const
+    {
+        if (!m_octree_root) return nullptr;
+        if (!m_config.enableOctree && m_octree_root->isLeaf())
+            return m_octree_root->m_block.get();
+        return findLeafBlockForPoint(m_octree_root.get(), x, y, z);
     }
 
     void Cloud::refreshLODColorsFromBlocks(OctreeNode* node)
