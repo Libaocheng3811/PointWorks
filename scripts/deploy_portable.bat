@@ -11,7 +11,7 @@ if not exist "%DIST_DIR%\pointworks.exe" (
     exit /b 1
 )
 
-set VERSION=1.0.0
+set VERSION=0.9.0-beta
 set ZIP_NAME=PointWorks-%VERSION%-Portable
 
 echo Creating portable ZIP: %ZIP_NAME%.zip

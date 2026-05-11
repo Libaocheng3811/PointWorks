@@ -7,7 +7,7 @@
 ; ============================================================
 
 #define MyAppName "PointWorks"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "0.9.0-beta"
 #define MyAppPublisher "PointWorks"
 #define MyAppExeName "pointworks.exe"
 #define MyAppURL ""
