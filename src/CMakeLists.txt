@@ -127,3 +127,105 @@ target_link_libraries(pointworks PRIVATE
     pybind11::embed
     Python3::Python
 )
+
+# Post-build: Deploy third-party DLLs for running from build directory
+if(WIN32 AND NOT CMAKE_CROSSCOMPILING)
+
+    # --- Qt: locate windeployqt from Qt5::Core DLL path ---
+    get_target_property(_Qt5_DLL Qt5::Core IMPORTED_LOCATION_RELEASE)
+    if(NOT _Qt5_DLL)
+        get_target_property(_Qt5_DLL Qt5::Core IMPORTED_LOCATION_DEBUG)
+    endif()
+    if(_Qt5_DLL)
+        get_filename_component(_Qt5_BIN "${_Qt5_DLL}" DIRECTORY)
+        find_program(WINDEPLOYQT_EXE windeployqt HINTS "${_Qt5_BIN}" NO_DEFAULT_PATH)
+    endif()
+    if(WINDEPLOYQT_EXE)
+        add_custom_command(TARGET pointworks POST_BUILD
+            COMMAND "${WINDEPLOYQT_EXE}"
+                --$<LOWER_CASE:$<CONFIG>>
+                --no-translations --no-opengl-sw
+                "$<TARGET_FILE:pointworks>"
+            COMMENT "Deploying Qt DLLs..."
+        )
+    else()
+        message(WARNING "windeployqt not found - Qt DLLs won't be auto-deployed")
+    endif()
+
+    # --- PCL: derive root from PCL_DIR ---
+    get_filename_component(_PCL_ROOT "${PCL_DIR}" DIRECTORY)
+    if(NOT EXISTS "${_PCL_ROOT}/include/pcl-${PCL_VERSION_MAJOR}.${PCL_VERSION_MINOR}")
+        set(_PCL_ROOT "${PCL_DIR}")
+    endif()
+
+    # --- VTK: derive bin dir ---
+    # Method 1: from imported target (VTK 9.x uses VTK:: prefix)
+    set(_VTK_BIN "")
+    if(TARGET VTK::CommonCore)
+        get_target_property(_vtk_lib VTK::CommonCore IMPORTED_LOCATION_RELEASE)
+        if(NOT _vtk_lib)
+            get_target_property(_vtk_lib VTK::CommonCore IMPORTED_LOCATION_DEBUG)
+        endif()
+    elseif(TARGET vtkCommonCore)
+        get_target_property(_vtk_lib vtkCommonCore IMPORTED_LOCATION_RELEASE)
+        if(NOT _vtk_lib)
+            get_target_property(_vtk_lib vtkCommonCore IMPORTED_LOCATION_DEBUG)
+        endif()
+    endif()
+    if(_vtk_lib)
+        get_filename_component(_vtk_lib_dir "${_vtk_lib}" DIRECTORY)
+        get_filename_component(_vtk_root "${_vtk_lib_dir}" DIRECTORY)
+        if(EXISTS "${_vtk_root}/bin")
+            set(_VTK_BIN "${_vtk_root}/bin")
+        endif()
+    endif()
+    # Method 2: PCL All-in-One standard layout
+    if(NOT _VTK_BIN AND EXISTS "${_PCL_ROOT}/3rdParty/VTK/bin")
+        set(_VTK_BIN "${_PCL_ROOT}/3rdParty/VTK/bin")
+    endif()
+
+    # --- Python: exact DLL paths from find_package(Python3) ---
+    set(_PYTHON_DLL_RELEASE "${Python3_RUNTIME_LIBRARY_RELEASE}")
+    set(_PYTHON_DLL_DEBUG "${Python3_RUNTIME_LIBRARY_DEBUG}")
+    set(_PYTHON_STABLE_DLL "")
+    if(_PYTHON_DLL_RELEASE)
+        get_filename_component(_PYTHON_BIN "${_PYTHON_DLL_RELEASE}" DIRECTORY)
+        if(EXISTS "${_PYTHON_BIN}/python3.dll")
+            set(_PYTHON_STABLE_DLL "${_PYTHON_BIN}/python3.dll")
+        endif()
+    endif()
+
+    # --- Collect DLL source directories ---
+    set(_DLL_DIRS "")
+    if(EXISTS "${_PCL_ROOT}/bin")
+        list(APPEND _DLL_DIRS "${_PCL_ROOT}/bin")
+    endif()
+    if(_VTK_BIN)
+        list(APPEND _DLL_DIRS "${_VTK_BIN}")
+    endif()
+    foreach(_lib FLANN Qhull Boost)
+        if(EXISTS "${_PCL_ROOT}/3rdParty/${_lib}/bin")
+            list(APPEND _DLL_DIRS "${_PCL_ROOT}/3rdParty/${_lib}/bin")
+        endif()
+    endforeach()
+
+    string(REPLACE ";" "|" _DLL_DIRS_STR "${_DLL_DIRS}")
+
+    # --- Write config file (avoids cmd.exe quoting issues with spaces in paths) ---
+    file(WRITE "${CMAKE_BINARY_DIR}/deploy_config.cmake"
+        "set(DLL_DIRS \"${_DLL_DIRS_STR}\")\n"
+        "set(PYTHON_DLL_RELEASE \"${_PYTHON_DLL_RELEASE}\")\n"
+        "set(PYTHON_DLL_DEBUG \"${_PYTHON_DLL_DEBUG}\")\n"
+        "set(PYTHON_STABLE_DLL \"${_PYTHON_STABLE_DLL}\")\n"
+    )
+
+    add_custom_command(TARGET pointworks POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOUT_DIR="$<TARGET_FILE_DIR:pointworks>"
+            -DCONFIG="$<CONFIG>"
+            -DCONFIG_FILE="${CMAKE_BINARY_DIR}/deploy_config.cmake"
+            -P "${CMAKE_SOURCE_DIR}/cmake/deploy_dlls.cmake"
+        COMMENT "Deploying PCL/VTK/Python DLLs..."
+    )
+
+endif()
