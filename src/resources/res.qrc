@@ -515,7 +515,7 @@
     <file>icon/zoom-pixels.svg</file>
     <file>icon/zoom-previous.svg</file>
     <file>icon/folder.svg</file>
-    <file>logo/logo.png</file>
+    <file>logo/logo.svg</file>
     <file>logo/PointWorks.svg</file>
   </qresource>
 </RCC>

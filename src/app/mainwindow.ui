@@ -313,7 +313,7 @@
       <number>3</number>
      </property>
      <item>
-      <widget class="ct::CloudTree" name="cloudtree">
+      <widget class="pw::CloudTree" name="cloudtree">
        <property name="font">
         <font>
          <family>Microsoft YaHei UI</family>
@@ -583,7 +583,7 @@ QScrollBar::sub-line:horizontal {
     <property name="tabsClosable">
      <bool>true</bool>
     </property>
-    <widget class="ct::Console" name="console">
+    <widget class="pw::Console" name="console">
      <attribute name="title">
       <string>Report Console</string>
      </attribute>
@@ -1693,15 +1693,15 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportSingle">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon2/singleView</normaloff>:/res/icon2/singleView</iconset>
-   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="checked">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/res/icon2/singleView</normaloff>:/res/icon2/singleView</iconset>
    </property>
    <property name="text">
     <string>Single Viewport</string>
@@ -1714,12 +1714,12 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportHSplit">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon2/horizontal_split</normaloff>:/res/icon2/horizontal_split</iconset>
-   </property>
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/res/icon2/horizontal_split</normaloff>:/res/icon2/horizontal_split</iconset>
    </property>
    <property name="text">
     <string>Horizontal Split</string>
@@ -1732,12 +1732,12 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportVSplit">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon2/vertical_split</normaloff>:/res/icon2/vertical_split</iconset>
-   </property>
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/res/icon2/vertical_split</normaloff>:/res/icon2/vertical_split</iconset>
    </property>
    <property name="text">
     <string>Vertical Split</string>
@@ -1750,12 +1750,12 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportTriple">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon2/triple_split</normaloff>:/res/icon2/triple_split</iconset>
-   </property>
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/res/icon2/triple_split</normaloff>:/res/icon2/triple_split</iconset>
    </property>
    <property name="text">
     <string>Triple Split</string>
@@ -1768,12 +1768,12 @@ QScrollBar::sub-line:horizontal {
    </property>
   </action>
   <action name="actionViewportQuad">
-   <property name="icon">
-    <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon2/quad_split</normaloff>:/res/icon2/quad_split</iconset>
-   </property>
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/res/icon2/quad_split</normaloff>:/res/icon2/quad_split</iconset>
    </property>
    <property name="text">
     <string>Quad Split</string>
@@ -1788,8 +1788,7 @@ QScrollBar::sub-line:horizontal {
   <action name="actionScreenshot">
    <property name="icon">
     <iconset resource="../resources/res.qrc">
-     <normaloff>:/res/icon/screenshoot.svg</normaloff>:/res/icon/screenshoot.svg
-    </iconset>
+     <normaloff>:/res/icon/screenshoot.svg</normaloff>:/res/icon/screenshoot.svg</iconset>
    </property>
    <property name="text">
     <string>Screenshot</string>
@@ -1810,18 +1809,12 @@ QScrollBar::sub-line:horizontal {
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ct::CloudView</class>
-   <extends>QWidget</extends>
-   <header location="global">viz/cloudview.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ct::CloudTree</class>
+   <class>pw::CloudTree</class>
    <extends>QTreeWidget</extends>
    <header>ui/base/cloudtree.h</header>
   </customwidget>
   <customwidget>
-   <class>ct::Console</class>
+   <class>pw::Console</class>
    <extends>QTextBrowser</extends>
    <header>viz/console.h</header>
   </customwidget>
