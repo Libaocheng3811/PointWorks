@@ -105,10 +105,12 @@ cmake --build build --config Release
 
 ### 环境变量
 
+以下路径仅为示例，请替换为你本机的实际安装路径：
+
 ```bat
-set QT_DIR=D:\Qt\5.15.2\msvc2019_64      :: Qt 安装路径
-set PCL_DIR=D:\LibCommunity\PCL 1.12.1    :: PCL 根目录
-set PYTHON_HOME=D:\Python39                :: Python 路径（可选）
+set QT_DIR=<你的Qt安装路径>            :: 例如 D:\Qt\5.15.2\msvc2019_64
+set PCL_DIR=<你的PCL根目录>            :: 例如 D:\LibCommunity\PCL 1.12.1
+set PYTHON_HOME=<你的Python路径>       :: 可选，例如 D:\Python39
 ```
 
 ## 打包发布
@@ -134,13 +136,9 @@ scripts\deploy_portable.bat
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\pointworks.iss
 ```
 
-### 3. 发布到 GitHub
+### 3. 发布
 
-1. 访问 [GitHub Releases](https://github.com/Libaocheng3811/PointWorks/releases)
-2. 点击 **Draft a new release**
-3. 创建 tag `v0.9.0-beta`，target 选择 `main`
-4. 上传 ZIP 和 EXE 安装包
-5. 发布
+将生成的安装包上传到 [GitHub Releases](https://github.com/Libaocheng3811/PointWorks/releases)，创建新 tag 并发布即可。
 
 ## 许可证
 
